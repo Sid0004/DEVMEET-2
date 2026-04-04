@@ -1,0 +1,442 @@
+.layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: var(--color-background);
+}
+
+/* ─── Sidebar ─── */
+.sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  height: 100vh;
+  width: 260px;
+  background-color: var(--color-surface-container-low);
+  display: flex;
+  flex-direction: column;
+  z-index: 50;
+}
+
+.sidebarHeader {
+  padding: 2rem 2rem 1.5rem;
+}
+
+.sidebarHeader h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--color-on-surface);
+}
+
+.sidebarContent {
+  flex: 1;
+  padding: 0 1rem;
+}
+
+.projectInfo {
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  background-color: var(--color-surface-container);
+  border-radius: 1rem;
+}
+
+.statusLabel {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-on-surface-variant);
+  margin-bottom: 0.25rem;
+}
+
+.statusActive {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-secondary);
+}
+
+.navMenu {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.navItem,
+.navItemActive {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.75rem 1rem;
+  border-radius: 1rem;
+  text-decoration: none;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.navItem {
+  color: var(--color-on-surface-variant);
+}
+
+.navItem:hover {
+  background-color: var(--color-surface-container);
+  transform: translateX(4px);
+}
+
+.navItemActive {
+  background-color: var(--color-surface-container-lowest);
+  color: var(--color-secondary);
+  font-weight: 600;
+  box-shadow: var(--shadow-ambient);
+}
+
+.sidebarFooter {
+  padding: 1.5rem;
+}
+
+.inviteBtn {
+  width: 100%;
+  padding: 1rem;
+  background-color: var(--color-secondary);
+  color: var(--color-on-secondary);
+  border-radius: 1rem;
+  border: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: filter 0.2s ease;
+}
+
+.inviteBtn:hover {
+  filter: brightness(1.1);
+}
+
+/* ─── Main Canvas ─── */
+.mainCanvas {
+  margin-left: 260px;
+  flex: 1;
+  padding: 3rem 4rem;
+  max-width: 1400px;
+}
+
+.header {
+  margin-bottom: 4rem;
+}
+
+.headerKicker {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  color: var(--color-on-surface-variant);
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.headline {
+  font-size: 4rem;
+  line-height: 1.1;
+  font-style: italic;
+  max-width: 900px;
+  font-weight: 400;
+}
+
+/* ─── Bento Grid ─── */
+.bentoGrid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 2rem;
+  margin-bottom: 4rem;
+}
+
+/* Create Room Card */
+.createRoomCard {
+  background-color: var(--color-surface-container-low);
+  padding: 3rem;
+  border-radius: 1.5rem;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.iconCircle {
+  width: 3rem;
+  height: 3rem;
+  background-color: var(--color-tertiary-fixed);
+  color: var(--color-on-surface);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+}
+
+.cardTitle {
+  font-size: 2rem;
+  font-weight: 400;
+}
+
+.formContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.inputGroup label {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-on-surface-variant);
+}
+
+.inputField {
+  background-color: var(--color-surface-container-lowest);
+  border: var(--border-ghost);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  font-size: 1rem;
+  font-family: var(--font-manrope);
+  transition: box-shadow 0.2s ease;
+}
+
+.inputField:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-secondary);
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.submitBtn {
+  padding: 1rem 2.5rem;
+  background-color: var(--color-secondary);
+  color: var(--color-on-secondary);
+  border-radius: 9999px;
+  border: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.submitBtn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-2px);
+}
+
+/* Join Room Card */
+.joinRoomCard {
+  background: linear-gradient(135deg, var(--color-on-surface) 0%, #2d3133 100%);
+  color: var(--color-surface-container-lowest);
+  padding: 2.5rem;
+  border-radius: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.joinTitle {
+  font-size: 2rem;
+  font-style: italic;
+  margin-bottom: 1rem;
+  color: var(--color-surface-bright);
+  font-weight: 400;
+}
+
+.joinDescription {
+  font-size: 0.875rem;
+  color: var(--color-outline-variant);
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+
+.joinInputBox {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.joinInput {
+  background-color: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 1rem;
+  border-radius: 0.75rem;
+  color: var(--color-surface-bright);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.875rem;
+  transition: border-color 0.2s ease;
+}
+
+.joinInput:focus {
+  outline: none;
+  border-color: var(--color-tertiary-fixed);
+}
+
+.enterRoomBtn {
+  padding: 1rem;
+  background-color: var(--color-tertiary-fixed);
+  color: var(--color-on-surface);
+  border-radius: 0.75rem;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  transition: filter 0.2s ease;
+}
+
+.enterRoomBtn:hover {
+  filter: brightness(1.1);
+}
+
+/* ─── Recent Activity ─── */
+.recentActivity {
+  margin-top: 2rem;
+}
+
+.recentHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 2rem;
+}
+
+.recentTitle {
+  font-size: 2rem;
+  font-style: italic;
+  margin-bottom: 0.5rem;
+  font-weight: 400;
+}
+
+.recentSubtitle {
+  color: var(--color-on-surface-variant);
+  font-size: 0.875rem;
+}
+
+.viewAllBtn {
+  color: var(--color-secondary);
+  border: none;
+  background: none;
+  border-bottom: 2px solid var(--color-secondary);
+  padding-bottom: 0.25rem;
+  cursor: pointer;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: opacity 0.2s ease;
+}
+
+.viewAllBtn:hover {
+  opacity: 0.8;
+}
+
+.activityGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+}
+
+.activityCard {
+  background-color: var(--color-surface-container-lowest);
+  padding: 2rem;
+  border-radius: 1.25rem;
+  box-shadow: var(--shadow-ambient);
+  transition: transform 0.2s ease;
+}
+
+.activityCard:hover {
+  transform: translateY(-4px);
+}
+
+.cardMeta {
+  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.badgeActive {
+  background-color: rgba(0, 81, 213, 0.1);
+  color: var(--color-secondary);
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+}
+
+.badgeInactive {
+  background-color: var(--color-surface-container-low);
+  color: var(--color-on-surface-variant);
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.activityName {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+  font-weight: 400;
+}
+
+.activityDesc {
+  font-size: 0.75rem;
+  color: var(--color-on-surface-variant);
+}
+
+/* ─── Live Banner ─── */
+.liveBanner {
+  margin-top: 4rem;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-container) 100%);
+  border-radius: 1.5rem;
+  padding: 3rem;
+  color: var(--color-surface-bright);
+}
+
+.liveBannerContent {
+  max-width: 700px;
+}
+
+/* ─── Footer ─── */
+.footer {
+  margin-top: 4rem;
+  padding-top: 3rem;
+  border-top: var(--border-ghost);
+}
+
+.footerBrand {
+  margin-bottom: 1.5rem;
+}
+
+.footerLinks {
+  display: flex;
+  gap: 2rem;
+}
+
+.footerLinks a {
+  font-size: 0.75rem;
+  color: var(--color-on-surface-variant);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.footerLinks a:hover {
+  color: var(--color-secondary);
+}

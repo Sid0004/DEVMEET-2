@@ -1,0 +1,346 @@
+.page {
+  min-height: 100vh;
+  background-color: var(--color-background);
+}
+
+/* ─── Navigation ─── */
+.navBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 3rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.navLeft {
+  display: flex;
+  align-items: center;
+  gap: 3rem;
+}
+
+.logo {
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  text-decoration: none;
+  color: var(--color-on-surface);
+}
+
+.navLinks {
+  display: flex;
+  gap: 2rem;
+}
+
+.navLinks a {
+  font-size: 0.875rem;
+  color: var(--color-on-surface-variant);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.navLinks a:hover {
+  color: var(--color-secondary);
+}
+
+.navLinkActive {
+  color: var(--color-secondary) !important;
+  font-weight: 600;
+}
+
+.navRight {
+  display: flex;
+  align-items: center;
+}
+
+.ctaBtn {
+  padding: 0.625rem 1.5rem;
+  background-color: var(--color-secondary);
+  color: var(--color-on-secondary);
+  border-radius: 9999px;
+  text-decoration: none;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.ctaBtn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+/* ─── Hero Section ─── */
+.hero {
+  text-align: center;
+  padding: 5rem 2rem 4rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.heroKicker {
+  font-size: 0.75rem;
+  letter-spacing: 0.15em;
+  color: var(--color-secondary);
+  display: block;
+  margin-bottom: 1.5rem;
+}
+
+.heroHeadline {
+  font-size: 4rem;
+  line-height: 1.1;
+  font-weight: 400;
+  margin-bottom: 1.5rem;
+  color: var(--color-on-surface);
+}
+
+.heroAccent {
+  color: var(--color-secondary);
+}
+
+.heroSub {
+  font-size: 1.125rem;
+  color: var(--color-on-surface-variant);
+  line-height: 1.6;
+  max-width: 550px;
+  margin: 0 auto;
+}
+
+/* ─── Pricing Section ─── */
+.pricingSection {
+  padding: 2rem 2rem 6rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.pricingGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  align-items: start;
+}
+
+.pricingCard {
+  background-color: var(--color-surface-container-lowest);
+  border-radius: 1.5rem;
+  padding: 2.5rem;
+  box-shadow: var(--shadow-ambient);
+  transition: transform 0.3s ease;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.pricingCard:hover {
+  transform: translateY(-6px);
+}
+
+.pricingCardFeatured {
+  background: linear-gradient(135deg, var(--color-on-surface) 0%, #2d3133 100%);
+  color: var(--color-surface-bright);
+  box-shadow: 0px 24px 48px rgba(25, 28, 30, 0.15);
+}
+
+.featuredBadge {
+  position: absolute;
+  top: -0.75rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: var(--color-tertiary-fixed);
+  color: var(--color-on-surface);
+  padding: 0.25rem 1rem;
+  border-radius: 9999px;
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.cardTop {
+  margin-bottom: 2rem;
+}
+
+.tierLabel {
+  font-size: 0.6875rem;
+  letter-spacing: 0.15em;
+  color: var(--color-on-surface-variant);
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.pricingCardFeatured .tierLabel {
+  color: var(--color-outline-variant);
+}
+
+.priceRow {
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+}
+
+.price {
+  font-size: 3.5rem;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.pricePeriod {
+  font-size: 0.875rem;
+  color: var(--color-on-surface-variant);
+}
+
+.pricingCardFeatured .pricePeriod {
+  color: var(--color-outline-variant);
+}
+
+.tierDesc {
+  font-size: 0.875rem;
+  color: var(--color-on-surface-variant);
+  line-height: 1.5;
+}
+
+.pricingCardFeatured .tierDesc {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.featureList {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2.5rem;
+  flex: 1;
+}
+
+.featureList li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.tierBtn {
+  width: 100%;
+  padding: 1rem;
+  border-radius: 9999px;
+  border: 2px solid var(--color-secondary);
+  background: none;
+  color: var(--color-secondary);
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.tierBtn:hover {
+  background-color: var(--color-secondary);
+  color: var(--color-on-secondary);
+}
+
+.tierBtnFeatured {
+  background-color: var(--color-tertiary-fixed);
+  color: var(--color-on-surface);
+  border-color: var(--color-tertiary-fixed);
+}
+
+.tierBtnFeatured:hover {
+  filter: brightness(1.1);
+  background-color: var(--color-tertiary-fixed);
+  color: var(--color-on-surface);
+  border-color: var(--color-tertiary-fixed);
+}
+
+/* ─── Features Section ─── */
+.featuresSection {
+  padding: 6rem 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.featuresHeader {
+  text-align: center;
+  margin-bottom: 4rem;
+}
+
+.featuresHeadline {
+  font-size: 3rem;
+  font-weight: 400;
+  margin-bottom: 1rem;
+}
+
+.featuresGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2rem;
+}
+
+.featureCard {
+  background-color: var(--color-surface-container-lowest);
+  border-radius: 1.5rem;
+  padding: 2.5rem;
+  box-shadow: var(--shadow-ambient);
+  transition: transform 0.2s ease;
+}
+
+.featureCard:hover {
+  transform: translateY(-4px);
+}
+
+.featureIconCircle {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
+
+.codeSnippet {
+  background-color: var(--color-on-surface);
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
+}
+
+/* ─── Footer ─── */
+.footer {
+  background-color: var(--color-surface-container-low);
+  padding: 4rem 2rem 2rem;
+  margin-top: 2rem;
+}
+
+.footerGrid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 3rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding-bottom: 3rem;
+  border-bottom: var(--border-ghost);
+}
+
+.footerBrand {
+  max-width: 280px;
+}
+
+.footerCol {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.footerCol a {
+  font-size: 0.875rem;
+  color: var(--color-on-surface-variant);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.footerCol a:hover {
+  color: var(--color-secondary);
+}
+
+.footerBottom {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding-top: 1.5rem;
+}
