@@ -1,0 +1,123 @@
+.loginContainer {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-background);
+  padding: 2rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.loginGlow {
+  position: absolute;
+  top: -10%;
+  right: -10%;
+  width: 50%;
+  height: 50%;
+  background: radial-gradient(circle, rgba(0, 81, 213, 0.08) 0%, transparent 70%);
+  filter: blur(80px);
+  z-index: 1;
+}
+
+.loginCard {
+  background-color: var(--color-surface-container-lowest);
+  padding: 3.5rem;
+  border-radius: 2rem;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.04);
+  position: relative;
+  z-index: 2;
+  border: 1px solid rgba(0, 0, 0, 0.03);
+}
+
+.loginHeader {
+  margin-bottom: 2.5rem;
+  text-align: center;
+}
+
+.loginTitle {
+  font-size: 2.5rem;
+  margin-bottom: 0.75rem;
+  color: var(--color-on-surface);
+}
+
+.loginSubtitle {
+  color: var(--color-on-surface-variant);
+  font-size: 1rem;
+}
+
+.formGroup {
+  margin-bottom: 1.5rem;
+}
+
+.label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-on-surface);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.input {
+  width: 100%;
+  padding: 1rem 1.25rem;
+  border-radius: 1rem;
+  border: 1px solid var(--color-surface-container-high);
+  background-color: var(--color-surface-container-low);
+  font-family: var(--font-manrope);
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--color-secondary);
+  background-color: var(--color-surface-container-lowest);
+  box-shadow: 0 0 0 4px rgba(0, 81, 213, 0.05);
+}
+
+.loginBtn {
+  width: 100%;
+  padding: 1.125rem;
+  border-radius: 1rem;
+  background-color: var(--color-secondary);
+  color: white;
+  border: none;
+  font-family: var(--font-space-grotesk);
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-top: 1rem;
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.loginBtn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-2px);
+}
+
+.loginBtn:active {
+  transform: translateY(0);
+}
+
+.footerLinks {
+  margin-top: 2rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--color-on-surface-variant);
+}
+
+.signupLink {
+  color: var(--color-secondary);
+  font-weight: 600;
+  text-decoration: none;
+  margin-left: 0.5rem;
+}
+
+.signupLink:hover {
+  text-decoration: underline;
+}

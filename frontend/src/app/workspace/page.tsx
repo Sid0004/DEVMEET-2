@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import styles from './workspace.module.css';
 
 export default function Workspace() {
@@ -32,10 +33,10 @@ export default function Workspace() {
           </a>
         </nav>
         <div className={styles.sidebarFooter}>
-          <button className={styles.inviteBtn}>
+          <Link href="/dashboard" className={styles.inviteBtn}>
             <span className="material-symbols-outlined" style={{ fontSize: '1rem', marginRight: '0.5rem' }}>person_add</span>
             <span className="font-tech uppercase">Invite Pair</span>
-          </button>
+          </Link>
         </div>
       </aside>
 
@@ -68,10 +69,10 @@ export default function Workspace() {
                 <div className={styles.avatar} style={{ backgroundColor: 'var(--color-tertiary-fixed)', color: 'var(--color-on-surface)' }}>You</div>
               </div>
             </div>
-            <button className={styles.runCodeBtn}>
+            <Link href="/pricing" className={styles.runCodeBtn}>
               <span className="material-symbols-outlined" style={{ fontSize: '1.125rem', marginRight: '0.375rem' }}>play_arrow</span>
               <span className="font-tech">Run Code</span>
-            </button>
+            </Link>
           </div>
         </header>
 
@@ -190,9 +191,9 @@ export default function Workspace() {
         </div>
 
         {/* Floating AI Action Button */}
-        <button className={styles.fabBtn}>
+        <Link href="/dashboard" className={styles.fabBtn}>
           <span className="material-symbols-outlined" style={{ fontSize: '1.5rem' }}>auto_awesome</span>
-        </button>
+        </Link>
       </main>
     </div>
   );

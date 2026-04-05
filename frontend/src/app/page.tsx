@@ -1,5 +1,7 @@
-import Image from 'next/image';
+import Link from 'next/link';
 import styles from './page.module.css';
+import MorphTextReveal from './components/MorphTextReveal';
+import TextPressure from './components/TextPressure';
 
 export default function Home() {
   return (
@@ -7,15 +9,15 @@ export default function Home() {
       <nav className={styles.navBar}>
         <div className={styles.navLeft}>
           <span className={`${styles.logo} font-editorial`}>DevMeet</span>
-          <div className={styles.navLinks}>
-            <a href="#" className={`${styles.navLink} ${styles.navLinkActive} font-editorial`}>Collaborate</a>
-            <a href="#" className={`${styles.navLink} font-editorial`}>Community</a>
-            <a href="#" className={`${styles.navLink} font-editorial`}>Resources</a>
-          </div>
         </div>
+        {/* <div className={styles.navLinks}>
+          <a href="#features" className={`${styles.navLink} font-editorial`}>Features</a>
+          <a href="#use-cases" className={`${styles.navLink} font-editorial`}>Use Cases</a>
+          <a href="#community" className={`${styles.navLink} font-editorial`}>Community</a>
+        </div> */}
         <div className={styles.navRight}>
-          <button className={`${styles.loginBtn} font-editorial`}>Login</button>
-          <button className={`${styles.signUpBtn} font-tech`}>Join DevMeet</button>
+          <Link href="/login" className={`${styles.loginBtn} font-editorial`}>Login</Link>
+          <Link href="/workspace" className={`${styles.signUpBtn} font-tech`}>Join DevMeet</Link>
         </div>
       </nav>
 
@@ -32,27 +34,13 @@ export default function Home() {
             Step into a premium workspace engineered for elite builders. A dedicated arena for <span style={{ fontWeight: 900 }}>meetings, technical interviews, and architectural discussions</span> that move at the speed of thought.
           </p>
           <div className={styles.heroActions}>
-            <button className={`${styles.primaryBtn} font-tech`}>Start a Session</button>
-            <button className={`${styles.secondaryBtn} font-tech`}>View Enterprise Solutions</button>
+            <Link href="/dashboard" className={`${styles.primaryBtn} font-tech`}>Start a Session</Link>
+            <Link href="/pricing" className={`${styles.secondaryBtn} font-tech`}>View Enterprise Solutions</Link>
           </div>
-
-          {/* Creative Brand Visual (Temporarily Hidden) 
-          <div className={styles.brandVisualContainer}>
-            <div className={styles.brandVisualInner}>
-              <div style={{ position: 'relative', zIndex: 10 }}>
-                <span className={`${styles.brandTextMain} font-editorial`}>DevMeet</span>
-                <span className={`${styles.brandTextShadow} font-editorial`}>DevMeet</span>
-                <span className={styles.brandBorder}></span>
-              </div>
-              <div className={styles.motionAccent1}></div>
-              <div className={styles.motionAccent2}></div>
-            </div>
-          </div>
-          */}
         </section>
 
         {/* Use Cases Section */}
-        <section className={styles.useCasesSection}>
+        <section id="use-cases" className={styles.useCasesSection}>
           <div className={styles.useCasesHeader}>
             <span className="font-tech uppercase" style={{ color: 'var(--color-primary)', fontSize: '0.75rem', letterSpacing: '0.1em', display: 'block', marginBottom: '1rem' }}>Engineered for Every Stage</span>
             <h2 className={`${styles.sectionHeadline} font-editorial italic`}>Precision Built Use Cases</h2>
@@ -85,7 +73,7 @@ export default function Home() {
         </section>
 
         {/* Real-time Synchronicity Section */}
-        <section className={styles.syncSection}>
+        <section id="features" className={styles.syncSection}>
           <div className={styles.syncContent}>
             <div className={styles.syncKicker}>
               <span className="font-tech uppercase tracking-widest text-secondary text-xs">The Infrastructure</span>
@@ -125,7 +113,7 @@ export default function Home() {
         </section>
 
         {/* Community CTA */}
-        <section className={styles.ctaSection}>
+        <section id="community" className={styles.ctaSection}>
           <div className={styles.ctaBox}>
             <div className={styles.ctaGlow}></div>
             <div className={styles.ctaContent}>
@@ -133,36 +121,55 @@ export default function Home() {
               <p className="font-body" style={{ fontSize: '1.25rem', color: 'rgba(255,255,255,0.8)' }}>Join 50,000+ developers building the future of collaborative software development.</p>
             </div>
             <div className={styles.ctaActions}>
-              <button className={styles.ctaBtn}>Join the Circle</button>
+              <Link href="/workspace" className={styles.ctaBtn}>Join the Circle</Link>
               <span className="font-tech uppercase" style={{ fontSize: '0.625rem', letterSpacing: '0.2em', opacity: 0.6 }}>Free for open source</span>
             </div>
           </div>
         </section>
+
+        {/* Jitter-style Morph Shape → Text Animation */}
+        {/* <MorphTextReveal text="COLLABORATE" /> */}
       </main>
 
-      <footer className={styles.footer}>
-        <div className={styles.footerGrid}>
-          <div className={styles.footerBrand}>
-            <span className="font-editorial" style={{ fontSize: '1.5rem', fontWeight: 'bold', display: 'block', marginBottom: '1.5rem' }}>DevMeet</span>
-            <p className="font-tech uppercase" style={{ fontSize: '0.75rem', letterSpacing: '0.2em', color: 'var(--color-primary)', lineHeight: 2 }}>© 2024 DevMeet.<br />Built for the Community.</p>
+      <footer className={styles.premiumFooter}>
+
+        <div className={styles.footerInner}>
+          <div className={styles.footerLeft}>
+            <div className={styles.footerBrand}>
+              <span className={`${styles.footerLogo} font-editorial`}>DevMeet</span>
+              <p className="font-body" style={{ color: 'var(--color-on-surface-variant)', fontSize: '0.875rem' }}>
+                © 2024 DevMeet. Engineered for the next generation of builders.
+              </p>
+            </div>
+            <div className={styles.footerLinksGrid}>
+              <div className={styles.footerLinksGroup}>
+                <h4 className="font-tech uppercase">Platform</h4>
+                <a href="#">Community Docs</a>
+                <a href="#">API Hub</a>
+                <a href="#">Changelog</a>
+              </div>
+              <div className={styles.footerLinksGroup}>
+                <h4 className="font-tech uppercase">Legal</h4>
+                <a href="#">Privacy Policy</a>
+                <a href="#">Terms of Service</a>
+                <a href="#">Security</a>
+              </div>
+              <div className={styles.footerLinksGroup}>
+                <h4 className="font-tech uppercase">Social</h4>
+                <a href="#">Twitter / X</a>
+                <a href="#">GitHub</a>
+                <a href="#">Discord</a>
+              </div>
+            </div>
           </div>
-          <div className={styles.footerLinksGroup}>
-            <h4 className="font-tech uppercase" style={{ fontSize: '0.75rem', letterSpacing: '0.2em', fontWeight: 'bold', marginBottom: '0.5rem' }}>Platform</h4>
-            <a href="#">Community Docs</a>
-            <a href="#">API Hub</a>
-            <a href="#">Changelog</a>
-          </div>
-          <div className={styles.footerLinksGroup}>
-            <h4 className="font-tech uppercase" style={{ fontSize: '0.75rem', letterSpacing: '0.2em', fontWeight: 'bold', marginBottom: '0.5rem' }}>Legal</h4>
-            <a href="#">Privacy</a>
-            <a href="#">Terms</a>
-            <a href="#">Security</a>
-          </div>
-          <div className={styles.footerLinksGroup}>
-            <h4 className="font-tech uppercase" style={{ fontSize: '0.75rem', letterSpacing: '0.2em', fontWeight: 'bold', marginBottom: '0.5rem' }}>Connect</h4>
-            <a href="#">Twitter</a>
-            <a href="#">GitHub</a>
-            <a href="#">Discord</a>
+          <div className={styles.footerRight}>
+            <TextPressure
+              text="CONNECT"
+              flex={true}
+              scale={false}
+              textColor="var(--color-secondary)"
+              minFontSize={280}
+            />
           </div>
         </div>
       </footer>

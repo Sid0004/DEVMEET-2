@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import styles from './pricing.module.css';
 
 export default function Pricing() {
@@ -6,19 +7,19 @@ export default function Pricing() {
       {/* Navigation */}
       <nav className={styles.navBar}>
         <div className={styles.navLeft}>
-          <a href="/" className={styles.logo}>
+          <Link href="/" className={styles.logo}>
             <span className="font-editorial italic">DevMeet</span>
-          </a>
+          </Link>
           <div className={styles.navLinks}>
             <a href="#" className="font-tech">Communities</a>
-            <a href="/pricing" className={`font-tech ${styles.navLinkActive}`}>Pricing</a>
+            <Link href="/pricing" className={`font-tech ${styles.navLinkActive}`}>Pricing</Link>
             <a href="#" className="font-tech">Events</a>
           </div>
         </div>
         <div className={styles.navRight}>
-          <a href="/dashboard" className={styles.ctaBtn}>
+          <Link href="/dashboard" className={styles.ctaBtn}>
             <span className="font-tech">Open Dashboard</span>
-          </a>
+          </Link>
         </div>
       </nav>
 
@@ -59,9 +60,9 @@ export default function Pricing() {
                 <span className="font-body">Access to Virtual Meetups</span>
               </li>
             </ul>
-            <button className={styles.tierBtn}>
+            <Link href="/workspace" className={styles.tierBtn}>
               <span className="font-tech">Get Started</span>
-            </button>
+            </Link>
           </div>
 
           {/* Squad Tier */}
@@ -95,9 +96,9 @@ export default function Pricing() {
                 <span className="font-body">Priority Event Scheduling</span>
               </li>
             </ul>
-            <button className={`${styles.tierBtn} ${styles.tierBtnFeatured}`}>
+            <Link href="/workspace" className={`${styles.tierBtn} ${styles.tierBtnFeatured}`}>
               <span className="font-tech">Start Free Trial</span>
-            </button>
+            </Link>
           </div>
 
           {/* Network Tier */}
@@ -124,9 +125,9 @@ export default function Pricing() {
                 <span className="font-body">SSO & Enterprise Governance</span>
               </li>
             </ul>
-            <button className={styles.tierBtn}>
+            <Link href="/dashboard" className={styles.tierBtn}>
               <span className="font-tech">Contact Sales</span>
-            </button>
+            </Link>
           </div>
         </div>
       </section>
@@ -201,7 +202,7 @@ export default function Pricing() {
             <h5 className="font-tech uppercase" style={{ fontSize: '0.6875rem', letterSpacing: '0.1em', marginBottom: '1rem', color: 'var(--color-on-surface-variant)' }}>Community</h5>
             <a href="#" className="font-body">Guidelines</a>
             <a href="#" className="font-body">Events</a>
-            <a href="/pricing" className="font-body">Pricing</a>
+            <Link href="/pricing" className="font-body">Pricing</Link>
           </div>
           <div className={styles.footerCol}>
             <h5 className="font-tech uppercase" style={{ fontSize: '0.6875rem', letterSpacing: '0.1em', marginBottom: '1rem', color: 'var(--color-on-surface-variant)' }}>Support</h5>

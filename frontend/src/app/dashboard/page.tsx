@@ -1,6 +1,19 @@
+'use client';
+
+import React from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import styles from './dashboard.module.css';
 
 export default function Dashboard() {
+  const router = useRouter();
+
+  const handleLogout = () => {
+    // Logout logic
+    console.log("Logging out...");
+    router.push('/');
+  };
+
   return (
     <div className={styles.layout}>
       {/* Sidebar Navigation */}
@@ -37,8 +50,12 @@ export default function Dashboard() {
           </nav>
         </div>
         <div className={styles.sidebarFooter}>
-          <button className={styles.inviteBtn}>
+          <Link href="/workspace" className={styles.inviteBtn}>
             <span className="font-tech">Invite Pair</span>
+          </Link>
+          <button className={styles.logoutBtn} onClick={handleLogout}>
+            <span className="material-symbols-outlined">logout</span>
+            <span className="font-tech">Sign Out</span>
           </button>
         </div>
       </aside>
@@ -78,9 +95,9 @@ export default function Dashboard() {
                 </div>
               </div>
               <div className={styles.formActions}>
-                <button type="submit" className={styles.submitBtn}>
+                <Link href="/workspace" className={styles.submitBtn}>
                   <span className="font-tech">Initialize Room</span>
-                </button>
+                </Link>
               </div>
             </form>
           </section>
@@ -92,9 +109,9 @@ export default function Dashboard() {
               <p className={styles.joinDescription}>Collaborate instantly. Paste your DevMeet invitation link or enter the unique 6-digit room code.</p>
               <div className={styles.joinInputBox}>
                 <input type="text" placeholder="Room Code or Link" className={`${styles.joinInput} font-tech`} />
-                <button className={styles.enterRoomBtn}>
+                <Link href="/workspace" className={styles.enterRoomBtn}>
                   <span className="font-tech">Enter Room</span>
-                </button>
+                </Link>
               </div>
             </div>
           </section>
