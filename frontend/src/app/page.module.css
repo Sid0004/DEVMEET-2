@@ -97,6 +97,21 @@
 
 .main {
   position: relative;
+  z-index: 2;
+}
+
+.cubeCanvas {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.48;
+}
+
+@media (max-width: 900px) {
+  .cubeCanvas {
+    opacity: 0.3;
+  }
 }
 
 .heroSection {

@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import styles from './page.module.css';
-import MorphTextReveal from './components/MorphTextReveal';
 import TextPressure from './components/TextPressure';
 
 export default function Home() {
@@ -82,7 +81,7 @@ export default function Home() {
               Real-time <br /><span className="font-editorial italic text-secondary">Synchronicity</span>
             </h2>
             <p className="font-body" style={{ fontSize: '1.25rem', color: 'var(--color-on-surface-variant)', marginBottom: '2.5rem', lineHeight: '1.6' }}>
-              We've eliminated the friction of remote collaboration. Our proprietary engine delivers <strong style={{ color: 'var(--color-on-surface)' }}>zero-lag video</strong> and sub-millisecond sync for all collaborative tools.
+              We&apos;ve eliminated the friction of remote collaboration. Our proprietary engine delivers <strong style={{ color: 'var(--color-on-surface)' }}>zero-lag video</strong> and sub-millisecond sync for all collaborative tools.
             </p>
             <ul className={styles.syncList}>
               <li>

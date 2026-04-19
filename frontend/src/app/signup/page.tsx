@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { GalleryVerticalEnd } from "lucide-react"
+import { apiRequest } from '@/lib/api';
 
 export default function SignupPage() {
     const [isLoading, setIsLoading] = useState(false);
@@ -24,23 +24,14 @@ export default function SignupPage() {
         setIsLoading(true);
         
         try {
-            const response = await fetch("http://127.0.0.1:8000/api/v1/users/register", {
+            await apiRequest<{ message?: string }>("/api/v1/users/register", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
                 body: JSON.stringify(formData),
             });
 
-            const data = await response.json();
-
-            if (response.ok) {
-                router.push('/login');
-            } else {
-                alert(data.message || "Registration failed");
-            }
+            router.push('/login');
         } catch (error) {
-            alert("Connection error. Is the backend running?");
+            alert(error instanceof Error ? error.message : "Connection error. Is the backend running?");
         } finally {
             setIsLoading(false);
         }

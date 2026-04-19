@@ -15,7 +15,7 @@ const generateAccessAndRefreshTokens = async (userId) => {
 
         return { accessToken, refreshToken };
     } catch (error) {
-        console.error("❌ TOKEN GENERATION ERROR:", error.message);
+        console.error(" TOKEN GENERATION ERROR:", error.message);
         throw new ApiError(500, `Something went wrong while generating tokens: ${error.message}`);
     }
 };
@@ -37,7 +37,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
     const user = await User.create({
         fullName,
-        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=random&color=fff`, 
+        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=random&color=fff`,
         email,
         password,
         username: username.toLowerCase()
@@ -66,7 +66,7 @@ const loginUser = asyncHandler(async (req, res) => {
 
     const user = await User.findOne({
         $or: [
-            { username: loginIdentity.toLowerCase() }, 
+            { username: loginIdentity.toLowerCase() },
             { email: loginIdentity.toLowerCase() }
         ]
     });

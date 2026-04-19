@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input"
 import React, { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { apiRequest } from "@/lib/api"
 
 export function LoginForm({
   className,
@@ -30,24 +31,14 @@ export function LoginForm({
     setError("")
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/v1/users/login", {
+      await apiRequest<{ message?: string }>("/api/v1/users/login", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({ identifier: loginValue, password }),
       })
 
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.message || "Login failed")
-      }
-
-      console.log("Login success:", data)
       router.push("/dashboard")
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Login failed")
     } finally {
       setIsLoading(false)
     }
