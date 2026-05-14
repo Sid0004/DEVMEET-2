@@ -1,17 +1,68 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import styles from './dashboard.module.css';
+import { apiRequest } from '../../lib/api';
+import { useAppDispatch, useAppSelector } from '@/redux/hooks';
+import { logout } from '@/redux/features/authSlice';
 
 export default function Dashboard() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
+  const { user } = useAppSelector((state) => state.auth);
+
+  const [roomName, setRoomName] = useState("");
+  const [language, setLanguage] = useState("TypeScript");
+  const [joinCode, setJoinCode] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleLogout = () => {
     // Logout logic
     console.log("Logging out...");
+    dispatch(logout());
     router.push('/');
+  };
+
+  const handleCreateRoom = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!roomName.trim()) return alert("Room name is required.");
+
+    setLoading(true);
+    try {
+      const response: any = await apiRequest('/api/v1/rooms/create', {
+        method: 'POST',
+        body: JSON.stringify({ roomName, primaryLanguage: language })
+      });
+      console.log("Room Created:", response);
+      // Ensure we use the 6 digit roomId
+      const newRoomId = response?.data?.roomId;
+      alert(`Room Created! Code: ${newRoomId}`);
+      router.push(`/workspace?room=${newRoomId}`);
+    } catch (error: any) {
+      alert("Failed to create room: " + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleJoinRoom = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!joinCode.trim()) return alert("Please enter a room code.");
+
+    setLoading(true);
+    try {
+      const response: any = await apiRequest(`/api/v1/rooms/${joinCode.trim()}/join`, {
+        method: 'POST'
+      });
+      console.log("Joined Room:", response);
+      router.push(`/workspace?room=${joinCode.trim()}`);
+    } catch (error: any) {
+      alert("Failed to join room: " + error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -63,9 +114,9 @@ export default function Dashboard() {
       {/* Main Content Canvas */}
       <main className={styles.mainCanvas}>
         <header className={styles.header}>
-          <span className={`${styles.headerKicker} font-tech`}>Workspace Dashboard</span>
+          <span className={`${styles.headerKicker} font-tech`}>Welcome back, {user?.name || user?.username || 'Architect'}</span>
           <h2 className={`${styles.headline} font-editorial`}>
-            Collaborate with <span style={{color: 'var(--color-secondary)'}}>DevMeet</span> and Intent.
+            Collaborate with <span style={{ color: 'var(--color-secondary)' }}>DevMeet</span> and Intent.
           </h2>
         </header>
 
@@ -78,15 +129,26 @@ export default function Dashboard() {
               </div>
               <h3 className={`${styles.cardTitle} font-editorial italic`}>Create a New DevMeet Room</h3>
             </div>
-            <form className={styles.formContainer}>
+            <form className={styles.formContainer} onSubmit={handleCreateRoom}>
               <div className={styles.formGrid}>
                 <div className={styles.inputGroup}>
                   <label className="font-tech">Room Name</label>
-                  <input type="text" placeholder="e.g. Apollo Migration" className={styles.inputField} />
+                  <input
+                    type="text"
+                    placeholder="e.g. Apollo Migration"
+                    className={styles.inputField}
+                    value={roomName}
+                    onChange={(e) => setRoomName(e.target.value)}
+                    required
+                  />
                 </div>
                 <div className={styles.inputGroup}>
                   <label className="font-tech">Primary Language</label>
-                  <select className={styles.inputField}>
+                  <select
+                    className={styles.inputField}
+                    value={language}
+                    onChange={(e) => setLanguage(e.target.value)}
+                  >
                     <option>TypeScript</option>
                     <option>Python</option>
                     <option>Rust</option>
@@ -95,24 +157,31 @@ export default function Dashboard() {
                 </div>
               </div>
               <div className={styles.formActions}>
-                <Link href="/workspace" className={styles.submitBtn}>
-                  <span className="font-tech">Initialize Room</span>
-                </Link>
+                <button type="submit" disabled={loading} className={styles.submitBtn}>
+                  <span className="font-tech">{loading ? "Initializing..." : "Initialize Room"}</span>
+                </button>
               </div>
             </form>
           </section>
 
           {/* Join Room Section */}
           <section className={styles.joinRoomCard}>
-            <div style={{position:'relative', zIndex:10}}>
+            <div style={{ position: 'relative', zIndex: 10 }}>
               <h3 className={`${styles.joinTitle} font-editorial`}>Join an Active Room</h3>
               <p className={styles.joinDescription}>Collaborate instantly. Paste your DevMeet invitation link or enter the unique 6-digit room code.</p>
-              <div className={styles.joinInputBox}>
-                <input type="text" placeholder="Room Code or Link" className={`${styles.joinInput} font-tech`} />
-                <Link href="/workspace" className={styles.enterRoomBtn}>
-                  <span className="font-tech">Enter Room</span>
-                </Link>
-              </div>
+              <form className={styles.joinInputBox} onSubmit={handleJoinRoom}>
+                <input
+                  type="text"
+                  placeholder="Room Code or Link"
+                  className={`${styles.joinInput} font-tech`}
+                  value={joinCode}
+                  onChange={(e) => setJoinCode(e.target.value)}
+                  required
+                />
+                <button type="submit" disabled={loading} className={styles.enterRoomBtn}>
+                  <span className="font-tech">{loading ? "Joining..." : "Enter Room"}</span>
+                </button>
+              </form>
             </div>
           </section>
         </div>

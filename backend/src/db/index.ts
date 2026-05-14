@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const connectDB = async () => {
+const connectDB = async (): Promise<void> => {
     try {
         const uri = process.env.MONGODB_URI || process.env.MONGO_DB_URI;
         if (!uri) {
@@ -18,4 +18,3 @@ const connectDB = async () => {
 };
 
 export default connectDB;
-

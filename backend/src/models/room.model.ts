@@ -1,6 +1,20 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Schema, Document } from "mongoose";
 
-const roomSchema = new Schema({
+export interface IRoom extends Document {
+    roomId: string;
+    roomName: string;
+    primaryLanguage: string;
+    host: mongoose.Types.ObjectId;
+    participants: mongoose.Types.ObjectId[];
+    status: "active" | "ended" | "scheduled";
+    roomSettings: {
+        micEnabled: boolean;
+        cameraEnabled: boolean;
+        waitingRoom: boolean;
+    };
+}
+
+const roomSchema = new Schema<IRoom>({
     roomId: {
         type: String,
         required: true,
@@ -46,4 +60,4 @@ const roomSchema = new Schema({
     }
 }, { timestamps: true });
 
-export const Room = mongoose.model("Room", roomSchema);
+export const Room = mongoose.model<IRoom>("Room", roomSchema);

@@ -14,6 +14,8 @@ import React, { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { apiRequest } from "@/lib/api"
+import { useAppDispatch } from "@/redux/hooks"
+import { setCredentials } from "@/redux/features/authSlice"
 
 export function LoginForm({
   className,
@@ -24,6 +26,7 @@ export function LoginForm({
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
+  const dispatch = useAppDispatch()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -31,10 +34,13 @@ export function LoginForm({
     setError("")
 
     try {
-      await apiRequest<{ message?: string }>("/api/v1/users/login", {
+      const response = await apiRequest<{ user: any; token: string }>("/api/v1/users/login", {
         method: "POST",
         body: JSON.stringify({ identifier: loginValue, password }),
       })
+
+      // Store user info and token in Redux (as per your recent change)
+      dispatch(setCredentials({ user: response.user, token: response.token }))
 
       router.push("/dashboard")
     } catch (err) {

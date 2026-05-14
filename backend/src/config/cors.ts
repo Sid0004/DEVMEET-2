@@ -1,7 +1,8 @@
+import { CorsOptions } from "cors";
+
 const defaultOrigins = ["http://localhost:3000"];
 
-
-export const getAllowedOrigins = () => {
+export const getAllowedOrigins = (): string[] => {
     const rawOrigins = process.env.CORS_ORIGIN;
     if (!rawOrigins) {
         return defaultOrigins;
@@ -12,7 +13,7 @@ export const getAllowedOrigins = () => {
         .filter(Boolean);
 };
 
-export const corsOptions = {
+export const corsOptions: CorsOptions = {
     origin(origin, callback) {
         if (!origin) {
             return callback(null, true);

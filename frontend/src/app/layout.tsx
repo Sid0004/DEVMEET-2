@@ -18,6 +18,7 @@ export const metadata: Metadata = {
 };
 
 import SmoothScroll from "./components/SmoothScroll";
+import StoreProvider from "@/components/StoreProvider";
 
 export default function RootLayout({
   children,
@@ -33,11 +34,13 @@ export default function RootLayout({
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" />
       </head>
       <body>
-        <SmoothScroll>
-          <div className="min-h-full flex flex-col">
-            {children}
-          </div>
-        </SmoothScroll>
+        <StoreProvider>
+          <SmoothScroll>
+            <div className="min-h-full flex flex-col">
+              {children}
+            </div>
+          </SmoothScroll>
+        </StoreProvider>
       </body>
     </html>
   );

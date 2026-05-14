@@ -1,12 +1,15 @@
+import { Request, Response } from "express";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 
-const generateAccessAndRefreshTokens = async (userId) => {
+const generateAccessAndRefreshTokens = async (userId: mongoose.Types.ObjectId | string) => {
     try {
         const user = await User.findById(userId);
+        if (!user) throw new Error("User not found");
+        
         const accessToken = user.generateAccessToken();
         const refreshToken = user.generateRefreshToken();
 
@@ -14,13 +17,13 @@ const generateAccessAndRefreshTokens = async (userId) => {
         await user.save({ validateBeforeSave: false });
 
         return { accessToken, refreshToken };
-    } catch (error) {
+    } catch (error: any) {
         console.error(" TOKEN GENERATION ERROR:", error.message);
         throw new ApiError(500, `Something went wrong while generating tokens: ${error.message}`);
     }
 };
 
-const registerUser = asyncHandler(async (req, res) => {
+const registerUser = asyncHandler(async (req: Request, res: Response) => {
     const { fullName, email, username, password } = req.body;
 
     if ([fullName, email, username, password].some((field) => field?.trim() === "")) {
@@ -54,10 +57,9 @@ const registerUser = asyncHandler(async (req, res) => {
     );
 });
 
-const loginUser = asyncHandler(async (req, res) => {
+const loginUser = asyncHandler(async (req: Request, res: Response) => {
     const { identifier, password, email, username } = req.body;
 
-    // Support both 'identifier' (from new UI) and legacy 'email'/'username' fields
     const loginIdentity = identifier || email || username;
 
     if (!loginIdentity) {
@@ -81,7 +83,7 @@ const loginUser = asyncHandler(async (req, res) => {
         throw new ApiError(401, "Invalid user credentials");
     }
 
-    const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id);
+    const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id as mongoose.Types.ObjectId);
 
     const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
 
@@ -105,7 +107,9 @@ const loginUser = asyncHandler(async (req, res) => {
         );
 });
 
-const logoutUser = asyncHandler(async (req, res) => {
+const logoutUser = asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) throw new ApiError(401, "Unauthorized");
+    
     await User.findByIdAndUpdate(
         req.user._id,
         {
