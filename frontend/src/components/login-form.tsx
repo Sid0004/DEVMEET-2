@@ -72,6 +72,7 @@ export function LoginForm({
             <Input 
               id="identifier" 
               type="text" 
+              autoComplete="username"
               className="h-10 px-4 text-center text-sm bg-surface-container-low border border-outline-variant rounded-xl focus:outline-none focus:ring-1 focus:ring-secondary/40 transition-all font-body text-on-surface"
               value={loginValue}
               onChange={(e) => setLoginValue(e.target.value)}
@@ -83,6 +84,7 @@ export function LoginForm({
             <Input 
               id="password" 
               type="password" 
+              autoComplete="current-password"
               className="h-10 px-4 text-center text-sm bg-surface-container-low border border-outline-variant rounded-xl focus:outline-none focus:ring-1 focus:ring-secondary/40 transition-all font-body text-on-surface"
               value={password}
               onChange={(e) => setPassword(e.target.value)}

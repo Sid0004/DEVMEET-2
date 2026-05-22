@@ -18,11 +18,23 @@ export default function Dashboard() {
   const [joinCode, setJoinCode] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleLogout = () => {
-    // Logout logic
-    console.log("Logging out...");
-    dispatch(logout());
-    router.push('/');
+  const handleLogout = async () => {
+    try {
+      console.log("Logging out...");
+      // 1. Tell the backend to clear the cookies
+      await apiRequest('/api/v1/users/logout', { method: 'POST' });
+      
+      // 2. Clear the Redux state
+      dispatch(logout());
+      
+      // 3. Redirect to home/login
+      router.push('/');
+    } catch (error) {
+      console.error("Logout failed:", error);
+      // Still clear local state even if backend fails
+      dispatch(logout());
+      router.push('/');
+    }
   };
 
   const handleCreateRoom = async (e: React.FormEvent) => {

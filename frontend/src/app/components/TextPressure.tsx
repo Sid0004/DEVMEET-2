@@ -86,6 +86,8 @@ const TextPressure: React.FC<TextPressureProps> = ({
     }
   }, [])
 
+  const charPositions = useRef<{ x: number; y: number }[]>([])
+
   const setSize = () => {
     if (!(containerRef.current && titleRef.current)) {
       return
@@ -111,6 +113,16 @@ const TextPressure: React.FC<TextPressureProps> = ({
         setScaleY(yRatio)
         setLineHeight(yRatio)
       }
+
+      // Pre-calculate character positions to avoid layout thrashing in animate loop
+      charPositions.current = spansRef.current.map((span) => {
+        if (!span) return { x: 0, y: 0 }
+        const rect = span.getBoundingClientRect()
+        return {
+          x: rect.x + rect.width / 2,
+          y: rect.y + rect.height / 2,
+        }
+      })
     })
   }
 
@@ -131,16 +143,11 @@ const TextPressure: React.FC<TextPressureProps> = ({
         const maxDist = titleRect.width / 2
 
         spansRef.current.forEach((span, i) => {
-          if (!span) {
+          if (!span || !charPositions.current[i]) {
             return
           }
 
-          const rect = span.getBoundingClientRect()
-          const charCenter = {
-            x: rect.x + rect.width / 2,
-            y: rect.y + rect.height / 2,
-          }
-
+          const charCenter = charPositions.current[i]
           const d = dist(mouseRef.current, charCenter)
 
           const getAttr = (distance: number, minVal: number, maxVal: number) => {

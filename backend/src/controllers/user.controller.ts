@@ -4,6 +4,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import mongoose from "mongoose";
+import { getCookieOptions } from "../utils/cookieOptions.js";
 
 const generateAccessAndRefreshTokens = async (userId: mongoose.Types.ObjectId | string) => {
     try {
@@ -87,10 +88,7 @@ const loginUser = asyncHandler(async (req: Request, res: Response) => {
 
     const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
 
-    const options = {
-        httpOnly: true,
-        secure: true
-    };
+    const options = getCookieOptions();
 
     return res
         .status(200)
@@ -122,10 +120,7 @@ const logoutUser = asyncHandler(async (req: Request, res: Response) => {
         }
     );
 
-    const options = {
-        httpOnly: true,
-        secure: true
-    };
+    const options = getCookieOptions();
 
     return res
         .status(200)
@@ -134,8 +129,15 @@ const logoutUser = asyncHandler(async (req: Request, res: Response) => {
         .json(new ApiResponse(200, {}, "User logged out"));
 });
 
+const getCurrentUser = asyncHandler(async (req: Request, res: Response) => {
+    return res
+        .status(200)
+        .json(new ApiResponse(200, req.user, "User fetched successfully"));
+});
+
 export {
     registerUser,
     loginUser,
-    logoutUser
+    logoutUser,
+    getCurrentUser
 };

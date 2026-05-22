@@ -57,6 +57,7 @@ export default function SignupPage() {
                                         id="fullName"
                                         name="fullName"
                                         type="text"
+                                        autoComplete="name"
                                         className="h-10 px-4 text-center text-sm bg-surface-container-low border border-outline-variant rounded-xl focus:outline-none focus:ring-1 focus:ring-secondary/40 transition-all font-body text-on-surface"
                                         value={formData.fullName}
                                         onChange={handleChange}
@@ -70,6 +71,7 @@ export default function SignupPage() {
                                         id="username"
                                         name="username"
                                         type="text"
+                                        autoComplete="username"
                                         className="h-10 px-4 text-center text-sm bg-surface-container-low border border-outline-variant rounded-xl focus:outline-none focus:ring-1 focus:ring-secondary/40 transition-all font-body text-on-surface"
                                         value={formData.username}
                                         onChange={handleChange}
@@ -83,6 +85,7 @@ export default function SignupPage() {
                                         id="email"
                                         name="email"
                                         type="email"
+                                        autoComplete="email"
                                         className="h-10 px-4 text-center text-sm bg-surface-container-low border border-outline-variant rounded-xl focus:outline-none focus:ring-1 focus:ring-secondary/40 transition-all font-body text-on-surface"
                                         value={formData.email}
                                         onChange={handleChange}
@@ -96,6 +99,7 @@ export default function SignupPage() {
                                         id="password"
                                         name="password"
                                         type="password"
+                                        autoComplete="new-password"
                                         className="h-10 px-4 text-center text-sm bg-surface-container-low border border-outline-variant rounded-xl focus:outline-none focus:ring-1 focus:ring-secondary/40 transition-all font-body text-on-surface"
                                         value={formData.password}
                                         onChange={handleChange}
