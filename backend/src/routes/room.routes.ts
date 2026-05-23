@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { createRoom, getRoomById, joinRoom, leaveRoom } from "../controllers/room.controller.js";
+import { createRoom, getRoomById, joinRoom, leaveRoom, runCode } from "../controllers/room.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 
 const router = Router();
@@ -8,6 +8,7 @@ const router = Router();
 router.use(verifyJWT);
 
 router.route("/create").post(createRoom);
+router.route("/run").post(runCode);
 router.route("/:roomId").get(getRoomById);
 router.route("/:roomId/join").post(joinRoom);
 router.route("/:roomId/leave").post(leaveRoom);

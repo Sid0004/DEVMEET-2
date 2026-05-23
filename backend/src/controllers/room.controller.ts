@@ -3,6 +3,10 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { Room } from "../models/room.model.js";
+import { exec } from "child_process";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 
 const createRoom = asyncHandler(async (req: Request, res: Response) => {
     const { roomName, primaryLanguage, roomSettings } = req.body;
@@ -105,9 +109,85 @@ const leaveRoom = asyncHandler(async (req: Request, res: Response) => {
     );
 });
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const runCode = asyncHandler(async (req: Request, res: Response) => {
+    const { code, language } = req.body;
+
+    if (!code) {
+        throw new ApiError(400, "Code is required");
+    }
+
+    const lang = (language || "TypeScript").toLowerCase();
+    let fileExtension = "ts";
+    let command = "";
+
+    if (lang === "javascript") {
+        fileExtension = "js";
+    } else if (lang === "python") {
+        fileExtension = "py";
+    } else if (lang === "typescript") {
+        fileExtension = "ts";
+    } else {
+        throw new ApiError(400, `Language ${language} is not supported for execution. We support TypeScript, JavaScript, and Python.`);
+    }
+
+    // Create temp dir if not exists
+    const tempDir = path.join(__dirname, "../../temp");
+    if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+    }
+
+    // Generate unique temp filename
+    const filename = `run_${Date.now()}_${Math.floor(Math.random() * 1000)}.${fileExtension}`;
+    const filePath = path.join(tempDir, filename);
+
+    // Write code to file
+    fs.writeFileSync(filePath, code);
+
+    // Determine execution command
+    const isWindows = process.platform === "win32";
+    if (fileExtension === "py") {
+        command = `python "${filePath}"`;
+    } else if (fileExtension === "js") {
+        command = `node "${filePath}"`;
+    } else if (fileExtension === "ts") {
+        const localTsx = path.resolve(__dirname, "../../node_modules/.bin/tsx");
+        command = isWindows ? `"${localTsx}.cmd" "${filePath}"` : `"${localTsx}" "${filePath}"`;
+    }
+
+    // Execute the code with a timeout of 5 seconds
+    exec(command, { timeout: 5000 }, (error, stdout, stderr) => {
+        // Clean up temp file asynchronously
+        fs.unlink(filePath, (unlinkErr) => {
+            if (unlinkErr) console.error("Temp file cleanup error:", unlinkErr);
+        });
+
+        if (error && error.killed) {
+            return res.status(200).json(
+                new ApiResponse(200, {
+                    stdout: stdout,
+                    stderr: stderr || "Execution timed out (5s limit exceeded).",
+                    exitCode: error.code || -1
+                }, "Code execution timed out")
+            );
+        }
+
+        return res.status(200).json(
+            new ApiResponse(200, {
+                stdout: stdout,
+                stderr: stderr,
+                exitCode: error ? error.code || 1 : 0
+            }, "Code executed successfully")
+        );
+    });
+});
+
 export {
     createRoom,
     getRoomById,
     joinRoom,
-    leaveRoom
+    leaveRoom,
+    runCode
 };
