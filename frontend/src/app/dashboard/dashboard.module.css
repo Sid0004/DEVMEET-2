@@ -8,25 +8,16 @@
 .sidebar {
   position: fixed;
   left: 0;
-  top: 0;
-  height: 100vh;
+  top: 56px;
+  height: calc(100vh - 56px);
   width: 260px;
   background-color: var(--color-surface-container-low);
   display: flex;
   flex-direction: column;
   z-index: 50;
+  border-right: 1px solid rgba(196, 197, 217, 0.2);
 }
 
-.sidebarHeader {
-  padding: 2rem 2rem 1.5rem;
-}
-
-.sidebarHeader h1 {
-  font-size: 1.75rem;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  color: var(--color-on-surface);
-}
 
 .sidebarContent {
   flex: 1;
@@ -87,39 +78,55 @@
   color: var(--color-secondary);
   font-weight: 600;
   box-shadow: var(--shadow-ambient);
+
+  margin: 8px 0; /* 8px top and bottom, 0 left and right */
 }
 
 .sidebarFooter {
   padding: 1.5rem;
 }
 
-.inviteBtn {
+.signOutBtn {
   width: 100%;
-  padding: 1rem;
-  background-color: var(--color-secondary);
-  color: var(--color-on-secondary);
+  padding: 0.875rem 1rem;
+  background-color: transparent;
+  color: var(--color-on-surface-variant);
   border-radius: 1rem;
-  border: none;
+  border: var(--border-ghost);
   cursor: pointer;
   font-size: 0.875rem;
-  font-weight: 600;
-  transition: filter 0.2s ease;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
-.inviteBtn:hover {
-  filter: brightness(1.1);
+.signOutBtn:hover {
+  background-color: var(--color-surface-container);
+  color: var(--color-on-surface);
 }
 
 /* ─── Main Canvas ─── */
 .mainCanvas {
-  margin-left: 260px;
+  margin-left: 260px; /* overridden by inline style when collapsed */
   flex: 1;
-  padding: 3rem 4rem;
-  max-width: 1400px;
+  min-width: 0;        /* prevent flex blowout */
+  padding: 2rem 2.5rem;
+  transition: margin-left 0.25s ease;
 }
 
 .header {
   margin-bottom: 4rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 2rem;
+}
+
+.headerLeft {
+  display: flex;
+  flex-direction: column;
 }
 
 .headerKicker {
@@ -132,7 +139,7 @@
 }
 
 .headline {
-  font-size: 4rem;
+  font-size: clamp(2rem, 4vw, 4rem);
   line-height: 1.1;
   font-style: italic;
   max-width: 900px;
@@ -143,8 +150,8 @@
 .bentoGrid {
   display: grid;
   grid-template-columns: 2fr 1fr;
-  gap: 2rem;
-  margin-bottom: 4rem;
+  gap: 1.5rem;
+  margin-bottom: 3rem;
 }
 
 /* Create Room Card */
@@ -345,6 +352,113 @@
   opacity: 0.8;
 }
 
+/* ─── List Layout for History ─── */
+.historyList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.historyItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: var(--color-surface-container-low);
+  padding: 1.25rem 2rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(196, 197, 217, 0.1);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.historyItem:hover {
+  transform: translateX(6px);
+  background-color: var(--color-surface-container);
+  border-color: rgba(196, 197, 217, 0.25);
+  box-shadow: var(--shadow-ambient);
+}
+
+.itemLeft {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.itemInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.itemTitle {
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: var(--color-on-surface);
+}
+
+.itemMeta {
+  font-size: 0.85rem;
+  color: var(--color-on-surface-variant);
+  display: flex;
+  gap: 1.25rem;
+  align-items: center;
+}
+
+.metaItem {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.metaIcon {
+  font-size: 1rem !important;
+  color: var(--color-on-surface-variant);
+}
+
+.itemRight {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.deleteBtn {
+  background-color: transparent;
+  color: #ff4d4f;
+  border: 1px solid rgba(255, 77, 79, 0.2);
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.deleteBtn:hover {
+  background-color: rgba(255, 77, 79, 0.1);
+  border-color: #ff4d4f;
+  transform: translateY(-1px);
+}
+
+.joinBtn {
+  background-color: var(--color-secondary);
+  color: var(--color-on-secondary);
+  border: none;
+  padding: 0.625rem 1.5rem;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.joinBtn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
 .activityGrid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -439,4 +553,95 @@
 
 .footerLinks a:hover {
   color: var(--color-secondary);
+}
+
+/* ─── Collapsible Sidebar ─── */
+.sidebarCollapsed {
+  width: 64px !important;
+  overflow: hidden;
+}
+
+.sidebarToggleRow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0.625rem 0.75rem;
+  border-bottom: 1px solid rgba(196, 197, 217, 0.15);
+}
+
+.sidebarCollapsed .sidebarToggleRow {
+  justify-content: center;
+}
+
+.toggleBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  background: transparent;
+  border-radius: 0.5rem;
+  color: var(--color-on-surface-variant);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.toggleBtn:hover {
+  background-color: var(--color-surface-container);
+  color: var(--color-on-surface);
+}
+
+.sidebarFooterCollapsed {
+  padding: 0.75rem;
+  display: flex;
+  justify-content: center;
+}
+
+/* Collapsed nav items: center icon only */
+.sidebarCollapsed .navItemActive {
+  justify-content: center;
+  padding: 0.75rem;
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 1024px) {
+  .bentoGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .mainCanvas {
+    padding: 1.75rem 2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    width: 220px;
+  }
+
+  .mainCanvas {
+    margin-left: 220px !important;
+    padding: 1.25rem 1.25rem;
+  }
+
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .header {
+    margin-bottom: 2rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .sidebar {
+    width: 64px;
+  }
+
+  .mainCanvas {
+    margin-left: 64px !important;
+    padding: 1rem;
+  }
 }

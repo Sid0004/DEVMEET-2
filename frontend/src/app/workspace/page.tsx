@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, Suspense } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { io, Socket } from 'socket.io-client';
@@ -9,7 +9,8 @@ import Editor from '@monaco-editor/react';
 import styles from './workspace.module.css';
 import { API_BASE_URL, apiRequest } from '../../lib/api';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
-import { setCredentials, logout } from '@/redux/features/authSlice';
+import { setCredentials, User } from '@/redux/features/authSlice';
+import ProfileDropdown from '../components/ProfileDropdown';
 
 const rtcConfig = {
   iceServers: [
@@ -17,6 +18,89 @@ const rtcConfig = {
     { urls: 'stun:stun1.l.google.com:19302' },
     { urls: 'stun:stun2.l.google.com:19302' }
   ]
+};
+
+interface WorkspaceFile {
+  name: string;
+  content: string;
+  language: string;
+}
+
+interface ChatMessage {
+  sender: User | null;
+  text: string;
+  timestamp: string;
+}
+
+interface CallUser {
+  socketId: string;
+  user: User;
+}
+
+interface RoomStatePayload {
+  code?: string;
+  language?: string;
+  files?: WorkspaceFile[];
+  messages?: ChatMessage[];
+  users?: CallUser[];
+}
+
+interface FilesUpdatePayload {
+  files?: WorkspaceFile[];
+  activeFileIndex?: number;
+}
+
+interface WebRTCSignalPayload {
+  senderSocketId: string;
+  signal: {
+    type: 'offer' | 'answer' | 'candidate';
+    offer?: RTCSessionDescriptionInit;
+    answer?: RTCSessionDescriptionInit;
+    candidate?: RTCIceCandidateInit;
+  };
+}
+
+interface RoomFetchResponse {
+  data: {
+    roomName: string;
+    primaryLanguage?: string;
+    code?: string;
+    files?: WorkspaceFile[];
+  };
+}
+
+const createDummyVideoTrack = (): MediaStreamTrack | null => {
+  if (typeof window === 'undefined') return null;
+  const canvas = document.createElement('canvas');
+  canvas.width = 640;
+  canvas.height = 480;
+  const ctx = canvas.getContext('2d');
+  if (ctx) {
+    ctx.fillStyle = '#1a1a2e';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+  const stream = (canvas as any).captureStream ? (canvas as any).captureStream(1) : new MediaStream();
+  return stream.getVideoTracks()[0] || null;
+};
+
+const createDummyAudioTrack = (): MediaStreamTrack | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) return null;
+    const ctx = new AudioContextClass();
+    const oscillator = ctx.createOscillator();
+    const dst = ctx.createMediaStreamDestination();
+    oscillator.connect(dst);
+    oscillator.start();
+    const track = dst.stream.getAudioTracks()[0];
+    if (track) {
+      track.enabled = false;
+    }
+    return track || null;
+  } catch (e) {
+    return null;
+  }
 };
 
 export default function WorkspacePage() {
@@ -37,54 +121,159 @@ function WorkspaceContent() {
 
   // States
   const [isMounted, setIsMounted] = useState(false);
-  const [code, setCode] = useState('// Welcome to DevMeet Workspace. Collaborators will sync in real time.\n');
-  const [language, setLanguage] = useState('TypeScript');
-  const [files, setFiles] = useState<Array<{ name: string; content: string; language: string }>>([]);
+  const [files, setFiles] = useState<WorkspaceFile[]>([]);
   const [activeFileIndex, setActiveFileIndex] = useState<number>(0);
   const [isCreatingFile, setIsCreatingFile] = useState(false);
   const [newFileName, setNewFileName] = useState('');
   const [roomName, setRoomName] = useState('DevMeet Session');
-  const [roomUsers, setRoomUsers] = useState<Array<{ socketId: string; user: any }>>([]);
-  const [messages, setMessages] = useState<Array<{ sender: any; text: string; timestamp: string }>>([]);
+  const [roomUsers, setRoomUsers] = useState<CallUser[]>([]);
+  const [connectedUsers, setConnectedUsers] = useState<CallUser[]>([]);
+  const [remoteMediaStates, setRemoteMediaStates] = useState<{ [socketId: string]: { isCameraOff: boolean; isMicMuted: boolean } }>({});
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
   
   // Media States
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStreams, setRemoteStreams] = useState<{ [socketId: string]: MediaStream }>({});
-  const [isMicMuted, setIsMicMuted] = useState(false);
-  const [isCameraOff, setIsCameraOff] = useState(false);
+  const [isMicMuted, setIsMicMuted] = useState(true);
+  const [isCameraOff, setIsCameraOff] = useState(true);
   const [isRunningCode, setIsRunningCode] = useState(false);
   const [isConsoleOpen, setIsConsoleOpen] = useState(false);
   const [consoleOutput, setConsoleOutput] = useState<{ stdout: string; stderr: string; error?: string } | null>(null);
   const [isJoinedCall, setIsJoinedCall] = useState(false);
 
+  // Resizer States
+  const [collabWidth, setCollabWidth] = useState(380);
+  const [videoHeight, setVideoHeight] = useState(160);
+
   // Refs
   const socketRef = useRef<Socket | null>(null);
-  const isRemoteChange = useRef(false);
   const peerConnections = useRef<{ [socketId: string]: RTCPeerConnection }>({});
-  const localVideoRef = useRef<HTMLVideoElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const candidateQueue = useRef<{ [socketId: string]: RTCIceCandidateInit[] }>({});
   const localStreamRef = useRef<MediaStream | null>(null);
-  const profileDropdownRef = useRef<HTMLDivElement>(null);
+  const isJoinedCallRef = useRef(false);
+  const isCameraOffRef = useRef(true);
+  const isMicMutedRef = useRef(true);
+
+  // Resizer drag event handlers
+  const handleWidthResizeMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = collabWidth;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    
+    // Disable pointer events on editor canvas during resize to prevent iframe focus theft
+    const editorCanvas = document.querySelector(`.${styles.codeCanvas}`) as HTMLElement;
+    if (editorCanvas) {
+      editorCanvas.style.pointerEvents = 'none';
+    }
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const deltaX = startX - moveEvent.clientX;
+      const newWidth = Math.max(260, Math.min(600, startWidth + deltaX));
+      setCollabWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      if (editorCanvas) {
+        editorCanvas.style.pointerEvents = '';
+      }
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
+  const handleHeightResizeMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const startY = e.clientY;
+    const startHeight = videoHeight;
+    document.body.style.cursor = 'row-resize';
+    document.body.style.userSelect = 'none';
+
+    // Disable pointer events on editor canvas during resize to prevent iframe focus theft
+    const editorCanvas = document.querySelector(`.${styles.codeCanvas}`) as HTMLElement;
+    if (editorCanvas) {
+      editorCanvas.style.pointerEvents = 'none';
+    }
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const deltaY = moveEvent.clientY - startY;
+      const newHeight = Math.max(120, Math.min(500, startHeight + deltaY));
+      setVideoHeight(newHeight);
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      if (editorCanvas) {
+        editorCanvas.style.pointerEvents = '';
+      }
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
+  // Lock body scroll on workspace page before first paint to prevent layout shift
+  useLayoutEffect(() => {
+    document.documentElement.classList.add('workspace-active');
+    document.body.classList.add('workspace-active');
+    return () => {
+      document.documentElement.classList.remove('workspace-active');
+      document.body.classList.remove('workspace-active');
+    };
+  }, []);
 
   // Ensure client mounting
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  // Handle clicking outside the profile dropdown
+  // Keep isJoinedCallRef in sync
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target as Node)) {
-        setIsProfileOpen(false);
+    isJoinedCallRef.current = isJoinedCall;
+  }, [isJoinedCall]);
+
+  useEffect(() => {
+    isCameraOffRef.current = isCameraOff;
+  }, [isCameraOff]);
+
+  useEffect(() => {
+    isMicMutedRef.current = isMicMuted;
+  }, [isMicMuted]);
+
+  // On mount, initialize localStream with dummy tracks
+  useEffect(() => {
+    if (!isMounted) return;
+    
+    const dummyVideo = createDummyVideoTrack();
+    const dummyAudio = createDummyAudioTrack();
+    const tracks: MediaStreamTrack[] = [];
+    if (dummyVideo) tracks.push(dummyVideo);
+    if (dummyAudio) tracks.push(dummyAudio);
+    
+    if (tracks.length > 0) {
+      const stream = new MediaStream(tracks);
+      setLocalStream(stream);
+      localStreamRef.current = stream;
+    }
+    
+    return () => {
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(t => t.stop());
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [isMounted]);
 
   // Fetch current user if state is empty (e.g. on direct page refresh)
   useEffect(() => {
@@ -92,7 +281,7 @@ function WorkspaceContent() {
 
     const fetchUser = async () => {
       try {
-        const response: any = await apiRequest('/api/v1/users/current-user');
+        const response = await apiRequest<{ data: User }>('/api/v1/users/current-user');
         if (response?.data) {
           dispatch(setCredentials({ user: response.data }));
         }
@@ -113,13 +302,9 @@ function WorkspaceContent() {
 
     const fetchRoom = async () => {
       try {
-        const response: any = await apiRequest(`/api/v1/rooms/${roomId}`);
+        const response = await apiRequest<RoomFetchResponse>(`/api/v1/rooms/${roomId}`);
         if (response?.data) {
           setRoomName(response.data.roomName);
-          setLanguage(response.data.primaryLanguage || 'TypeScript');
-          if (response.data.code) {
-            setCode(response.data.code);
-          }
           
           let roomFiles = response.data.files || [];
           if (roomFiles.length === 0) {
@@ -152,13 +337,14 @@ function WorkspaceContent() {
     });
     socketRef.current = socket;
 
-    // 2. Emit Join Room
+    // 2. Emit Join Room & Join Call
     socket.emit('join-room', { roomId, user });
+    setIsJoinedCall(true);
+    socket.emit('join-call');
 
     // 3. Handle Socket Events
-    socket.on('room-state', async ({ code: existingCode, language: roomLang, files: roomFiles, messages: existingMessages }) => {
+    socket.on('room-state', async ({ code: existingCode, language: roomLang, files: roomFiles, messages: existingMessages, users: roomUsersList }: RoomStatePayload) => {
       if (roomFiles && roomFiles.length > 0) {
-        isRemoteChange.current = true;
         setFiles(roomFiles);
       } else {
         const lang = roomLang || 'TypeScript';
@@ -168,19 +354,35 @@ function WorkspaceContent() {
           content: existingCode || '// Welcome to DevMeet Workspace. Collaborators will sync in real time.\n',
           language: lang
         }];
-        isRemoteChange.current = true;
         setFiles(fallbackFiles);
-      }
-      if (roomLang) {
-        setLanguage(roomLang);
       }
       if (existingMessages) {
         setMessages(existingMessages);
       }
+      if (roomUsersList) {
+        const filtered = roomUsersList.filter((u: CallUser) => 
+          u.user?._id !== user?._id && 
+          u.user?.username !== user?.username &&
+          u.user?.email !== user?.email
+        );
+        setConnectedUsers(filtered);
+      }
     });
 
-    socket.on('files-update', ({ files: updatedFiles, activeFileIndex: updatedIndex }) => {
-      isRemoteChange.current = true;
+    socket.on('user-joined', ({ socketId, user: joinedUser }: { socketId: string; user: User }) => {
+      console.log('User joined room:', joinedUser.username);
+      setConnectedUsers((prev) => {
+        const filtered = prev.filter((u) => 
+          u.user?._id !== joinedUser._id && 
+          u.user?.username !== joinedUser.username &&
+          u.user?.email !== joinedUser.email &&
+          u.socketId !== socketId
+        );
+        return [...filtered, { socketId, user: joinedUser }];
+      });
+    });
+
+    socket.on('files-update', ({ files: updatedFiles, activeFileIndex: updatedIndex }: FilesUpdatePayload) => {
       if (updatedFiles) {
         setFiles(updatedFiles);
       }
@@ -189,21 +391,21 @@ function WorkspaceContent() {
       }
     });
 
-    socket.on('call-state', ({ users }) => {
+    socket.on('call-state', ({ users }: { users: CallUser[] }) => {
       // Filter out duplicate user IDs, usernames, emails or own socket
-      const filtered = users.filter((u: any) => 
+      const filtered = users.filter((u: CallUser) => 
         u.user?._id !== user?._id && 
         u.user?.username !== user?.username &&
         u.user?.email !== user?.email
       );
       setRoomUsers(filtered);
-
+ 
       // Initiate WebRTC connection to each user actively in the call
-      filtered.forEach(async (peer: { socketId: string; user: any }) => {
+      filtered.forEach(async (peer: CallUser) => {
         const targetSocketId = peer.socketId;
         const pc = new RTCPeerConnection(rtcConfig);
         peerConnections.current[targetSocketId] = pc;
-
+ 
         // Add our local tracks
         const activeStream = localStreamRef.current;
         if (activeStream) {
@@ -211,7 +413,7 @@ function WorkspaceContent() {
             pc.addTrack(track, activeStream);
           });
         }
-
+ 
         // Handle Ice Candidate
         pc.onicecandidate = (event) => {
           if (event.candidate) {
@@ -221,7 +423,7 @@ function WorkspaceContent() {
             });
           }
         };
-
+ 
         // Handle Remote Track
         pc.ontrack = (event) => {
           const remoteStream = event.streams[0] || new MediaStream([event.track]);
@@ -230,7 +432,7 @@ function WorkspaceContent() {
             [targetSocketId]: remoteStream
           }));
         };
-
+ 
         // Create offer
         try {
           const offer = await pc.createOffer();
@@ -239,13 +441,22 @@ function WorkspaceContent() {
             targetSocketId,
             signal: { type: 'offer', offer }
           });
+          // Send media state to the peer
+          socket.emit('webrtc-signal', {
+            targetSocketId,
+            signal: {
+              type: 'media-state',
+              isCameraOff: isCameraOffRef.current,
+              isMicMuted: isMicMutedRef.current
+            }
+          });
         } catch (err) {
           console.error('Error creating offer:', err);
         }
       });
     });
 
-    socket.on('user-joined-call', ({ socketId, user: joinedUser }) => {
+    socket.on('user-joined-call', ({ socketId, user: joinedUser }: { socketId: string; user: User }) => {
       console.log('User joined call:', joinedUser.username);
       // Filter out duplicate user ID, username, email or socket ID
       setRoomUsers((prev) => {
@@ -259,7 +470,7 @@ function WorkspaceContent() {
       });
     });
 
-    socket.on('user-left-call', ({ socketId }) => {
+    socket.on('user-left-call', ({ socketId }: { socketId: string }) => {
       console.log('User left call:', socketId);
       if (peerConnections.current[socketId]) {
         peerConnections.current[socketId].close();
@@ -273,8 +484,20 @@ function WorkspaceContent() {
       setRoomUsers((prev) => prev.filter((u) => u.socketId !== socketId));
     });
 
-    socket.on('webrtc-signal', async ({ senderSocketId, signal }) => {
-      if (!localStreamRef.current) return; // Ignore signals if we are not in call
+    socket.on('webrtc-signal', async ({ senderSocketId, signal }: WebRTCSignalPayload & { signal: any }) => {
+      if (!isJoinedCallRef.current) return; // Ignore signals if we are not in call
+      
+      if (signal.type === 'media-state') {
+        setRemoteMediaStates((prev) => ({
+          ...prev,
+          [senderSocketId]: {
+            isCameraOff: signal.isCameraOff,
+            isMicMuted: signal.isMicMuted
+          }
+        }));
+        return;
+      }
+
       let pc = peerConnections.current[senderSocketId];
 
       if (signal.type === 'offer') {
@@ -308,13 +531,24 @@ function WorkspaceContent() {
         }
 
         try {
-          await pc.setRemoteDescription(new RTCSessionDescription(signal.offer));
-          const answer = await pc.createAnswer();
-          await pc.setLocalDescription(answer);
-          socket.emit('webrtc-signal', {
-            targetSocketId: senderSocketId,
-            signal: { type: 'answer', answer }
-          });
+          if (signal.offer) {
+            await pc.setRemoteDescription(new RTCSessionDescription(signal.offer));
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+            socket.emit('webrtc-signal', {
+              targetSocketId: senderSocketId,
+              signal: { type: 'answer', answer }
+            });
+            // Send our media state to the peer
+            socket.emit('webrtc-signal', {
+              targetSocketId: senderSocketId,
+              signal: {
+                type: 'media-state',
+                isCameraOff: isCameraOffRef.current,
+                isMicMuted: isMicMutedRef.current
+              }
+            });
+          }
 
           // Process queued candidates
           const queued = candidateQueue.current[senderSocketId];
@@ -335,7 +569,9 @@ function WorkspaceContent() {
       } else if (signal.type === 'answer') {
         if (pc) {
           try {
-            await pc.setRemoteDescription(new RTCSessionDescription(signal.answer));
+            if (signal.answer) {
+              await pc.setRemoteDescription(new RTCSessionDescription(signal.answer));
+            }
             
             // Process queued candidates
             const queued = candidateQueue.current[senderSocketId];
@@ -354,13 +590,13 @@ function WorkspaceContent() {
           }
         }
       } else if (signal.type === 'candidate') {
-        if (pc && pc.remoteDescription) {
+        if (pc && pc.remoteDescription && signal.candidate) {
           try {
             await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
           } catch (err) {
             console.error('Error adding ICE candidate:', err);
           }
-        } else {
+        } else if (signal.candidate) {
           if (!candidateQueue.current[senderSocketId]) {
             candidateQueue.current[senderSocketId] = [];
           }
@@ -369,8 +605,7 @@ function WorkspaceContent() {
       }
     });
 
-    socket.on('code-update', ({ code: updatedCode }) => {
-      isRemoteChange.current = true;
+    socket.on('code-update', ({ code: updatedCode }: { code?: string }) => {
       setFiles((prevFiles) => {
         if (prevFiles.length === 0) return prevFiles;
         return prevFiles.map((file, idx) => {
@@ -382,11 +617,11 @@ function WorkspaceContent() {
       });
     });
 
-    socket.on('receive-message', (chatMsg) => {
+    socket.on('receive-message', (chatMsg: ChatMessage) => {
       setMessages((prev) => [...prev, chatMsg]);
     });
 
-    socket.on('user-disconnected', ({ socketId }) => {
+    socket.on('user-disconnected', ({ socketId }: { socketId: string }) => {
       console.log('User disconnected:', socketId);
       if (peerConnections.current[socketId]) {
         peerConnections.current[socketId].close();
@@ -398,6 +633,7 @@ function WorkspaceContent() {
         return next;
       });
       setRoomUsers((prev) => prev.filter((u) => u.socketId !== socketId));
+      setConnectedUsers((prev) => prev.filter((u) => u.socketId !== socketId));
     });
 
     // Cleanup on unmount
@@ -422,26 +658,28 @@ function WorkspaceContent() {
 
   // Code change emission
   const handleEditorChange = (value: string | undefined) => {
-    if (isRemoteChange.current) {
-      isRemoteChange.current = false;
+    if (value === undefined) return;
+    const activeFile = files[activeFileIndex];
+    if (!activeFile) return;
+
+    // Direct content-comparison check to prevent cycles
+    if (value === activeFile.content) {
       return;
     }
-    if (value !== undefined && files[activeFileIndex]) {
-      const updated = files.map((file, idx) => {
-        if (idx === activeFileIndex) {
-          return { ...file, content: value };
-        }
-        return file;
-      });
-      setFiles(updated);
-      if (socketRef.current) {
-        socketRef.current.emit('files-change', { files: updated, activeFileIndex });
+
+    const updated = files.map((file, idx) => {
+      if (idx === activeFileIndex) {
+        return { ...file, content: value };
       }
+      return file;
+    });
+    setFiles(updated);
+    if (socketRef.current) {
+      socketRef.current.emit('files-change', { files: updated, activeFileIndex });
     }
   };
 
   const handleTabSelect = (index: number) => {
-    isRemoteChange.current = true;
     setActiveFileIndex(index);
     if (socketRef.current) {
       socketRef.current.emit('files-change', { files, activeFileIndex: index });
@@ -472,7 +710,6 @@ function WorkspaceContent() {
     const updatedFiles = [...files, newFile];
     const newIndex = updatedFiles.length - 1;
 
-    isRemoteChange.current = true;
     setFiles(updatedFiles);
     setActiveFileIndex(newIndex);
     setIsCreatingFile(false);
@@ -502,7 +739,6 @@ function WorkspaceContent() {
       newIndex = activeFileIndex - 1;
     }
 
-    isRemoteChange.current = true;
     setFiles(updatedFiles);
     setActiveFileIndex(newIndex);
 
@@ -542,7 +778,6 @@ function WorkspaceContent() {
       return file;
     });
 
-    isRemoteChange.current = true;
     setFiles(updatedFiles);
 
     if (socketRef.current) {
@@ -559,27 +794,82 @@ function WorkspaceContent() {
     setChatInput('');
   };
 
-  // Start Video Call
-  const startCall = async () => {
+  const broadcastMediaState = (cameraOff: boolean, micMuted: boolean) => {
+    Object.keys(peerConnections.current).forEach((socketId) => {
+      if (socketRef.current) {
+        socketRef.current.emit('webrtc-signal', {
+          targetSocketId: socketId,
+          signal: {
+            type: 'media-state',
+            isCameraOff: cameraOff,
+            isMicMuted: micMuted
+          }
+        });
+      }
+    });
+  };
+
+  const acquireLocalStream = async (requestVideo: boolean, requestAudio: boolean) => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: {
+        video: requestVideo,
+        audio: requestAudio ? {
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true
-        }
+        } : false
       });
       setLocalStream(stream);
       localStreamRef.current = stream;
-      setIsJoinedCall(true);
 
-      if (socketRef.current) {
-        socketRef.current.emit('join-call');
+      // Update state track indicators
+      setIsCameraOff(!requestVideo);
+      setIsMicMuted(!requestAudio);
+
+      // Disable tracks if they are supposed to start disabled
+      if (!requestVideo) {
+        stream.getVideoTracks().forEach(t => t.enabled = false);
       }
+      if (!requestAudio) {
+        stream.getAudioTracks().forEach(t => t.enabled = false);
+      }
+
+      // Add tracks to all active RTCPeerConnections
+      Object.keys(peerConnections.current).forEach(async (socketId) => {
+        const pc = peerConnections.current[socketId];
+        stream.getTracks().forEach((track) => {
+          pc.addTrack(track, stream);
+        });
+
+        // Renegotiate: create new offer and send to remote peer
+        try {
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+          if (socketRef.current) {
+            socketRef.current.emit('webrtc-signal', {
+              targetSocketId: socketId,
+              signal: { type: 'offer', offer }
+            });
+          }
+        } catch (negotiateErr) {
+          console.error('Error renegotiating track addition:', negotiateErr);
+        }
+      });
+
+      // Broadcast state to all peers
+      broadcastMediaState(!requestVideo, !requestAudio);
     } catch (err) {
       console.error('Failed to access camera/microphone:', err);
       alert('Could not access camera or microphone. Please check permissions and try again.');
+    }
+  };
+
+  // Start Video Call
+  const startCall = async () => {
+    await acquireLocalStream(true, true);
+    setIsJoinedCall(true);
+    if (socketRef.current) {
+      socketRef.current.emit('join-call');
     }
   };
 
@@ -603,27 +893,35 @@ function WorkspaceContent() {
 
     setRemoteStreams({});
     setRoomUsers([]);
-    setIsMicMuted(false);
-    setIsCameraOff(false);
+    setIsMicMuted(true);
+    setIsCameraOff(true);
   };
 
   // Toggle Mic
-  const toggleMic = () => {
+  const toggleMic = async () => {
     if (localStream) {
+      const nextMuted = !isMicMuted;
       localStream.getAudioTracks().forEach((track) => {
-        track.enabled = !track.enabled;
+        track.enabled = !nextMuted;
       });
-      setIsMicMuted(!isMicMuted);
+      setIsMicMuted(nextMuted);
+      broadcastMediaState(isCameraOff, nextMuted);
+    } else {
+      await acquireLocalStream(!isCameraOff, true);
     }
   };
 
   // Toggle Camera
-  const toggleCamera = () => {
+  const toggleCamera = async () => {
     if (localStream) {
+      const nextCameraOff = !isCameraOff;
       localStream.getVideoTracks().forEach((track) => {
-        track.enabled = !track.enabled;
+        track.enabled = !nextCameraOff;
       });
-      setIsCameraOff(!isCameraOff);
+      setIsCameraOff(nextCameraOff);
+      broadcastMediaState(nextCameraOff, isMicMuted);
+    } else {
+      await acquireLocalStream(true, !isMicMuted);
     }
   };
 
@@ -636,7 +934,14 @@ function WorkspaceContent() {
     setIsConsoleOpen(true);
     setConsoleOutput({ stdout: 'Running code on local sandbox server...', stderr: '' });
     try {
-      const response: any = await apiRequest('/api/v1/rooms/run', {
+      interface RunCodeResponse {
+        data: {
+          stdout?: string;
+          stderr?: string;
+          exitCode: number;
+        };
+      }
+      const response = await apiRequest<RunCodeResponse>('/api/v1/rooms/run', {
         method: 'POST',
         body: JSON.stringify({ 
           code: activeFile.content, 
@@ -653,32 +958,14 @@ function WorkspaceContent() {
       } else {
         setConsoleOutput({ stdout: '', stderr: 'Failed to execute code: invalid response format' });
       }
-    } catch (err: any) {
-      setConsoleOutput({ stdout: '', stderr: '', error: `Execution Error: ${err.message || err}` });
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      setConsoleOutput({ stdout: '', stderr: '', error: `Execution Error: ${errorMsg}` });
     } finally {
       setIsRunningCode(false);
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      await apiRequest('/api/v1/users/logout', { method: 'POST' });
-      dispatch(logout());
-      router.push('/');
-    } catch (error) {
-      console.error('Logout failed:', error);
-      dispatch(logout());
-      router.push('/');
-    }
-  };
-
-  if (!isMounted) {
-    return (
-      <div className={styles.layout} style={{ justifyContent: 'center', alignItems: 'center', color: '#fff' }}>
-        Loading workspace...
-      </div>
-    );
-  }
 
   return (
     <div className={styles.layout}>
@@ -757,56 +1044,50 @@ function WorkspaceContent() {
             </div>
           </div>
           <div className={styles.topbarRight}>
-            {roomUsers.length > 0 && (
+            {connectedUsers.length > 0 && (
               <div className={styles.collaborators}>
                 <div className={styles.avatarStack}>
-                  {roomUsers.map((peer, i) => (
-                    <div 
-                      key={peer.socketId} 
-                      className={styles.avatar} 
-                      style={{ 
-                        backgroundColor: i % 2 === 0 ? 'var(--color-secondary)' : 'var(--color-primary)',
-                        marginLeft: i === 0 ? '0' : '-0.5rem'
-                      }}
-                      title={peer.user?.fullName || peer.user?.username || 'Peer'}
-                    >
-                      {(peer.user?.fullName || peer.user?.username || 'P')[0].toUpperCase()}
-                    </div>
-                  ))}
+                  {connectedUsers.map((peer, i) => {
+                    const isInCall = roomUsers.some((ru) => ru.socketId === peer.socketId || ru.user?._id === peer.user?._id);
+                    return (
+                      <div 
+                        key={peer.socketId} 
+                        className={styles.avatar} 
+                        style={{ 
+                          backgroundColor: i % 2 === 0 ? 'var(--color-secondary)' : 'var(--color-primary)',
+                          marginLeft: i === 0 ? '0' : '-0.5rem',
+                          position: 'relative',
+                          border: isInCall ? '2px solid #4ade80' : '2px solid var(--color-surface-container-lowest)'
+                        }}
+                        title={`${peer.user?.fullName || peer.user?.username || 'Peer'}${isInCall ? ' (In Call)' : ' (In Workspace)'}`}
+                      >
+                        {(peer.user?.fullName || peer.user?.username || 'P')[0].toUpperCase()}
+                        {isInCall && (
+                          <span 
+                            style={{
+                              position: 'absolute',
+                              bottom: '-2px',
+                              right: '-2px',
+                              width: '8px',
+                              height: '8px',
+                              borderRadius: '50%',
+                              backgroundColor: '#4ade80',
+                              border: '1px solid var(--color-surface-container-lowest)',
+                              boxShadow: '0 0 4px #4ade80'
+                            }}
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
 
-            {roomUsers.length > 0 && <div className={styles.divider}></div>}
+            {connectedUsers.length > 0 && <div className={styles.divider}></div>}
 
             {/* Profile Dropdown */}
-            <div className={styles.profileContainer} ref={profileDropdownRef}>
-              <button 
-                className={styles.profileCircle}
-                onClick={() => setIsProfileOpen(!isProfileOpen)}
-                title="User Options"
-              >
-                {(user?.fullName || user?.username || 'U')[0].toUpperCase()}
-              </button>
-
-              {isProfileOpen && (
-                <div className={styles.profileDropdown}>
-                  <div className={styles.profileHeader}>
-                    <p className={styles.profileName}>{user?.fullName || user?.username || 'DevMeet User'}</p>
-                    <p className={styles.profileEmail}>{user?.email || ''}</p>
-                  </div>
-                  <div className={styles.profileDivider}></div>
-                  <Link href="/dashboard" className={styles.profileItem} onClick={() => setIsProfileOpen(false)}>
-                    <span className="material-symbols-outlined">dashboard</span>
-                    <span>Dashboard</span>
-                  </Link>
-                  <button onClick={handleLogout} className={styles.profileItemBtn}>
-                    <span className="material-symbols-outlined">logout</span>
-                    <span>Sign Out</span>
-                  </button>
-                </div>
-              )}
-            </div>
+            <ProfileDropdown />
           </div>
         </header>
 
@@ -1010,76 +1291,66 @@ function WorkspaceContent() {
             </div>
           </section>
 
+          {/* Width Resizer Handle */}
+          <div 
+            className={styles.widthResizer} 
+            onMouseDown={handleWidthResizeMouseDown}
+          />
+
           {/* Video & Chat Collaborative Panel */}
-          <aside className={styles.collabPanel}>
+          <aside className={styles.collabPanel} style={{ width: `${collabWidth}px` }}>
             {/* Video Feeds Section */}
-            {!isJoinedCall ? (
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '1.5rem 1.5rem',
-                backgroundColor: 'rgba(0, 0, 0, 0.2)',
-                borderRadius: '0.75rem',
-                margin: '0.75rem',
-                textAlign: 'center',
-                border: '1px dashed rgba(255, 255, 255, 0.15)'
-              }}>
-                <span className="material-symbols-outlined" style={{ fontSize: '3rem', color: 'var(--color-outline)', marginBottom: '1rem' }}>
-                  videocam_off
-                </span>
-                <h4 className="font-editorial italic" style={{ fontSize: '1.25rem', color: '#fff', marginBottom: '0.5rem' }}>
-                  Ready to connect?
-                </h4>
-                <p className="font-body" style={{ fontSize: '0.75rem', color: 'var(--color-outline-variant)', lineHeight: '1.4', maxWidth: '240px', marginBottom: '1.5rem' }}>
-                  Join the room video call to pair program and share screens with your team.
-                </p>
-                <button
-                  onClick={startCall}
-                  style={{
-                    backgroundColor: 'var(--color-secondary)',
-                    color: 'var(--color-on-secondary)',
-                    border: 'none',
-                    borderRadius: '9999px',
-                    padding: '0.625rem 1.5rem',
-                    fontSize: '0.8125rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    fontFamily: 'var(--font-space-grotesk)',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                    transition: 'all 0.2s ease'
-                  }}
-                >
-                  <span className="material-symbols-outlined" style={{ fontSize: '1.125rem' }}>videocam</span>
-                  Join Video Call
-                </button>
-              </div>
-            ) : (
-              <div className={styles.videoGrid}>
-                {/* Local Stream */}
-                <div className={`${styles.videoBox} ${styles.videoBoxLocal}`}>
-                  {localStream && !isCameraOff ? (
-                    <video
-                      ref={(el) => {
-                        if (el && el.srcObject !== localStream) {
-                          el.srcObject = localStream;
-                        }
-                      }}
-                      autoPlay
-                      playsInline
-                      muted
-                    />
-                  ) : (
-                    <div className={styles.videoPlaceholder}>
-                      <div className={styles.videoPlaceholderAvatar}>
-                        {(user?.fullName || user?.username || 'You')[0].toUpperCase()}
-                      </div>
+            <div 
+              className={styles.videoGrid}
+              style={{ height: `${videoHeight}px`, maxHeight: `${videoHeight}px` }}
+            >
+              {/* Local Stream */}
+              <div className={`${styles.videoBox} ${styles.videoBoxLocal}`} style={{ border: isJoinedCall ? '1px solid rgba(255,255,255,0.1)' : '1px dashed rgba(255,255,255,0.2)' }}>
+                {isJoinedCall && localStream && !isCameraOff ? (
+                  <video
+                    ref={(el) => {
+                      if (el && el.srcObject !== localStream) {
+                        el.srcObject = localStream;
+                      }
+                    }}
+                    autoPlay
+                    playsInline
+                    muted
+                  />
+                ) : (
+                  <div className={styles.videoPlaceholder}>
+                    <div className={styles.videoPlaceholderAvatar} style={{ border: isJoinedCall ? '2px solid #4ade80' : '2px dashed rgba(255,255,255,0.3)' }}>
+                      {(user?.fullName || user?.username || 'You')[0].toUpperCase()}
                     </div>
-                  )}
+                    <span style={{ fontSize: '0.625rem', color: 'var(--color-outline-variant)', marginTop: '0.25rem', fontFamily: 'var(--font-space-grotesk)' }}>
+                      {isJoinedCall ? 'Camera Off' : 'Not in Call'}
+                    </span>
+                    {!isJoinedCall && (
+                      <button
+                        onClick={startCall}
+                        style={{
+                          marginTop: '0.5rem',
+                          backgroundColor: 'var(--color-secondary)',
+                          color: 'var(--color-on-secondary)',
+                          border: 'none',
+                          borderRadius: '4px',
+                          padding: '0.25rem 0.5rem',
+                          fontSize: '0.625rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.25rem',
+                          fontFamily: 'var(--font-space-grotesk)'
+                        }}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: '0.75rem' }}>videocam</span>
+                        Join Call
+                      </button>
+                    )}
+                  </div>
+                )}
+                {isJoinedCall && (
                   <div className={styles.videoControls}>
                     <button 
                       onClick={toggleMic} 
@@ -1121,45 +1392,61 @@ function WorkspaceContent() {
                       </span>
                     </button>
                   </div>
-                  <div className={styles.videoLabelLocal}>
-                    <span className="material-symbols-outlined" style={{ fontSize: '0.875rem' }}>
-                      {isMicMuted ? 'mic_off' : 'mic'}
-                    </span>
-                    You
-                  </div>
+                )}
+                <div className={styles.videoLabelLocal}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '0.875rem' }}>
+                    {isJoinedCall ? (isMicMuted ? 'mic_off' : 'mic') : 'videocam_off'}
+                  </span>
+                  You
                 </div>
-
-                {/* Remote Streams */}
-                {roomUsers.map((peer) => {
-                  const stream = remoteStreams[peer.socketId];
-                  return (
-                    <div key={peer.socketId} className={styles.videoBox}>
-                      {stream ? (
-                        <video
-                          ref={(el) => {
-                            if (el && el.srcObject !== stream) {
-                              el.srcObject = stream;
-                            }
-                          }}
-                          autoPlay
-                          playsInline
-                        />
-                      ) : (
-                        <div className={styles.videoPlaceholder}>
-                          <div className={styles.videoPlaceholderAvatar}>
-                            {(peer.user?.fullName || peer.user?.username || 'P')[0].toUpperCase()}
-                          </div>
-                        </div>
-                      )}
-                      <div className={styles.videoLabel}>
-                        <span className="material-symbols-outlined" style={{ fontSize: '0.875rem' }}>mic</span>
-                        {peer.user?.fullName || peer.user?.username || 'Peer'}
-                      </div>
-                    </div>
-                  );
-                })}
               </div>
-            )}
+
+              {/* Remote Streams */}
+              {connectedUsers.map((peer) => {
+                const isInCall = roomUsers.some((ru) => ru.socketId === peer.socketId || ru.user?._id === peer.user?._id);
+                const stream = remoteStreams[peer.socketId];
+                const mediaState = remoteMediaStates[peer.socketId] || { isCameraOff: true, isMicMuted: true };
+                const showVideo = isInCall && stream && !mediaState.isCameraOff;
+                return (
+                  <div key={peer.socketId} className={styles.videoBox} style={{ border: isInCall ? '1px solid rgba(74, 222, 128, 0.2)' : '1px solid rgba(255,255,255,0.05)' }}>
+                    {showVideo ? (
+                      <video
+                        ref={(el) => {
+                          if (el && el.srcObject !== stream) {
+                            el.srcObject = stream;
+                          }
+                        }}
+                        autoPlay
+                        playsInline
+                      />
+                    ) : (
+                      <div className={styles.videoPlaceholder}>
+                        <div 
+                          className={styles.videoPlaceholderAvatar}
+                          style={{ border: isInCall ? '2px solid #4ade80' : '2px solid rgba(255,255,255,0.1)' }}
+                        >
+                          {(peer.user?.fullName || peer.user?.username || 'P')[0].toUpperCase()}
+                        </div>
+                        <span style={{ fontSize: '0.625rem', color: 'var(--color-outline-variant)', marginTop: '0.25rem', fontFamily: 'var(--font-space-grotesk)' }}>
+                          {isInCall ? (mediaState.isCameraOff ? 'Camera Off' : 'Active') : 'In Room'}
+                        </span>
+                      </div>
+                    )}
+                    <div className={styles.videoLabel}>
+                      <span className="material-symbols-outlined" style={{ fontSize: '0.875rem' }}>
+                        {isInCall ? (mediaState.isMicMuted ? 'mic_off' : 'mic') : 'meeting_room'}
+                      </span>
+                      {peer.user?.fullName || peer.user?.username || 'Peer'}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {/* Height Resizer Handle */}
+            <div 
+              className={styles.heightResizer}
+              onMouseDown={handleHeightResizeMouseDown}
+            />
 
             {/* Chat Interface */}
             <div className={styles.chatSection}>

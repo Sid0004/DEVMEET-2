@@ -4,8 +4,10 @@ node_modules/
 .pnp.js
 
 # Next.js build output
-frontend/.next/
-frontend/out/
+landing-page/.next/
+landing-page/out/
+client/.next/
+client/out/
 
 # Environment files
 .env

@@ -15,7 +15,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { apiRequest } from "@/lib/api"
 import { useAppDispatch } from "@/redux/hooks"
-import { setCredentials } from "@/redux/features/authSlice"
+import { setCredentials, User } from "@/redux/features/authSlice"
 
 export function LoginForm({
   className,
@@ -34,13 +34,13 @@ export function LoginForm({
     setError("")
 
     try {
-      const response = await apiRequest<{ user: any; token: string }>("/api/v1/users/login", {
+      const response = await apiRequest<{ data: { user: User; accessToken: string } }>("/api/v1/users/login", {
         method: "POST",
         body: JSON.stringify({ identifier: loginValue, password }),
       })
 
       // Store user info and token in Redux (as per your recent change)
-      dispatch(setCredentials({ user: response.user, token: response.token }))
+      dispatch(setCredentials({ user: response.data.user, token: response.data.accessToken }))
 
       router.push("/dashboard")
     } catch (err) {

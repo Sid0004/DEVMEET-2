@@ -1,36 +1,32 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { Provider } from 'react-redux';
-import { makeStore, AppStore } from '../redux/store';
+import { makeStore } from '../redux/store';
 import { apiRequest } from '@/lib/api';
-import { setCredentials } from '@/redux/features/authSlice';
+import { setCredentials, User } from '@/redux/features/authSlice';
 
 export default function StoreProvider({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const storeRef = useRef<AppStore>(null);
-  if (!storeRef.current) {
-    // Create the store instance the first time this renders
-    storeRef.current = makeStore();
-  }
+  const [store] = useState(() => makeStore());
 
   useEffect(() => {
     const loadUser = async () => {
       try {
-        const response = await apiRequest<{ data: any }>('/api/v1/users/current-user');
+        const response = await apiRequest<{ data: User }>('/api/v1/users/current-user');
         if (response.data) {
-          storeRef.current?.dispatch(setCredentials({ user: response.data }));
+          store.dispatch(setCredentials({ user: response.data }));
         }
-      } catch (error) {
+      } catch {
         console.log("Not logged in or session expired");
       }
     };
 
     loadUser();
-  }, []);
+  }, [store]);
 
-  return <Provider store={storeRef.current}>{children}</Provider>;
+  return <Provider store={store}>{children}</Provider>;
 }

@@ -94,9 +94,13 @@ html.lenis body {
   pointer-events: none;
 }
 
-html {
-  scroll-behavior: smooth;
+html, body {
   height: 100%;
+}
+
+html {
+  scrollbar-gutter: stable;
+  overflow-x: hidden;
 }
 
 * {
@@ -284,4 +288,11 @@ a {
   html {
     @apply font-sans;
   }
+}
+
+html.workspace-active,
+html.workspace-active body {
+  overflow: hidden !important;
+  height: 100% !important;
+  max-height: 100% !important;
 }

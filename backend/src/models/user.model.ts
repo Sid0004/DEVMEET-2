@@ -9,6 +9,7 @@ export interface IUser extends Document {
     avatar: string;
     coverImage?: string;
     sessionHistory: mongoose.Types.ObjectId[];
+    rooms:mongoose.Types.ObjectId[];
     password?: string;
     refreshToken?: string;
     isPasswordCorrect(password: string): Promise<boolean>;
@@ -51,6 +52,13 @@ const userSchema = new Schema<IUser>(
                 type: Schema.Types.ObjectId,
                 ref: "Session"
             }
+
+        ],
+        rooms:[
+            {
+                type:Schema.Types.ObjectId,
+                ref:"room"
+            }
         ],
         password: {
             type: String,
@@ -59,7 +67,6 @@ const userSchema = new Schema<IUser>(
         refreshToken: {
             type: String
         }
-
     },
     {
         timestamps: true

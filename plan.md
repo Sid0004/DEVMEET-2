@@ -71,10 +71,10 @@ assets
 - `backend/src/controllers/user.controller.js` and `backend/src/routes/user.routes.js` for auth.
 - `backend/src/models/user.model.js`, `backend/src/models/room.model.js`, and `backend/src/models/video.model.js` for domain models.
 - `backend/src/middlewares/auth.middleware.js` for protected routes.
-- `frontend/src/components/login-form.tsx` and `frontend/src/app/signup/page.tsx` for API wiring.
-- `frontend/src/app/dashboard/page.tsx` and `frontend/src/app/workspace/page.tsx` for live collaboration UI.
-- `frontend/src/app/globals.css`, `frontend/src/app/page.tsx`, and `frontend/src/app/page.module.css` for landing page styling.
-- `frontend/src/app/components/CubeScene.tsx` if the cube hero stays.
+- `client/src/components/login-form.tsx` and `client/src/app/signup/page.tsx` for API wiring.
+- `client/src/app/dashboard/page.tsx` and `client/src/app/workspace/page.tsx` for live collaboration UI.
+- `landing-page/src/app/globals.css`, `landing-page/src/app/page.tsx`, and `landing-page/src/app/page.module.css` for landing page styling.
+- `landing-page/src/app/components/CubeScene.tsx` if the cube hero stays.
 
 ## Decisions
 

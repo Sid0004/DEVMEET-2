@@ -1,0 +1,176 @@
+/* ─── Trigger Button ─── */
+.profileCircle {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-secondary), #3b82f6);
+  color: #fff;
+  border: 2px solid var(--color-surface-container-lowest);
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-family: var(--font-space-grotesk);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+  outline: none;
+}
+
+.profileCircle:hover {
+  transform: scale(1.06);
+  box-shadow: 0 0 0 3px rgba(0, 81, 213, 0.2);
+}
+
+/* data-active = menu is open */
+.profileCircle[data-active] {
+  transform: scale(1.06);
+  box-shadow: 0 0 0 3px rgba(0, 81, 213, 0.25);
+}
+
+/* ─── Menu Panel ─── */
+.menuItems {
+  width: 240px;
+  background-color: var(--color-surface-container-lowest);
+  border: 1px solid rgba(196, 197, 217, 0.25);
+  border-radius: 0.875rem;
+  padding: 0.375rem;
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.08),
+    0 16px 40px -4px rgba(0, 0, 0, 0.14);
+  z-index: 9999;
+  outline: none;
+
+  /* Headless UI transition classes */
+  transition: opacity 150ms ease, transform 150ms ease;
+  transform-origin: top right;
+}
+
+/* data-closed = entering/leaving */
+.menuItems[data-closed] {
+  opacity: 0;
+  transform: scale(0.95) translateY(-4px);
+}
+
+/* ─── User Header (non-interactive) ─── */
+.profileHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.75rem 0.5rem;
+}
+
+.avatarLarge {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-secondary), #3b82f6);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  font-family: var(--font-space-grotesk);
+  flex-shrink: 0;
+}
+
+.profileName {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-on-surface);
+  margin: 0 0 0.125rem;
+  font-family: var(--font-space-grotesk);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 148px;
+}
+
+.profileEmail {
+  font-size: 0.6875rem;
+  color: var(--color-on-surface-variant);
+  margin: 0;
+  font-family: var(--font-space-grotesk);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 148px;
+}
+
+/* ─── Separator ─── */
+.separator {
+  height: 1px;
+  background-color: rgba(196, 197, 217, 0.2);
+  margin: 0.25rem 0;
+}
+
+/* ─── Section Heading ─── */
+.menuHeading {
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-on-surface-variant);
+  padding: 0.5rem 0.875rem 0.25rem;
+  font-family: var(--font-space-grotesk);
+}
+
+/* ─── Menu Item ─── */
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  width: 100%;
+  padding: 0.5rem 0.875rem;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-on-surface);
+  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-manrope);
+  transition: background-color 0.1s ease, color 0.1s ease;
+}
+
+/* Headless UI focuses via data-focus */
+.menuItem[data-focus] {
+  background-color: var(--color-surface-container-low);
+  color: var(--color-secondary);
+  outline: none;
+}
+
+/* ─── Disabled item ─── */
+.menuItemDisabled {
+  opacity: 0.45;
+  cursor: default;
+  pointer-events: none;
+}
+
+/* ─── Danger (sign out) ─── */
+.menuItemDanger {
+  color: #ef4444;
+}
+
+.menuItemDanger[data-focus] {
+  background-color: rgba(239, 68, 68, 0.08);
+  color: #ef4444;
+}
+
+/* ─── "Coming Soon" badge ─── */
+.comingSoon {
+  margin-left: auto;
+  font-size: 0.5625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0.15rem 0.4rem;
+  border-radius: 9999px;
+  background-color: var(--color-surface-container-high);
+  color: var(--color-on-surface-variant);
+  font-family: var(--font-space-grotesk);
+}

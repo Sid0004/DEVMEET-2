@@ -5,6 +5,7 @@ import { User } from "../models/user.model.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import mongoose from "mongoose";
 import { getCookieOptions } from "../utils/cookieOptions.js";
+import jwt from "jsonwebtoken";
 
 const generateAccessAndRefreshTokens = async (userId: mongoose.Types.ObjectId | string) => {
     try {
@@ -88,7 +89,7 @@ const loginUser = asyncHandler(async (req: Request, res: Response) => {
 
     const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
 
-    const options = getCookieOptions();
+    const options = getCookieOptions(req);
 
     return res
         .status(200)
@@ -120,12 +121,13 @@ const logoutUser = asyncHandler(async (req: Request, res: Response) => {
         }
     );
 
-    const options = getCookieOptions();
+    const options = getCookieOptions(req);
+    const clearOptions = { ...options, maxAge: undefined };
 
     return res
         .status(200)
-        .clearCookie("accessToken", options)
-        .clearCookie("refreshToken", options)
+        .clearCookie("accessToken", clearOptions)
+        .clearCookie("refreshToken", clearOptions)
         .json(new ApiResponse(200, {}, "User logged out"));
 });
 
@@ -135,9 +137,68 @@ const getCurrentUser = asyncHandler(async (req: Request, res: Response) => {
         .json(new ApiResponse(200, req.user, "User fetched successfully"));
 });
 
+const refreshAccessToken = asyncHandler(async (req: Request, res: Response) => {
+    const incomingRefreshToken = req.cookies?.refreshToken || req.body.refreshToken;
+
+    const clearCookiesAndThrow = (statusCode: number, message: string) => {
+        const options = getCookieOptions(req);
+        const clearOptions = { ...options, maxAge: undefined };
+        res.clearCookie("accessToken", clearOptions);
+        res.clearCookie("refreshToken", clearOptions);
+        throw new ApiError(statusCode, message);
+    };
+
+    if (!incomingRefreshToken) {
+        clearCookiesAndThrow(401, "unauthorized request");
+    }
+
+    try {
+        const decodedToken = jwt.verify(
+            incomingRefreshToken,
+            process.env.REFRESH_TOKEN_SECRET as string
+        ) as any;
+
+        const user = await User.findById(decodedToken?._id);
+
+        if (!user) {
+            clearCookiesAndThrow(401, "Invalid refresh token");
+        }
+
+        if (incomingRefreshToken !== user?.refreshToken) {
+            clearCookiesAndThrow(401, "Refresh token is expired or used");
+        }
+
+        const options = getCookieOptions(req);
+
+        const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user!._id as mongoose.Types.ObjectId);
+
+        return res
+            .status(200)
+            .cookie("accessToken", accessToken, options)
+            .cookie("refreshToken", refreshToken, options)
+            .json(
+                new ApiResponse(
+                    200,
+                    { accessToken, refreshToken },
+                    "Access token refreshed successfully"
+                )
+            );
+    } catch (error: any) {
+        if (error instanceof ApiError) {
+            throw error;
+        }
+        const options = getCookieOptions(req);
+        const clearOptions = { ...options, maxAge: undefined };
+        res.clearCookie("accessToken", clearOptions);
+        res.clearCookie("refreshToken", clearOptions);
+        throw new ApiError(401, error?.message || "Invalid refresh token");
+    }
+});
+
 export {
     registerUser,
     loginUser,
     logoutUser,
-    getCurrentUser
+    getCurrentUser,
+    refreshAccessToken
 };

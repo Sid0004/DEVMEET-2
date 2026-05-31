@@ -3,6 +3,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { Room } from "../models/room.model.js";
+import {User} from "../models/user.model.js";
 import { exec } from "child_process";
 import fs from "fs";
 import path from "path";
@@ -66,13 +67,16 @@ const getRoomById = asyncHandler(async (req: Request, res: Response) => {
 
 const joinRoom = asyncHandler(async (req: Request, res: Response) => {
     const { roomId } = req.params; 
+    const userId = req.user?._id;
+    if (!userId) {
+        throw new ApiError(401, "Unauthorized");
+    }
     if (!roomId) throw new ApiError(400, "Please provide a room ID to join");
 
     const room = await Room.findOne({ roomId });
     if (!room) throw new ApiError(404, "Room with this ID does not exist");
 
-    const userId = req.user?._id;
-    if (userId && room.participants.includes(userId as any)) {
+    if (room.participants.includes(userId as any)) {
         return res.status(200).json(
             new ApiResponse(200, room, "You have already joined this room")
         );
@@ -83,7 +87,10 @@ const joinRoom = asyncHandler(async (req: Request, res: Response) => {
         { $push: { participants: userId } },
         { new: true } 
     );
-
+    await User.findOneAndUpdate(
+        { _id: userId },
+        { $addToSet: { rooms: room._id } }
+    );
     return res.status(200).json(
         new ApiResponse(200, updatedRoom, "Successfully joined the room")
     );
@@ -183,11 +190,47 @@ const runCode = asyncHandler(async (req: Request, res: Response) => {
         );
     });
 });
+const getAllRoomsById = asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user?._id;
+    if (!userId) {
+        throw new ApiError(401, "Unauthorized");
+    }
+
+    const rooms = await Room.find({
+        $or: [
+            { host: userId },
+            { participants: userId }
+        ]
+    });
+
+    return res.status(200).json(
+        new ApiResponse(200, rooms, "User room history fetched successfully")
+    );
+});
+
+const deleteRoom = asyncHandler(async (req: Request, res: Response) => {
+    const { roomId } = req.params;
+    if (!roomId) throw new ApiError(400, "Room ID is required");
+
+    const deletedRoom = await Room.findOneAndDelete({ roomId });
+    if (!deletedRoom) throw new ApiError(404, "Room with this ID does not exist");
+
+    await User.updateMany(
+        { rooms: deletedRoom._id },
+        { $pull: { rooms: deletedRoom._id } }
+    );
+
+    return res.status(200).json(
+        new ApiResponse(200, deletedRoom, "Room deleted successfully")
+    );
+});
 
 export {
     createRoom,
     getRoomById,
     joinRoom,
     leaveRoom,
-    runCode
+    runCode,
+    getAllRoomsById,
+    deleteRoom
 };
