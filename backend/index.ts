@@ -54,7 +54,8 @@ io.on("connection", (socket) => {
             // Build fallback file list if room has no files yet (backward compatibility)
             let files = room?.files || [];
             if (files.length === 0) {
-                const ext = language.toLowerCase() === 'python' ? 'py' : 'ts';
+                const ext = language.toLowerCase() === 'python' ? 'py' : 'ts';// it shouldnt be hardocded
+                
                 files = [
                     {
                         name: `main.${ext}`,
