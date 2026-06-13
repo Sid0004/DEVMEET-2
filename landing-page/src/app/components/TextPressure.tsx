@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 // Component ported from https://codepen.io/JuanFuentes/full/rgXKGQ
 
@@ -48,6 +48,7 @@ const TextPressure: React.FC<TextPressureProps> = ({
 
   const [fontSize, setFontSize] = useState(minFontSize)
   const [lineHeight, setLineHeight] = useState(1)
+  const [isVisible, setIsVisible] = useState(false)
 
   const chars = text.split("")
 
@@ -58,6 +59,25 @@ const TextPressure: React.FC<TextPressureProps> = ({
   }
 
   useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          setIsVisible(entry.isIntersecting)
+        })
+      },
+      { threshold: 0.1 }
+    )
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current)
+    }
+
+    return () => observer.disconnect()
+  }, [])
+
+  useEffect(() => {
+    if (!isVisible || !containerRef.current) return
+    
     const handleMouseMove = (e: MouseEvent) => {
       cursorRef.current.x = e.clientX
       cursorRef.current.y = e.clientY
@@ -68,8 +88,8 @@ const TextPressure: React.FC<TextPressureProps> = ({
       cursorRef.current.y = t.clientY
     }
 
-    window.addEventListener("mousemove", handleMouseMove)
-    window.addEventListener("touchmove", handleTouchMove, { passive: false })
+    window.addEventListener("mousemove", handleMouseMove, { passive: true })
+    window.addEventListener("touchmove", handleTouchMove, { passive: true })
 
     if (containerRef.current) {
       const { left, top, width, height } = containerRef.current.getBoundingClientRect()
@@ -83,7 +103,7 @@ const TextPressure: React.FC<TextPressureProps> = ({
       window.removeEventListener("mousemove", handleMouseMove)
       window.removeEventListener("touchmove", handleTouchMove)
     }
-  }, [])
+  }, [isVisible])
 
   const charPositions = useRef<{ x: number; y: number }[]>([])
 
@@ -124,12 +144,18 @@ const TextPressure: React.FC<TextPressureProps> = ({
   }, [chars.length, minFontSize, scale])
 
   useEffect(() => {
+    if (!isVisible) return
     setSize()
-    window.addEventListener("resize", setSize)
-    return () => window.removeEventListener("resize", setSize)
-  }, [setSize])
+    const debouncedSetSize = () => {
+      requestAnimationFrame(setSize)
+    }
+    window.addEventListener("resize", debouncedSetSize)
+    return () => window.removeEventListener("resize", debouncedSetSize)
+  }, [setSize, isVisible])
 
   useEffect(() => {
+    if (!isVisible) return
+    
     let rafId: number
     const animate = () => {
       mouseRef.current.x += (cursorRef.current.x - mouseRef.current.x) / 15
@@ -171,7 +197,7 @@ const TextPressure: React.FC<TextPressureProps> = ({
 
     animate()
     return () => cancelAnimationFrame(rafId)
-  }, [width, weight, italic, alpha, chars.length])
+  }, [width, weight, italic, alpha, chars.length, isVisible])
 
   return (
     <div className="relative w-full h-full overflow-hidden bg-transparent" ref={containerRef}>
