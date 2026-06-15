@@ -645,3 +645,118 @@
     padding: 1rem;
   }
 }
+
+/* Room creation extra options styles */
+.formRow {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 1rem;
+  align-items: center;
+}
+
+.selectField {
+  background-color: var(--color-surface-container-lowest);
+  border: var(--border-ghost);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  font-size: 0.95rem;
+  color: var(--color-on-surface);
+  transition: box-shadow 0.2s ease;
+  cursor: pointer;
+}
+
+.selectField:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-secondary);
+}
+
+.switchGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  cursor: pointer;
+}
+
+.switchGroup input[type="checkbox"] {
+  width: 1.25rem;
+  height: 1.25rem;
+  cursor: pointer;
+  accent-color: var(--color-secondary);
+}
+
+.switchLabel {
+  font-size: 0.875rem;
+  color: var(--color-on-surface-variant);
+  user-select: none;
+}
+
+/* Beautiful Premium Loader Overlay */
+.loaderOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(15, 17, 26, 0.75);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeInLoader 0.3s ease-out;
+}
+
+.loaderContainer {
+  background-color: var(--color-surface-container-lowest);
+  border: var(--border-ghost);
+  padding: 2.5rem 3.5rem;
+  border-radius: 1.5rem;
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  max-width: 420px;
+  width: 90%;
+  text-align: center;
+}
+
+.spinner {
+  width: 3.5rem;
+  height: 3.5rem;
+  border: 4px solid rgba(0, 81, 213, 0.1);
+  border-radius: 50%;
+  border-top-color: var(--color-secondary);
+  animation: spin 1s linear infinite;
+}
+
+.loaderTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--color-on-surface);
+  margin: 0;
+}
+
+.loaderText {
+  font-size: 0.875rem;
+  color: var(--color-on-surface-variant);
+  margin: 0;
+  min-height: 1.25rem;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fadeInLoader {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

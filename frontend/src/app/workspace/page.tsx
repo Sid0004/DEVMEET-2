@@ -11,6 +11,8 @@ import { API_BASE_URL, apiRequest } from '../../lib/api';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { setCredentials, User } from '@/redux/features/authSlice';
 import ProfileDropdown from '../components/ProfileDropdown';
+import Avatar from '@/components/Avatar';
+import { useTheme } from '@/components/ThemeProvider';
 
 const rtcConfig = {
   iceServers: [
@@ -103,6 +105,75 @@ const createDummyAudioTrack = (): MediaStreamTrack | null => {
   }
 };
 
+const getLanguageFromFilename = (filename: string): string => {
+  const ext = filename.split('.').pop()?.toLowerCase();
+  switch (ext) {
+    case 'js':
+    case 'jsx':
+      return 'javascript';
+    case 'ts':
+    case 'tsx':
+      return 'typescript';
+    case 'py':
+      return 'python';
+    case 'cpp':
+    case 'cc':
+    case 'cxx':
+    case 'h':
+    case 'hpp':
+      return 'cpp';
+    case 'c':
+      return 'c';
+    case 'java':
+      return 'java';
+    case 'rs':
+      return 'rust';
+    case 'go':
+      return 'go';
+    case 'html':
+    case 'htm':
+      return 'html';
+    case 'css':
+      return 'css';
+    case 'json':
+      return 'json';
+    case 'md':
+      return 'markdown';
+    case 'sh':
+    case 'bash':
+      return 'shell';
+    case 'sql':
+      return 'sql';
+    case 'yaml':
+    case 'yml':
+      return 'yaml';
+    default:
+      return 'plaintext';
+  }
+};
+
+const getLanguageDisplayName = (monacoLang: string): string => {
+  const mapping: { [key: string]: string } = {
+    'javascript': 'JavaScript',
+    'typescript': 'TypeScript',
+    'python': 'Python',
+    'cpp': 'C++',
+    'c': 'C',
+    'java': 'Java',
+    'rust': 'Rust',
+    'go': 'Go',
+    'html': 'HTML',
+    'css': 'CSS',
+    'json': 'JSON',
+    'markdown': 'Markdown',
+    'shell': 'Shell',
+    'sql': 'SQL',
+    'yaml': 'YAML',
+    'plaintext': 'Plain Text'
+  };
+  return mapping[monacoLang] || monacoLang;
+};
+
 export default function WorkspacePage() {
   return (
     <Suspense fallback={<div className={styles.layout} style={{ justifyContent: 'center', alignItems: 'center', color: '#fff' }}>Loading workspace...</div>}>
@@ -117,7 +188,12 @@ function WorkspaceContent() {
   const roomId = searchParams.get('room');
   
   const dispatch = useAppDispatch();
-  const { user } = useAppSelector((state) => state.auth);
+  const { user, token } = useAppSelector((state) => state.auth);
+  const { theme } = useTheme();
+
+  // Compute resolved editor theme
+  const isDarkTheme = theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  const editorTheme = isDarkTheme ? "vs-dark" : "vs";
 
   // States
   const [isMounted, setIsMounted] = useState(false);
@@ -281,9 +357,12 @@ function WorkspaceContent() {
 
     const fetchUser = async () => {
       try {
-        const response = await apiRequest<{ data: User }>('/api/v1/users/current-user');
+        const response = await apiRequest<{ data: User & { accessToken?: string } }>('/api/v1/users/current-user');
         if (response?.data) {
-          dispatch(setCredentials({ user: response.data }));
+          dispatch(setCredentials({ 
+            user: response.data, 
+            token: response.data.accessToken 
+          }));
         }
       } catch (err) {
         console.error('Failed to fetch user:', err);
@@ -330,17 +409,17 @@ function WorkspaceContent() {
   // Initialize Socket.IO & Code Collaboration & Call Listeners
   useEffect(() => {
     if (!isMounted || !user || !roomId) return;
-
     // 1. Setup Socket.IO connection
     const socket = io(API_BASE_URL, {
-      withCredentials: true
+      withCredentials: true,
+      auth: { token }
     });
     socketRef.current = socket;
 
-    // 2. Emit Join Room & Join Call
-    socket.emit('join-room', { roomId, user });
-    setIsJoinedCall(true);
-    socket.emit('join-call');
+    // 2. Emit Join Room on connect/reconnect
+    socket.on('connect', () => {
+      socket.emit('join-room', { roomId });
+    });
 
     // 3. Handle Socket Events
     socket.on('room-state', async ({ code: existingCode, language: roomLang, files: roomFiles, messages: existingMessages, users: roomUsersList }: RoomStatePayload) => {
@@ -649,7 +728,7 @@ function WorkspaceContent() {
       });
       peerConnections.current = {};
     };
-  }, [isMounted, user, roomId]);
+  }, [isMounted, user, token, roomId]);
 
   // Scroll chat to bottom
   useEffect(() => {
@@ -694,17 +773,12 @@ function WorkspaceContent() {
       return;
     }
 
-    const ext = fileName.split('.').pop()?.toLowerCase();
-    let lang = 'TypeScript';
-    if (ext === 'py') lang = 'Python';
-    else if (ext === 'js' || ext === 'jsx') lang = 'JavaScript';
-    else if (ext === 'rs') lang = 'Rust';
-    else if (ext === 'go') lang = 'Go';
+    const detectedLang = getLanguageDisplayName(getLanguageFromFilename(fileName.trim()));
 
     const newFile = {
       name: fileName.trim(),
       content: '',
-      language: lang
+      language: detectedLang
     };
 
     const updatedFiles = [...files, newFile];
@@ -754,10 +828,22 @@ function WorkspaceContent() {
     if (!activeFile) return;
 
     let ext = 'ts';
-    if (newLang.toLowerCase() === 'python') ext = 'py';
-    else if (newLang.toLowerCase() === 'javascript') ext = 'js';
-    else if (newLang.toLowerCase() === 'rust') ext = 'rs';
-    else if (newLang.toLowerCase() === 'go') ext = 'go';
+    const langLower = newLang.toLowerCase();
+    if (langLower === 'python') ext = 'py';
+    else if (langLower === 'javascript') ext = 'js';
+    else if (langLower === 'typescript') ext = 'ts';
+    else if (langLower === 'rust') ext = 'rs';
+    else if (langLower === 'go') ext = 'go';
+    else if (langLower === 'c++' || langLower === 'cpp') ext = 'cpp';
+    else if (langLower === 'c') ext = 'c';
+    else if (langLower === 'java') ext = 'java';
+    else if (langLower === 'html') ext = 'html';
+    else if (langLower === 'css') ext = 'css';
+    else if (langLower === 'json') ext = 'json';
+    else if (langLower === 'markdown' || langLower === 'md') ext = 'md';
+    else if (langLower === 'shell' || langLower === 'sh') ext = 'sh';
+    else if (langLower === 'sql') ext = 'sql';
+    else if (langLower === 'yaml' || langLower === 'yml') ext = 'yaml';
 
     const nameParts = activeFile.name.split('.');
     if (nameParts.length > 1) {
@@ -1049,19 +1135,19 @@ function WorkspaceContent() {
                 <div className={styles.avatarStack}>
                   {connectedUsers.map((peer, i) => {
                     const isInCall = roomUsers.some((ru) => ru.socketId === peer.socketId || ru.user?._id === peer.user?._id);
+                    const peerName = peer.user?.fullName || peer.user?.username || 'Peer';
                     return (
                       <div 
                         key={peer.socketId} 
-                        className={styles.avatar} 
                         style={{ 
-                          backgroundColor: i % 2 === 0 ? 'var(--color-secondary)' : 'var(--color-primary)',
                           marginLeft: i === 0 ? '0' : '-0.5rem',
                           position: 'relative',
+                          borderRadius: '50%',
                           border: isInCall ? '2px solid #4ade80' : '2px solid var(--color-surface-container-lowest)'
                         }}
-                        title={`${peer.user?.fullName || peer.user?.username || 'Peer'}${isInCall ? ' (In Call)' : ' (In Workspace)'}`}
+                        title={`${peerName}${isInCall ? ' (In Call)' : ' (In Workspace)'}`}
                       >
-                        {(peer.user?.fullName || peer.user?.username || 'P')[0].toUpperCase()}
+                        <Avatar src={peer.user?.avatarUrl ?? null} name={peerName} size={28} />
                         {isInCall && (
                           <span 
                             style={{
@@ -1189,8 +1275,18 @@ function WorkspaceContent() {
                     <option value="TypeScript">TypeScript</option>
                     <option value="JavaScript">JavaScript</option>
                     <option value="Python">Python</option>
+                    <option value="C++">C++</option>
+                    <option value="C">C</option>
+                    <option value="Java">Java</option>
                     <option value="Rust">Rust</option>
                     <option value="Go">Go</option>
+                    <option value="HTML">HTML</option>
+                    <option value="CSS">CSS</option>
+                    <option value="JSON">JSON</option>
+                    <option value="Markdown">Markdown</option>
+                    <option value="Shell">Shell</option>
+                    <option value="SQL">SQL</option>
+                    <option value="YAML">YAML</option>
                   </select>
                 </div>
               </div>
@@ -1198,7 +1294,7 @@ function WorkspaceContent() {
               <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
                 <Editor
                   height="100%"
-                  language={files[activeFileIndex]?.language.toLowerCase() || 'typescript'}
+                  language={files[activeFileIndex] ? getLanguageFromFilename(files[activeFileIndex].name) : 'typescript'}
                   theme="vs-dark"
                   value={files[activeFileIndex]?.content || ''}
                   onChange={handleEditorChange}
@@ -1319,8 +1415,8 @@ function WorkspaceContent() {
                   />
                 ) : (
                   <div className={styles.videoPlaceholder}>
-                    <div className={styles.videoPlaceholderAvatar} style={{ border: isJoinedCall ? '2px solid #4ade80' : '2px dashed rgba(255,255,255,0.3)' }}>
-                      {(user?.fullName || user?.username || 'You')[0].toUpperCase()}
+                    <div style={{ border: isJoinedCall ? '2px solid #4ade80' : '2px dashed rgba(255,255,255,0.3)', borderRadius: '50%' }}>
+                      <Avatar src={user?.avatarUrl ?? null} name={user?.fullName || user?.username || 'You'} size={48} />
                     </div>
                     <span style={{ fontSize: '0.625rem', color: 'var(--color-outline-variant)', marginTop: '0.25rem', fontFamily: 'var(--font-space-grotesk)' }}>
                       {isJoinedCall ? 'Camera Off' : 'Not in Call'}
@@ -1422,10 +1518,9 @@ function WorkspaceContent() {
                     ) : (
                       <div className={styles.videoPlaceholder}>
                         <div 
-                          className={styles.videoPlaceholderAvatar}
-                          style={{ border: isInCall ? '2px solid #4ade80' : '2px solid rgba(255,255,255,0.1)' }}
+                          style={{ border: isInCall ? '2px solid #4ade80' : '2px solid rgba(255,255,255,0.1)', borderRadius: '50%' }}
                         >
-                          {(peer.user?.fullName || peer.user?.username || 'P')[0].toUpperCase()}
+                          <Avatar src={peer.user?.avatarUrl ?? null} name={peer.user?.fullName || peer.user?.username || 'Peer'} size={48} />
                         </div>
                         <span style={{ fontSize: '0.625rem', color: 'var(--color-outline-variant)', marginTop: '0.25rem', fontFamily: 'var(--font-space-grotesk)' }}>
                           {isInCall ? (mediaState.isCameraOff ? 'Camera Off' : 'Active') : 'In Room'}
@@ -1496,10 +1591,7 @@ function WorkspaceContent() {
           </aside>
         </div>
 
-        {/* Floating AI Action Button */}
-        <Link href="/dashboard" className={styles.fabBtn}>
-          <span className="material-symbols-outlined" style={{ fontSize: '1.5rem' }}>auto_awesome</span>
-        </Link>
+        
       </main>
     </div>
   );
