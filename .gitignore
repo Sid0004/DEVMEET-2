@@ -40,3 +40,9 @@ dist/
 build/
 venv/
 .venv/
+
+# Dev tunnels
+tunnel.txt
+
+# Temp folders
+temp/
