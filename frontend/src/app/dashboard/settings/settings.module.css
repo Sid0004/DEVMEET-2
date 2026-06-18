@@ -369,3 +369,99 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* iOS Style Toggle Switch */
+.toggleContainer {
+  position: relative;
+  display: inline-block;
+  width: 2.75rem;
+  height: 1.5rem;
+  flex-shrink: 0;
+}
+
+.toggleInput {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggleSlider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background-color: var(--color-surface-container-high);
+  transition: .2s ease-in-out;
+  border-radius: 9999px;
+  border: 1px solid rgba(196, 197, 217, 0.25);
+}
+
+.toggleSlider:before {
+  position: absolute;
+  content: "";
+  height: 1.125rem;
+  width: 1.125rem;
+  left: 0.125rem;
+  bottom: 0.085rem;
+  background-color: var(--color-on-surface);
+  transition: .2s ease-in-out;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+
+.toggleInput:checked + .toggleSlider {
+  background-color: var(--color-secondary);
+  border-color: var(--color-secondary);
+}
+
+.toggleInput:checked + .toggleSlider:before {
+  transform: translateX(1.125rem);
+  background-color: var(--color-on-secondary);
+}
+
+.toggleRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid rgba(196, 197, 217, 0.1);
+  gap: 1.5rem;
+}
+
+.toggleRow:last-child {
+  border-bottom: none;
+}
+
+.toggleInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.toggleLabel {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-on-surface);
+}
+
+.toggleDesc {
+  font-size: 0.75rem;
+  color: var(--color-on-surface-variant);
+  line-height: 1.3;
+}
+
+.selectField {
+  background-color: var(--color-surface-container-low);
+  border: 1px solid rgba(196, 197, 217, 0.2);
+  border-radius: 0.5rem;
+  padding: 0.5rem 2rem 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--color-on-surface);
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.selectField:focus {
+  outline: none;
+  border-color: var(--color-secondary);
+}
+

@@ -15,7 +15,7 @@ export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
 
   // Tab State
-  const [activeTab, setActiveTab] = useState<'appearance' | 'account'>('appearance');
+  const [activeTab, setActiveTab] = useState<'appearance' | 'account' | 'preferences'>('appearance');
 
   // Profile Form State
   const [fullName, setFullName] = useState(user?.fullName || '');
@@ -31,6 +31,90 @@ export default function SettingsPage() {
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
+
+  // Editor & Collaboration Preferences
+  const [editorFontSize, setEditorFontSize] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('devmeet_editor_font_size');
+      return saved ? parseInt(saved, 10) : 14;
+    }
+    return 14;
+  });
+
+  const [editorTabSize, setEditorTabSize] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('devmeet_editor_tab_size');
+      return saved ? parseInt(saved, 10) : 2;
+    }
+    return 2;
+  });
+
+  const [editorMinimap, setEditorMinimap] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('devmeet_editor_minimap');
+      return saved ? saved === 'true' : false;
+    }
+    return false;
+  });
+
+  const [editorWordWrap, setEditorWordWrap] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('devmeet_editor_word_wrap');
+      return saved ? saved === 'true' : true;
+    }
+    return true;
+  });
+
+  const [editorLineNumbers, setEditorLineNumbers] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('devmeet_editor_line_numbers');
+      return saved ? saved === 'true' : true;
+    }
+    return true;
+  });
+
+  const [muteOnJoin, setMuteOnJoin] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('devmeet_call_mute_on_join');
+      return saved ? saved === 'true' : true;
+    }
+    return true;
+  });
+
+  const [cameraOffOnJoin, setCameraOffOnJoin] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('devmeet_call_camera_off_on_join');
+      return saved ? saved === 'true' : true;
+    }
+    return true;
+  });
+
+  const [soundNotifications, setSoundNotifications] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('devmeet_notifications_sound');
+      return saved ? saved === 'true' : true;
+    }
+    return true;
+  });
+
+  const [prefSuccess, setPrefSuccess] = useState<string | null>(null);
+
+  const handleSavePreferences = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPrefSuccess(null);
+
+    localStorage.setItem('devmeet_editor_font_size', editorFontSize.toString());
+    localStorage.setItem('devmeet_editor_tab_size', editorTabSize.toString());
+    localStorage.setItem('devmeet_editor_minimap', editorMinimap.toString());
+    localStorage.setItem('devmeet_editor_word_wrap', editorWordWrap.toString());
+    localStorage.setItem('devmeet_editor_line_numbers', editorLineNumbers.toString());
+    localStorage.setItem('devmeet_call_mute_on_join', muteOnJoin.toString());
+    localStorage.setItem('devmeet_call_camera_off_on_join', cameraOffOnJoin.toString());
+    localStorage.setItem('devmeet_notifications_sound', soundNotifications.toString());
+
+    setPrefSuccess('Workspace preferences saved successfully!');
+    setTimeout(() => setPrefSuccess(null), 3000);
+  };
 
   // Submit Profile Form
   const handleUpdateProfile = async (e: React.FormEvent) => {
@@ -128,6 +212,13 @@ export default function SettingsPage() {
           >
             <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>security</span>
             <span>Profile & Security</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('preferences')}
+            className={`${styles.tabBtn} ${activeTab === 'preferences' ? styles.activeTabBtn : ''}`}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>settings</span>
+            <span>Workspace & Calls</span>
           </button>
           
           <div className={styles.actionSeparator}></div>
@@ -329,6 +420,170 @@ export default function SettingsPage() {
                 </div>
               </section>
             </>
+          )}
+
+          {activeTab === 'preferences' && (
+            <section className={styles.card}>
+              <div className={styles.cardHeader}>
+                <h2 className={styles.cardTitle}>Workspace & Meeting Preferences</h2>
+                <p className={styles.cardSubtitle}>Customize your coding workspace editor and default meeting connection behaviors.</p>
+              </div>
+
+              <form onSubmit={handleSavePreferences} className={styles.form}>
+                
+                {/* Editor preferences subsection */}
+                <h3 style={{ fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-primary)', marginTop: '0.5rem', marginBottom: '0.25rem' }}>
+                  Code Editor Settings
+                </h3>
+
+                <div className={styles.formGrid}>
+                  <div className={styles.inputGroup}>
+                    <label>Editor Font Size</label>
+                    <select
+                      value={editorFontSize}
+                      onChange={(e) => setEditorFontSize(parseInt(e.target.value, 10))}
+                      className={styles.selectField}
+                    >
+                      <option value={12}>12 px</option>
+                      <option value={14}>14 px</option>
+                      <option value={16}>16 px</option>
+                      <option value={18}>18 px</option>
+                      <option value={20}>20 px</option>
+                    </select>
+                  </div>
+
+                  <div className={styles.inputGroup}>
+                    <label>Tab / Indentation Size</label>
+                    <select
+                      value={editorTabSize}
+                      onChange={(e) => setEditorTabSize(parseInt(e.target.value, 10))}
+                      className={styles.selectField}
+                    >
+                      <option value={2}>2 Spaces</option>
+                      <option value={4}>4 Spaces</option>
+                      <option value={8}>8 Spaces</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className={styles.toggleRow}>
+                  <div className={styles.toggleInfo}>
+                    <span className={styles.toggleLabel}>Show Minimap</span>
+                    <span className={styles.toggleDesc}>Display a visual outline of code at the right side of the editor canvas.</span>
+                  </div>
+                  <label className={styles.toggleContainer}>
+                    <input
+                      type="checkbox"
+                      checked={editorMinimap}
+                      onChange={(e) => setEditorMinimap(e.target.checked)}
+                      className={styles.toggleInput}
+                    />
+                    <span className={styles.toggleSlider}></span>
+                  </label>
+                </div>
+
+                <div className={styles.toggleRow}>
+                  <div className={styles.toggleInfo}>
+                    <span className={styles.toggleLabel}>Enable Word Wrap</span>
+                    <span className={styles.toggleDesc}>Automatically wrap long lines of code to fit within the viewport.</span>
+                  </div>
+                  <label className={styles.toggleContainer}>
+                    <input
+                      type="checkbox"
+                      checked={editorWordWrap}
+                      onChange={(e) => setEditorWordWrap(e.target.checked)}
+                      className={styles.toggleInput}
+                    />
+                    <span className={styles.toggleSlider}></span>
+                  </label>
+                </div>
+
+                <div className={styles.toggleRow}>
+                  <div className={styles.toggleInfo}>
+                    <span className={styles.toggleLabel}>Line Numbers</span>
+                    <span className={styles.toggleDesc}>Show line index numbers on the left gutter of the editor.</span>
+                  </div>
+                  <label className={styles.toggleContainer}>
+                    <input
+                      type="checkbox"
+                      checked={editorLineNumbers}
+                      onChange={(e) => setEditorLineNumbers(e.target.checked)}
+                      className={styles.toggleInput}
+                    />
+                    <span className={styles.toggleSlider}></span>
+                  </label>
+                </div>
+
+                <div className={styles.actionSeparator} style={{ margin: '1rem 0 0.5rem 0' }}></div>
+
+                {/* Call preferences subsection */}
+                <h3 style={{ fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-primary)', marginTop: '0.5rem', marginBottom: '0.25rem' }}>
+                  Video & Audio Settings
+                </h3>
+
+                <div className={styles.toggleRow}>
+                  <div className={styles.toggleInfo}>
+                    <span className={styles.toggleLabel}>Mute Microphone on Join</span>
+                    <span className={styles.toggleDesc}>Always enter audio/video calls with your microphone muted by default.</span>
+                  </div>
+                  <label className={styles.toggleContainer}>
+                    <input
+                      type="checkbox"
+                      checked={muteOnJoin}
+                      onChange={(e) => setMuteOnJoin(e.target.checked)}
+                      className={styles.toggleInput}
+                    />
+                    <span className={styles.toggleSlider}></span>
+                  </label>
+                </div>
+
+                <div className={styles.toggleRow}>
+                  <div className={styles.toggleInfo}>
+                    <span className={styles.toggleLabel}>Disable Camera on Join</span>
+                    <span className={styles.toggleDesc}>Always enter audio/video calls with your camera turned off by default.</span>
+                  </div>
+                  <label className={styles.toggleContainer}>
+                    <input
+                      type="checkbox"
+                      checked={cameraOffOnJoin}
+                      onChange={(e) => setCameraOffOnJoin(e.target.checked)}
+                      className={styles.toggleInput}
+                    />
+                    <span className={styles.toggleSlider}></span>
+                  </label>
+                </div>
+
+                <div className={styles.toggleRow}>
+                  <div className={styles.toggleInfo}>
+                    <span className={styles.toggleLabel}>Play Sound Alerts</span>
+                    <span className={styles.toggleDesc}>Receive sound chimes when other users join or leave the active workspace room.</span>
+                  </div>
+                  <label className={styles.toggleContainer}>
+                    <input
+                      type="checkbox"
+                      checked={soundNotifications}
+                      onChange={(e) => setSoundNotifications(e.target.checked)}
+                      className={styles.toggleInput}
+                    />
+                    <span className={styles.toggleSlider}></span>
+                  </label>
+                </div>
+
+                {prefSuccess && (
+                  <div className={styles.statusMessage + ' ' + styles.successMessage}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>check_circle</span>
+                    <span>{prefSuccess}</span>
+                  </div>
+                )}
+
+                <div className={styles.buttonContainer}>
+                  <button type="submit" className={styles.saveBtn}>
+                    <span>Save Preferences</span>
+                  </button>
+                </div>
+
+              </form>
+            </section>
           )}
         </main>
       </div>
