@@ -132,9 +132,16 @@ const logoutUser = asyncHandler(async (req: Request, res: Response) => {
 });
 
 const getCurrentUser = asyncHandler(async (req: Request, res: Response) => {
+    const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "");
+    const userObj = req.user ? req.user.toObject() : {};
+    
+    // Remove sensitive fields
+    delete userObj.password;
+    delete userObj.refreshToken;
+
     return res
         .status(200)
-        .json(new ApiResponse(200, req.user, "User fetched successfully"));
+        .json(new ApiResponse(200, { ...userObj, accessToken: token }, "User fetched successfully"));
 });
 
 const refreshAccessToken = asyncHandler(async (req: Request, res: Response) => {
@@ -195,10 +202,91 @@ const refreshAccessToken = asyncHandler(async (req: Request, res: Response) => {
     }
 });
 
+const updateProfile = asyncHandler(async (req: Request, res: Response) => {
+    const { fullName, username } = req.body;
+
+    if (!req.user) {
+        throw new ApiError(401, "Unauthorized request");
+    }
+
+    const updates: { fullName?: string; username?: string; avatar?: string } = {};
+
+    if (fullName !== undefined) {
+        if (fullName.trim() === "") {
+            throw new ApiError(400, "Full name cannot be empty");
+        }
+        updates.fullName = fullName.trim();
+    }
+
+    if (username !== undefined) {
+        const cleanUsername = username.trim().toLowerCase();
+        if (cleanUsername === "") {
+            throw new ApiError(400, "Username cannot be empty");
+        }
+        if (cleanUsername !== req.user.username) {
+            const existedUser = await User.findOne({ username: cleanUsername });
+            if (existedUser) {
+                throw new ApiError(409, "Username is already taken");
+            }
+            updates.username = cleanUsername;
+        }
+    }
+
+    if (updates.fullName && req.user.avatar && req.user.avatar.startsWith("https://ui-avatars.com/")) {
+        updates.avatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(updates.fullName)}&background=random&color=fff`;
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+        req.user._id,
+        {
+            $set: updates
+        },
+        {
+            new: true
+        }
+    ).select("-password -refreshToken");
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, updatedUser, "Profile updated successfully"));
+});
+
+const changePassword = asyncHandler(async (req: Request, res: Response) => {
+    const { oldPassword, newPassword } = req.body;
+
+    if (!req.user) {
+        throw new ApiError(401, "Unauthorized request");
+    }
+
+    if (!oldPassword || !newPassword) {
+        throw new ApiError(400, "Old password and new password are required");
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    const isPasswordCorrect = await user.isPasswordCorrect(oldPassword);
+    if (!isPasswordCorrect) {
+        throw new ApiError(400, "Incorrect current password");
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, {}, "Password changed successfully"));
+});
+
 export {
     registerUser,
     loginUser,
     logoutUser,
     getCurrentUser,
-    refreshAccessToken
+    refreshAccessToken,
+    updateProfile,
+    changePassword
 };
+

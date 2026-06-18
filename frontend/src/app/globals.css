@@ -32,7 +32,7 @@
   /* Typography variables */
   --font-newsreader: 'Newsreader', serif;
   --font-manrope: 'Manrope', sans-serif;
-  --font-space-grotesk: 'Space Grotesk', monospace;
+  --font-space-grotesk: 'Manrope', sans-serif;
 
   /* Elevated Soft Shadows (No hard black shadows) */
   --shadow-ambient: 0px 20px 40px rgba(25, 28, 30, 0.06);
@@ -103,10 +103,8 @@ html {
   overflow-x: hidden;
 }
 
-* {
+*, ::before, ::after {
   box-sizing: border-box;
-  padding: 0;
-  margin: 0;
 }
 
 body {
@@ -276,6 +274,26 @@ a {
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+
+  /* DevMeet Custom Color Variables for Dark Mode */
+  --color-background: #0d0f14;
+  --color-surface: #0d0f14;
+  --color-surface-container-lowest: #12141c;
+  --color-surface-container-low: #171a24;
+  --color-surface-container: #1d212f;
+  --color-surface-container-high: #24293a;
+  --color-surface-container-highest: #2b3145;
+
+  --color-on-surface: #e6e9ef;
+  --color-on-surface-variant: #9aa4b7;
+
+  --color-primary: #9aa4b7;
+  --color-primary-container: #2b3145;
+
+  --color-outline-variant: #3a4157;
+  
+  --shadow-ambient: 0px 20px 40px rgba(0, 0, 0, 0.45);
+  --border-ghost: 1px solid rgba(154, 164, 183, 0.15);
 }
 
 @layer base {

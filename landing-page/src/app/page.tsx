@@ -176,7 +176,7 @@ export default function Home() {
               flex={true}
               scale={false}
               textColor="var(--color-secondary)"
-              minFontSize={280}
+              minFontSize={80}
             />
           </div>
         </div>

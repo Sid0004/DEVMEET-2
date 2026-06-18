@@ -1,18 +1,20 @@
-'use client';
+"use client";
 
-import { useEffect, useRef, useState } from 'react';
-import styles from './MorphTextReveal.module.css';
+import { useEffect, useRef, useState } from "react";
+import styles from "./MorphTextReveal.module.css";
 
 interface MorphTextRevealProps {
   text?: string;
 }
 
-export default function MorphTextReveal({ text = 'COLLABORATE' }: MorphTextRevealProps) {
+export default function MorphTextReveal({
+  text = "COLLABORATE",
+}: MorphTextRevealProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const animFrameRef = useRef<number>(0);
   const startTimeRef = useRef<number | null>(null);
-  const [phase, setPhase] = useState<'morph' | 'done'>('morph');
+  const [phase, setPhase] = useState<"morph" | "done">("morph");
   const [isVisible, setIsVisible] = useState(false);
 
   // Intersection observer to trigger animation when in view
@@ -23,7 +25,7 @@ export default function MorphTextReveal({ text = 'COLLABORATE' }: MorphTextRevea
           setIsVisible(true);
         }
       },
-      { threshold: 0.3 }
+      { threshold: 0.3 },
     );
     if (containerRef.current) observer.observe(containerRef.current);
     return () => observer.disconnect();
@@ -34,7 +36,7 @@ export default function MorphTextReveal({ text = 'COLLABORATE' }: MorphTextRevea
 
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
+    const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
     if (!ctx) return;
 
     const W = canvas.width;
@@ -42,18 +44,39 @@ export default function MorphTextReveal({ text = 'COLLABORATE' }: MorphTextRevea
 
     // ── Blob definitions ────────────────────────────────────────────────────
     const blobs = [
-      { cx: W * 0.22, cy: H * 0.5,  rx: 90,  ry: 70,  rot: 0,   color: '#0051d5' },
-      { cx: W * 0.5,  cy: H * 0.42, rx: 110, ry: 80,  rot: 0.5, color: '#4d54ff' },
-      { cx: W * 0.78, cy: H * 0.55, rx: 95,  ry: 65,  rot: 1.2, color: '#0091ff' },
-      { cx: W * 0.38, cy: H * 0.58, rx: 70,  ry: 55,  rot: 2,   color: '#5b00d5' },
-      { cx: W * 0.62, cy: H * 0.45, rx: 80,  ry: 60,  rot: 0.8, color: '#0051d5' },
+      { cx: W * 0.22, cy: H * 0.5, rx: 90, ry: 70, rot: 0, color: "#0051d5" },
+      {
+        cx: W * 0.5,
+        cy: H * 0.42,
+        rx: 110,
+        ry: 80,
+        rot: 0.5,
+        color: "#4d54ff",
+      },
+      {
+        cx: W * 0.78,
+        cy: H * 0.55,
+        rx: 95,
+        ry: 65,
+        rot: 1.2,
+        color: "#0091ff",
+      },
+      { cx: W * 0.38, cy: H * 0.58, rx: 70, ry: 55, rot: 2, color: "#5b00d5" },
+      {
+        cx: W * 0.62,
+        cy: H * 0.45,
+        rx: 80,
+        ry: 60,
+        rot: 0.8,
+        color: "#0051d5",
+      },
     ];
 
     // ── Font and letter-target positions ──────────────────────────────────
     const fontSize = Math.round(H * 0.55);
-    ctx.font = `bold ${fontSize}px 'Space Grotesk', sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
+    ctx.font = `bold ${fontSize}px 'sans-serif', sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
     const textWidth = ctx.measureText(text).width;
     const letterSpacing = textWidth / text.length;
 
@@ -74,10 +97,14 @@ export default function MorphTextReveal({ text = 'COLLABORATE' }: MorphTextRevea
     }
 
     function drawBlob(
-      cx: number, cy: number,
-      rx: number, ry: number,
-      rot: number, t: number,
-      color: string, alpha: number
+      cx: number,
+      cy: number,
+      rx: number,
+      ry: number,
+      rot: number,
+      t: number,
+      color: string,
+      alpha: number,
     ) {
       ctx.save();
       ctx.globalAlpha = alpha;
@@ -87,9 +114,9 @@ export default function MorphTextReveal({ text = 'COLLABORATE' }: MorphTextRevea
       ctx.beginPath();
       ctx.ellipse(0, 0, rx * wobble, ry / wobble, 0, 0, Math.PI * 2);
       const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, rx);
-      grad.addColorStop(0, color + 'ff');
-      grad.addColorStop(0.6, color + 'cc');
-      grad.addColorStop(1, color + '00');
+      grad.addColorStop(0, color + "ff");
+      grad.addColorStop(0.6, color + "cc");
+      grad.addColorStop(1, color + "00");
       ctx.fillStyle = grad;
       ctx.fill();
       ctx.restore();
@@ -97,13 +124,13 @@ export default function MorphTextReveal({ text = 'COLLABORATE' }: MorphTextRevea
 
     function drawGradientText() {
       const grd = ctx.createLinearGradient(W * 0.1, 0, W * 0.9, 0);
-      grd.addColorStop(0, '#0051d5');
-      grd.addColorStop(0.4, '#5b00d5');
-      grd.addColorStop(0.7, '#0091ff');
-      grd.addColorStop(1, '#0051d5');
-      ctx.font = `bold ${fontSize}px 'Space Grotesk', sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
+      grd.addColorStop(0, "#0051d5");
+      grd.addColorStop(0.4, "#5b00d5");
+      grd.addColorStop(0.7, "#0091ff");
+      grd.addColorStop(1, "#0051d5");
+      ctx.font = `bold ${fontSize}px 'sans-serif', sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
       ctx.fillStyle = grd;
       ctx.fillText(text, W / 2, H / 2);
     }
@@ -126,8 +153,10 @@ export default function MorphTextReveal({ text = 'COLLABORATE' }: MorphTextRevea
             lerp(blob.cy, target.cy, t),
             lerp(blob.rx, letterSpacing * 0.38, t),
             lerp(blob.ry, H * 0.28, t),
-            blob.rot, rawT, blob.color,
-            lerp(1, 0.85, t)
+            blob.rot,
+            rawT,
+            blob.color,
+            lerp(1, 0.85, t),
           );
         });
 
@@ -137,8 +166,17 @@ export default function MorphTextReveal({ text = 'COLLABORATE' }: MorphTextRevea
           const r = lerp(W * 0.3 * (1 - t), 0, t * 0.8);
           const bx = W / 2 + Math.cos(angle) * r;
           const by = H / 2 + Math.sin(angle) * r * 0.5;
-          const col = b % 2 === 0 ? '#0051d5' : '#5b00d5';
-          drawBlob(bx, by, 28 * (1 - t * 0.7), 22 * (1 - t * 0.7), angle, rawT, col, (1 - t) * 0.6);
+          const col = b % 2 === 0 ? "#0051d5" : "#5b00d5";
+          drawBlob(
+            bx,
+            by,
+            28 * (1 - t * 0.7),
+            22 * (1 - t * 0.7),
+            angle,
+            rawT,
+            col,
+            (1 - t) * 0.6,
+          );
         }
 
         // Cross-fade text in at the tail of the morph
@@ -155,7 +193,7 @@ export default function MorphTextReveal({ text = 'COLLABORATE' }: MorphTextRevea
         // Final static gradient text
         ctx.clearRect(0, 0, W, H);
         drawGradientText();
-        setPhase('done');
+        setPhase("done");
       }
     }
 
@@ -173,7 +211,11 @@ export default function MorphTextReveal({ text = 'COLLABORATE' }: MorphTextRevea
         <svg className={styles.svgFilter} aria-hidden="true">
           <defs>
             <filter id="goo-filter">
-              <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur" />
+              <feGaussianBlur
+                in="SourceGraphic"
+                stdDeviation="10"
+                result="blur"
+              />
               <feColorMatrix
                 in="blur"
                 mode="matrix"
@@ -190,13 +232,13 @@ export default function MorphTextReveal({ text = 'COLLABORATE' }: MorphTextRevea
           height={220}
           className={styles.morphCanvas}
           style={{
-            filter: phase !== 'done' ? 'url(#goo-filter)' : 'none',
-            transition: 'filter 0.5s ease',
+            filter: phase !== "done" ? "url(#goo-filter)" : "none",
+            transition: "filter 0.5s ease",
           }}
         />
 
         {/* Shimmer sweep overlay once animation completes */}
-        {phase === 'done' && (
+        {phase === "done" && (
           <div className={styles.shimmerOverlay} aria-hidden="true" />
         )}
       </div>

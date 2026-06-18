@@ -1,20 +1,20 @@
-import { LoginForm } from "@/components/login-form"
+import { LoginForm } from "@/components/login-form";
 
 export default function LoginPage() {
   return (
-    <div className="grid min-h-svh lg:grid-cols-2 bg-background">
-      <div className="flex flex-col items-center justify-center p-8 md:p-12 lg:p-16">
-        <div className="w-full max-w-[400px]">
-          <LoginForm />
-        </div>
-      </div>
-      <div className="relative hidden bg-muted lg:block overflow-hidden">
-        <img
-          src="/1077.jpg"
-          alt="Image"
-          className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.4] scale-105 hover:scale-110 transition-transform duration-[10s]"
-        />
-      </div>
+    <div
+      className="min-h-screen w-full flex items-center justify-center p-4 bg-black overflow-hidden relative select-none"
+      style={{
+        backgroundImage: "url('/signup_bg_sequoia.jpg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
+    >
+      {/* Background Soft Purple Radial Glow at the Bottom */}
+      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[120%] h-[35vh] bg-[radial-gradient(circle_at_bottom,rgba(139,92,246,0.25)_0%,transparent_60%)] pointer-events-none blur-3xl z-0" />
+
+      {/* Render the white login form card */}
+      <LoginForm />
     </div>
-  )
+  );
 }

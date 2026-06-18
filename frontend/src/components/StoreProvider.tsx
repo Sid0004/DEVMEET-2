@@ -16,9 +16,12 @@ export default function StoreProvider({
   useEffect(() => {
     const loadUser = async () => {
       try {
-        const response = await apiRequest<{ data: User }>('/api/v1/users/current-user');
+        const response = await apiRequest<{ data: User & { accessToken?: string } }>('/api/v1/users/current-user');
         if (response.data) {
-          store.dispatch(setCredentials({ user: response.data }));
+          store.dispatch(setCredentials({ 
+            user: response.data, 
+            token: response.data.accessToken 
+          }));
         }
       } catch {
         console.log("Not logged in or session expired");
