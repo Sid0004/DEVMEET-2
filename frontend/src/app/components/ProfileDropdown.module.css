@@ -3,12 +3,8 @@
   width: 2.25rem;
   height: 2.25rem;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--color-secondary), #3b82f6);
-  color: #fff;
-  border: 2px solid var(--color-surface-container-lowest);
-  font-size: 0.75rem;
-  font-weight: 700;
-  font-family: var(--font-space-grotesk);
+  background: transparent;
+  border: 2px solid rgba(196, 197, 217, 0.35);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -16,10 +12,11 @@
   transition: all 0.2s ease;
   padding: 0;
   outline: none;
+  overflow: hidden;
 }
 
 .profileCircle:hover {
-  transform: scale(1.06);
+  border-color: var(--color-secondary);
   box-shadow: 0 0 0 3px rgba(0, 81, 213, 0.2);
 }
 
@@ -61,20 +58,7 @@
   padding: 0.625rem 0.75rem 0.5rem;
 }
 
-.avatarLarge {
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--color-secondary), #3b82f6);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.8125rem;
-  font-weight: 700;
-  font-family: var(--font-space-grotesk);
-  flex-shrink: 0;
-}
+
 
 .profileName {
   font-size: 0.8125rem;

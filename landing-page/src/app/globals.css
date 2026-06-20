@@ -44,7 +44,7 @@
   /* Typography variables */
   --font-newsreader: 'Newsreader', serif;
   --font-manrope: 'Manrope', sans-serif;
-  --font-space-grotesk: 'Space Grotesk', monospace;
+  --font-space-grotesk: 'sans-serif', monospace;
 
   /* Elevated Soft Shadows & Dividers */
   --shadow-ambient: 0px 20px 40px rgba(12, 23, 84, 0.06);
@@ -117,7 +117,7 @@ html {
 }
 
 body {
-  overflow: hidden;
+  overflow-x: hidden;
 }
 
 * {

@@ -11,6 +11,8 @@ import { API_BASE_URL, apiRequest } from '../../lib/api';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { setCredentials, User } from '@/redux/features/authSlice';
 import ProfileDropdown from '../components/ProfileDropdown';
+import Avatar from '@/components/Avatar';
+import { useTheme } from '@/components/ThemeProvider';
 
 const rtcConfig = {
   iceServers: [
@@ -103,6 +105,167 @@ const createDummyAudioTrack = (): MediaStreamTrack | null => {
   }
 };
 
+const playNotificationSound = (isJoin: boolean) => {
+  if (typeof window === 'undefined') return;
+  try {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) return;
+    const ctx = new AudioContextClass();
+    
+    const osc = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    osc.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    
+    if (isJoin) {
+      osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+      osc.frequency.setValueAtTime(880, ctx.currentTime + 0.1);
+      gainNode.gain.setValueAtTime(0.08, ctx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.35);
+    } else {
+      osc.frequency.setValueAtTime(440, ctx.currentTime);
+      osc.frequency.setValueAtTime(349.23, ctx.currentTime + 0.1);
+      gainNode.gain.setValueAtTime(0.08, ctx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.35);
+    }
+  } catch (e) {
+    console.error('Failed to play sound alert:', e);
+  }
+};
+
+const getLanguageFromFilename = (filename: string): string => {
+  const ext = filename.split('.').pop()?.toLowerCase();
+  switch (ext) {
+    case 'js':
+    case 'jsx':
+      return 'javascript';
+    case 'ts':
+    case 'tsx':
+      return 'typescript';
+    case 'py':
+      return 'python';
+    case 'cpp':
+    case 'cc':
+    case 'cxx':
+    case 'h':
+    case 'hpp':
+      return 'cpp';
+    case 'c':
+      return 'c';
+    case 'java':
+      return 'java';
+    case 'rs':
+      return 'rust';
+    case 'go':
+      return 'go';
+    case 'html':
+    case 'htm':
+      return 'html';
+    case 'css':
+      return 'css';
+    case 'json':
+      return 'json';
+    case 'md':
+      return 'markdown';
+    case 'sh':
+    case 'bash':
+      return 'shell';
+    case 'sql':
+      return 'sql';
+    case 'yaml':
+    case 'yml':
+      return 'yaml';
+    default:
+      return 'plaintext';
+  }
+};
+
+const getLanguageDisplayName = (monacoLang: string): string => {
+  const mapping: { [key: string]: string } = {
+    'javascript': 'JavaScript',
+    'typescript': 'TypeScript',
+    'python': 'Python',
+    'cpp': 'C++',
+    'c': 'C',
+    'java': 'Java',
+    'rust': 'Rust',
+    'go': 'Go',
+    'html': 'HTML',
+    'css': 'CSS',
+    'json': 'JSON',
+    'markdown': 'Markdown',
+    'shell': 'Shell',
+    'sql': 'SQL',
+    'yaml': 'YAML',
+    'plaintext': 'Plain Text'
+  };
+  return mapping[monacoLang] || monacoLang;
+};
+
+const renderFileIcon = (fileName: string) => {
+  const ext = fileName.split('.').pop()?.toLowerCase();
+  
+  const style: React.CSSProperties = {
+    fontSize: '9px',
+    fontWeight: 800,
+    padding: '1px 4px',
+    borderRadius: '3px',
+    fontFamily: 'var(--font-geist-mono), monospace',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '24px',
+    height: '15px',
+    flexShrink: 0,
+    textTransform: 'uppercase',
+    letterSpacing: '-0.2px'
+  };
+
+  switch (ext) {
+    case 'ts':
+    case 'tsx':
+      return <span style={{ ...style, backgroundColor: '#007acc', color: '#ffffff' }}>TS</span>;
+    case 'js':
+    case 'jsx':
+      return <span style={{ ...style, backgroundColor: '#f7df1e', color: '#000000' }}>JS</span>;
+    case 'py':
+      return <span style={{ ...style, backgroundColor: '#3776ab', color: '#ffffff' }}>PY</span>;
+    case 'cpp':
+    case 'cc':
+    case 'cxx':
+      return <span style={{ ...style, backgroundColor: '#00599c', color: '#ffffff', fontSize: '8px' }}>C++</span>;
+    case 'c':
+      return <span style={{ ...style, backgroundColor: '#659ad2', color: '#ffffff' }}>C</span>;
+    case 'java':
+      return <span style={{ ...style, backgroundColor: '#ea2d2e', color: '#ffffff' }}>JV</span>;
+    case 'rs':
+      return <span style={{ ...style, backgroundColor: '#000000', color: '#ffffff', border: '1px solid rgba(255,255,255,0.2)' }}>RS</span>;
+    case 'go':
+      return <span style={{ ...style, backgroundColor: '#00add8', color: '#ffffff' }}>GO</span>;
+    case 'html':
+    case 'htm':
+      return <span style={{ ...style, backgroundColor: '#e34c26', color: '#ffffff', fontSize: '8px' }}>HTML</span>;
+    case 'css':
+      return <span style={{ ...style, backgroundColor: '#264de4', color: '#ffffff' }}>CSS</span>;
+    case 'json':
+      return <span style={{ ...style, backgroundColor: '#cbcb41', color: '#000000' }}>{`{}`}</span>;
+    case 'md':
+    case 'markdown':
+      return <span style={{ ...style, backgroundColor: '#083fa1', color: '#ffffff' }}>MD</span>;
+    case 'sh':
+    case 'bash':
+      return <span style={{ ...style, backgroundColor: '#4ebd4e', color: '#ffffff' }}>SH</span>;
+    case 'sql':
+      return <span style={{ ...style, backgroundColor: '#e38c00', color: '#ffffff' }}>SQL</span>;
+    default:
+      return <span className="material-symbols-outlined" style={{ fontSize: '15px', color: '#aaa', width: '24px', textAlign: 'center' }}>description</span>;
+  }
+};
+
 export default function WorkspacePage() {
   return (
     <Suspense fallback={<div className={styles.layout} style={{ justifyContent: 'center', alignItems: 'center', color: '#fff' }}>Loading workspace...</div>}>
@@ -117,10 +280,24 @@ function WorkspaceContent() {
   const roomId = searchParams.get('room');
   
   const dispatch = useAppDispatch();
-  const { user } = useAppSelector((state) => state.auth);
+  const { user, token } = useAppSelector((state) => state.auth);
+  const { theme } = useTheme();
+
+  // Compute resolved editor theme
+  const isDarkTheme = theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  const editorTheme = isDarkTheme ? "vs-dark" : "vs";
 
   // States
   const [isMounted, setIsMounted] = useState(false);
+
+  // Workspace/Editor Preference States
+  const [editorFontSize, setEditorFontSize] = useState<number>(14);
+  const [editorMinimap, setEditorMinimap] = useState<boolean>(false);
+  const [editorWordWrap, setEditorWordWrap] = useState<'on' | 'off'>('on');
+  const [editorTabSize, setEditorTabSize] = useState<number>(2);
+  const [editorLineNumbers, setEditorLineNumbers] = useState<'on' | 'off'>('on');
+  const [soundNotifications, setSoundNotifications] = useState<boolean>(true);
+
   const [files, setFiles] = useState<WorkspaceFile[]>([]);
   const [activeFileIndex, setActiveFileIndex] = useState<number>(0);
   const [isCreatingFile, setIsCreatingFile] = useState(false);
@@ -131,7 +308,11 @@ function WorkspaceContent() {
   const [remoteMediaStates, setRemoteMediaStates] = useState<{ [socketId: string]: { isCameraOff: boolean; isMicMuted: boolean } }>({});
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isFolderOpen, setIsFolderOpen] = useState(true);
+  const [isOpenEditorsOpen, setIsOpenEditorsOpen] = useState(true);
+  const [isOutlineOpen, setIsOutlineOpen] = useState(false);
+  const [isTimelineOpen, setIsTimelineOpen] = useState(false);
   
   // Media States
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
@@ -156,6 +337,7 @@ function WorkspaceContent() {
   const isJoinedCallRef = useRef(false);
   const isCameraOffRef = useRef(true);
   const isMicMutedRef = useRef(true);
+  const soundNotificationsRef = useRef(soundNotifications);
 
   // Resizer drag event handlers
   const handleWidthResizeMouseDown = (e: React.MouseEvent) => {
@@ -237,6 +419,42 @@ function WorkspaceContent() {
   // Ensure client mounting
   useEffect(() => {
     setIsMounted(true);
+
+    if (typeof window !== 'undefined') {
+      setCollabWidth(Math.round(window.innerWidth * 0.4));
+      
+      const fs = localStorage.getItem('devmeet_editor_font_size');
+      if (fs) setEditorFontSize(parseInt(fs, 10));
+
+      const mini = localStorage.getItem('devmeet_editor_minimap');
+      if (mini) setEditorMinimap(mini === 'true');
+
+      const wrap = localStorage.getItem('devmeet_editor_word_wrap');
+      if (wrap) setEditorWordWrap(wrap === 'true' ? 'on' : 'off');
+
+      const ts = localStorage.getItem('devmeet_editor_tab_size');
+      if (ts) setEditorTabSize(parseInt(ts, 10));
+
+      const ln = localStorage.getItem('devmeet_editor_line_numbers');
+      if (ln) setEditorLineNumbers(ln === 'true' ? 'on' : 'off');
+
+      const muteJoin = localStorage.getItem('devmeet_call_mute_on_join');
+      if (muteJoin) {
+        const isMuted = muteJoin === 'true';
+        setIsMicMuted(isMuted);
+        isMicMutedRef.current = isMuted;
+      }
+
+      const camJoin = localStorage.getItem('devmeet_call_camera_off_on_join');
+      if (camJoin) {
+        const isCamOff = camJoin === 'true';
+        setIsCameraOff(isCamOff);
+        isCameraOffRef.current = isCamOff;
+      }
+
+      const sounds = localStorage.getItem('devmeet_notifications_sound');
+      if (sounds) setSoundNotifications(sounds === 'true');
+    }
   }, []);
 
   // Keep isJoinedCallRef in sync
@@ -251,6 +469,10 @@ function WorkspaceContent() {
   useEffect(() => {
     isMicMutedRef.current = isMicMuted;
   }, [isMicMuted]);
+
+  useEffect(() => {
+    soundNotificationsRef.current = soundNotifications;
+  }, [soundNotifications]);
 
   // On mount, initialize localStream with dummy tracks
   useEffect(() => {
@@ -281,9 +503,12 @@ function WorkspaceContent() {
 
     const fetchUser = async () => {
       try {
-        const response = await apiRequest<{ data: User }>('/api/v1/users/current-user');
+        const response = await apiRequest<{ data: User & { accessToken?: string } }>('/api/v1/users/current-user');
         if (response?.data) {
-          dispatch(setCredentials({ user: response.data }));
+          dispatch(setCredentials({ 
+            user: response.data, 
+            token: response.data.accessToken 
+          }));
         }
       } catch (err) {
         console.error('Failed to fetch user:', err);
@@ -330,17 +555,17 @@ function WorkspaceContent() {
   // Initialize Socket.IO & Code Collaboration & Call Listeners
   useEffect(() => {
     if (!isMounted || !user || !roomId) return;
-
     // 1. Setup Socket.IO connection
     const socket = io(API_BASE_URL, {
-      withCredentials: true
+      withCredentials: true,
+      auth: { token }
     });
     socketRef.current = socket;
 
-    // 2. Emit Join Room & Join Call
-    socket.emit('join-room', { roomId, user });
-    setIsJoinedCall(true);
-    socket.emit('join-call');
+    // 2. Emit Join Room on connect/reconnect
+    socket.on('connect', () => {
+      socket.emit('join-room', { roomId });
+    });
 
     // 3. Handle Socket Events
     socket.on('room-state', async ({ code: existingCode, language: roomLang, files: roomFiles, messages: existingMessages, users: roomUsersList }: RoomStatePayload) => {
@@ -371,6 +596,9 @@ function WorkspaceContent() {
 
     socket.on('user-joined', ({ socketId, user: joinedUser }: { socketId: string; user: User }) => {
       console.log('User joined room:', joinedUser.username);
+      if (soundNotificationsRef.current) {
+        playNotificationSound(true);
+      }
       setConnectedUsers((prev) => {
         const filtered = prev.filter((u) => 
           u.user?._id !== joinedUser._id && 
@@ -623,6 +851,9 @@ function WorkspaceContent() {
 
     socket.on('user-disconnected', ({ socketId }: { socketId: string }) => {
       console.log('User disconnected:', socketId);
+      if (soundNotificationsRef.current) {
+        playNotificationSound(false);
+      }
       if (peerConnections.current[socketId]) {
         peerConnections.current[socketId].close();
         delete peerConnections.current[socketId];
@@ -649,7 +880,7 @@ function WorkspaceContent() {
       });
       peerConnections.current = {};
     };
-  }, [isMounted, user, roomId]);
+  }, [isMounted, user, token, roomId]);
 
   // Scroll chat to bottom
   useEffect(() => {
@@ -694,17 +925,12 @@ function WorkspaceContent() {
       return;
     }
 
-    const ext = fileName.split('.').pop()?.toLowerCase();
-    let lang = 'TypeScript';
-    if (ext === 'py') lang = 'Python';
-    else if (ext === 'js' || ext === 'jsx') lang = 'JavaScript';
-    else if (ext === 'rs') lang = 'Rust';
-    else if (ext === 'go') lang = 'Go';
+    const detectedLang = getLanguageDisplayName(getLanguageFromFilename(fileName.trim()));
 
     const newFile = {
       name: fileName.trim(),
       content: '',
-      language: lang
+      language: detectedLang
     };
 
     const updatedFiles = [...files, newFile];
@@ -754,10 +980,22 @@ function WorkspaceContent() {
     if (!activeFile) return;
 
     let ext = 'ts';
-    if (newLang.toLowerCase() === 'python') ext = 'py';
-    else if (newLang.toLowerCase() === 'javascript') ext = 'js';
-    else if (newLang.toLowerCase() === 'rust') ext = 'rs';
-    else if (newLang.toLowerCase() === 'go') ext = 'go';
+    const langLower = newLang.toLowerCase();
+    if (langLower === 'python') ext = 'py';
+    else if (langLower === 'javascript') ext = 'js';
+    else if (langLower === 'typescript') ext = 'ts';
+    else if (langLower === 'rust') ext = 'rs';
+    else if (langLower === 'go') ext = 'go';
+    else if (langLower === 'c++' || langLower === 'cpp') ext = 'cpp';
+    else if (langLower === 'c') ext = 'c';
+    else if (langLower === 'java') ext = 'java';
+    else if (langLower === 'html') ext = 'html';
+    else if (langLower === 'css') ext = 'css';
+    else if (langLower === 'json') ext = 'json';
+    else if (langLower === 'markdown' || langLower === 'md') ext = 'md';
+    else if (langLower === 'shell' || langLower === 'sh') ext = 'sh';
+    else if (langLower === 'sql') ext = 'sql';
+    else if (langLower === 'yaml' || langLower === 'yml') ext = 'yaml';
 
     const nameParts = activeFile.name.split('.');
     if (nameParts.length > 1) {
@@ -866,11 +1104,30 @@ function WorkspaceContent() {
 
   // Start Video Call
   const startCall = async () => {
+    // Acquire both video and audio tracks from getUserMedia
     await acquireLocalStream(true, true);
+    
+    // Apply initial mute/camera preferences loaded from settings
+    if (localStreamRef.current) {
+      if (isMicMuted) {
+        localStreamRef.current.getAudioTracks().forEach(t => t.enabled = false);
+      }
+      if (isCameraOff) {
+        localStreamRef.current.getVideoTracks().forEach(t => t.enabled = false);
+      }
+    }
+    
+    // Sync states with ref indicators
+    isMicMutedRef.current = isMicMuted;
+    isCameraOffRef.current = isCameraOff;
+
     setIsJoinedCall(true);
     if (socketRef.current) {
       socketRef.current.emit('join-call');
     }
+    
+    // Broadcast initial camera/microphone state to peers
+    broadcastMediaState(isCameraOff, isMicMuted);
   };
 
   // Leave Video Call
@@ -969,192 +1226,234 @@ function WorkspaceContent() {
 
   return (
     <div className={styles.layout}>
-      {/* Sidebar Navigation */}
-      <aside className={`${styles.sidebar} ${isSidebarCollapsed ? styles.sidebarCollapsed : ''}`}>
-        <div className={styles.sidebarHeader}>
-          {!isSidebarCollapsed ? (
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-              <div>
-                <h1 className="font-editorial italic" style={{ margin: 0 }}>DevMeet</h1>
-                <p className={styles.activeSessionText} style={{ margin: 0 }}>Active Session</p>
-              </div>
-              <button 
-                onClick={() => setIsSidebarCollapsed(true)} 
-                className={styles.sidebarToggleBtn}
-                title="Collapse Sidebar"
-              >
-                <span className="material-symbols-outlined">chevron_left</span>
-              </button>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', width: '100%' }}>
-              <h1 className="font-editorial italic" style={{ fontSize: '1.25rem', margin: 0 }}>D</h1>
-              <button 
-                onClick={() => setIsSidebarCollapsed(false)} 
-                className={styles.sidebarToggleBtn}
-                title="Expand Sidebar"
-              >
-                <span className="material-symbols-outlined">chevron_right</span>
-              </button>
-            </div>
-          )}
+      {/* Activity Bar (VS Code style narrow leftmost navigation) */}
+      <div className={styles.activityBar}>
+        <div className={styles.activityBarTop}>
+          <button 
+            className={`${styles.activityBtn} ${!isSidebarCollapsed ? styles.activityBtnActive : ''}`} 
+            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            title="Explorer"
+          >
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+              <path d="M19 5.5H12l-2-2H5c-1.1 0-2 .9-2 2v13c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-11c0-1.1-.9-2-2-2zm0 13H5v-11h14v11z"/>
+            </svg>
+          </button>
+          <button className={styles.activityBtn} title="Search (Coming Soon)" disabled>
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+              <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+            </svg>
+          </button>
+          <button className={styles.activityBtn} title="Source Control (Coming Soon)" disabled>
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+              <path d="M18.5 11.5c-1.38 0-2.5 1.12-2.5 2.5 0 .96.54 1.8 1.34 2.22l-3.34 3.34c-.26-.14-.54-.26-.84-.34V6.28c.8-.42 1.34-1.26 1.34-2.28 0-1.38-1.12-2.5-2.5-2.5S10 2.62 10 4c0 1.02.54 1.86 1.34 2.28v11.44c-.8.42-1.34 1.26-1.34 2.28 0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5c0-.96-.54-1.8-1.34-2.22l3.34-3.34c.26.14.54.26.84.34v.04c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5-1.12-2.5-2.5-2.5zm-6-8c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm0 17c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm6-6c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1z"/>
+            </svg>
+          </button>
         </div>
-        <nav className={styles.navMenu}>
-          <a href="#" className={styles.navItemActive} style={{ justifyContent: isSidebarCollapsed ? 'center' : 'flex-start' }}>
-            <span className="material-symbols-outlined">code</span>
-            {!isSidebarCollapsed && <span className="font-tech">Editor</span>}
-          </a>
-        </nav>
-        <div className={styles.sidebarFooter}>
-          {!isSidebarCollapsed ? (
-            <div style={{ textAlign: 'center', opacity: 0.4, padding: '1rem' }}>
-              <span className="font-tech" style={{ fontSize: '0.625rem', letterSpacing: '0.1em' }}>DEVMEET V1.0</span>
+        
+        <div className={styles.activityBarBottom}>
+          <button 
+            className={styles.activityBtn} 
+            onClick={() => router.push('/dashboard/settings')}
+            title="Settings"
+          >
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+              <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+            </svg>
+          </button>
+          <div className={styles.activityProfile}>
+            <ProfileDropdown />
+          </div>
+        </div>
+      </div>
+
+      {/* Collapsible File Explorer Sidebar */}
+      <aside className={`${styles.explorerSidebar} ${isSidebarCollapsed ? styles.explorerSidebarHidden : ''}`}>
+        <div className={styles.explorerHeader}>
+          <span className={styles.explorerTitle}>Explorer</span>
+          <button className={styles.sectionActionBtn} title="More Actions...">
+            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>more_horiz</span>
+          </button>
+        </div>
+        
+        <div className={styles.explorerSections}>
+          {/* Scrollable upper sections (Open Editors & Workspace Files) */}
+          <div className={styles.scrollableSections}>
+            {/* SECTION 1: OPEN EDITORS */}
+            <div className={styles.sectionContainer}>
+              <div 
+                className={styles.sectionHeader} 
+                onClick={() => setIsOpenEditorsOpen(!isOpenEditorsOpen)}
+              >
+                <div className={styles.sectionHeaderLeft}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>
+                    {isOpenEditorsOpen ? 'keyboard_arrow_down' : 'keyboard_arrow_right'}
+                  </span>
+                  <span className={styles.sectionTitle}>Open Editors</span>
+                </div>
+              </div>
+
+              {isOpenEditorsOpen && (
+                <div className={styles.sectionContent}>
+                  <ul className={styles.openEditorsList}>
+                    {files.map((file, idx) => {
+                      const isActive = idx === activeFileIndex;
+                      if (!isActive) return null;
+                      return (
+                        <li 
+                          key={idx}
+                          className={`${styles.openEditorItem} ${styles.openEditorItemActive}`}
+                          onClick={() => handleTabSelect(idx)}
+                        >
+                          <div className={styles.fileItemLeft}>
+                            {renderFileIcon(file.name)}
+                            <span className={styles.explorerFileName}>{file.name}</span>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
             </div>
-          ) : (
-            <div style={{ textAlign: 'center', opacity: 0.4, padding: '0.5rem 0' }}>
-              <span className="font-tech" style={{ fontSize: '0.625rem' }}>V1</span>
+
+            {/* SECTION 2: WORKSPACE FILES */}
+            <div className={styles.sectionContainer}>
+              <div 
+                className={styles.sectionHeader} 
+                onClick={() => setIsFolderOpen(!isFolderOpen)}
+              >
+                <div className={styles.sectionHeaderLeft}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>
+                    {isFolderOpen ? 'keyboard_arrow_down' : 'keyboard_arrow_right'}
+                  </span>
+                  <span className={styles.sectionTitle}>{roomName}</span>
+                </div>
+
+                <div className={styles.sectionActions}>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsCreatingFile(true);
+                    }}
+                    className={styles.sectionActionBtn}
+                    title="New File..."
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>note_add</span>
+                  </button>
+                </div>
+              </div>
+
+              {isFolderOpen && (
+                <div className={styles.sectionContent}>
+                  {isCreatingFile && (
+                    <form 
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        handleCreateFile(newFileName);
+                      }}
+                      className={styles.explorerCreateForm}
+                    >
+                      <input
+                        autoFocus
+                        type="text"
+                        placeholder="filename.ts..."
+                        value={newFileName}
+                        onChange={(e) => setNewFileName(e.target.value)}
+                        className={styles.explorerCreateInput}
+                        onBlur={() => {
+                          if (!newFileName.trim()) {
+                            setIsCreatingFile(false);
+                          }
+                        }}
+                      />
+                    </form>
+                  )}
+
+                  <ul className={styles.explorerFileList}>
+                    {files.map((file, idx) => {
+                      const isActive = idx === activeFileIndex;
+                      return (
+                        <li 
+                          key={idx}
+                          className={`${styles.explorerFileItem} ${isActive ? styles.explorerFileItemActive : ''}`}
+                          onClick={() => handleTabSelect(idx)}
+                        >
+                          <div className={styles.fileItemLeft}>
+                            {renderFileIcon(file.name)}
+                            <span className={styles.explorerFileName}>{file.name}</span>
+                          </div>
+                          {files.length > 1 && (
+                            <button 
+                              className={styles.explorerFileDeleteBtn}
+                              onClick={(e) => handleDeleteFile(e, idx)}
+                              title="Delete File"
+                            >
+                              <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>close</span>
+                            </button>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
             </div>
-          )}
+          </div>
+
+          {/* Fixed bottom sections (Outline & Timeline) */}
+          <div className={styles.fixedSections}>
+            {/* SECTION 3: OUTLINE */}
+            <div className={styles.sectionContainer}>
+              <div 
+                className={styles.sectionHeader} 
+                onClick={() => setIsOutlineOpen(!isOutlineOpen)}
+              >
+                <div className={styles.sectionHeaderLeft}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>
+                    {isOutlineOpen ? 'keyboard_arrow_down' : 'keyboard_arrow_right'}
+                  </span>
+                  <span className={styles.sectionTitle}>Outline</span>
+                </div>
+              </div>
+              
+              {isOutlineOpen && (
+                <div className={styles.sectionContent}>
+                  <div className={styles.emptyPlaceholderText}>No outline symbols found.</div>
+                </div>
+              )}
+            </div>
+
+            {/* SECTION 4: TIMELINE */}
+            <div className={styles.sectionContainer}>
+              <div 
+                className={styles.sectionHeader} 
+                onClick={() => setIsTimelineOpen(!isTimelineOpen)}
+              >
+                <div className={styles.sectionHeaderLeft}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>
+                    {isTimelineOpen ? 'keyboard_arrow_down' : 'keyboard_arrow_right'}
+                  </span>
+                  <span className={styles.sectionTitle}>Timeline</span>
+                </div>
+              </div>
+              
+              {isTimelineOpen && (
+                <div className={styles.sectionContent}>
+                  <div className={styles.emptyPlaceholderText}>No timeline information.</div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </aside>
 
-      {/* Main Workspace Canvas */}
-      <main className={`${styles.mainCanvas} ${isSidebarCollapsed ? styles.mainCanvasSidebarCollapsed : ''}`}>
-        {/* Top Toolbar */}
-        <header className={styles.topbar}>
-          <div className={styles.topbarLeft}>
-            <div className={styles.fileInfo}>
-              <span className="material-symbols-outlined" style={{ fontSize: '1.25rem', color: 'var(--color-secondary)' }}>meeting_room</span>
-              <span className="font-editorial italic" style={{ color: 'var(--color-on-surface)', fontSize: '1.125rem' }}>
-                {roomName}
-              </span>
-            </div>
-            <div className={styles.divider}></div>
-            <div className={styles.toolbarActions}>
-              <button 
-                onClick={() => {
-                  navigator.clipboard.writeText(roomId || '');
-                  alert('Room ID copied to clipboard!');
-                }} 
-                className={styles.toolbarBtn}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: '1rem', marginRight: '0.375rem' }}>content_copy</span>
-                <span className="font-tech uppercase">Copy Code: {roomId}</span>
-              </button>
-            </div>
-          </div>
-          <div className={styles.topbarRight}>
-            {connectedUsers.length > 0 && (
-              <div className={styles.collaborators}>
-                <div className={styles.avatarStack}>
-                  {connectedUsers.map((peer, i) => {
-                    const isInCall = roomUsers.some((ru) => ru.socketId === peer.socketId || ru.user?._id === peer.user?._id);
-                    return (
-                      <div 
-                        key={peer.socketId} 
-                        className={styles.avatar} 
-                        style={{ 
-                          backgroundColor: i % 2 === 0 ? 'var(--color-secondary)' : 'var(--color-primary)',
-                          marginLeft: i === 0 ? '0' : '-0.5rem',
-                          position: 'relative',
-                          border: isInCall ? '2px solid #4ade80' : '2px solid var(--color-surface-container-lowest)'
-                        }}
-                        title={`${peer.user?.fullName || peer.user?.username || 'Peer'}${isInCall ? ' (In Call)' : ' (In Workspace)'}`}
-                      >
-                        {(peer.user?.fullName || peer.user?.username || 'P')[0].toUpperCase()}
-                        {isInCall && (
-                          <span 
-                            style={{
-                              position: 'absolute',
-                              bottom: '-2px',
-                              right: '-2px',
-                              width: '8px',
-                              height: '8px',
-                              borderRadius: '50%',
-                              backgroundColor: '#4ade80',
-                              border: '1px solid var(--color-surface-container-lowest)',
-                              boxShadow: '0 0 4px #4ade80'
-                            }}
-                          />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {connectedUsers.length > 0 && <div className={styles.divider}></div>}
-
-            {/* Profile Dropdown */}
-            <ProfileDropdown />
-          </div>
-        </header>
+      {/* Main Workspace Canvas Container */}
+      <main className={styles.mainCanvasContainer}>
 
         {/* Editor & Video Panel Split */}
         <div className={styles.workspaceSplit}>
           {/* Code Editor Section */}
-          <section className={styles.editorPanel}>
-            <div className={styles.fileTree}>
-              <div className={styles.fileTreeHeader}>
-                <h3 className="font-tech uppercase">
-                  Workspace
-                </h3>
-                <button 
-                  onClick={() => setIsCreatingFile(true)}
-                  className={styles.addFileBtn}
-                  title="Add File"
-                >
-                  <span className="material-symbols-outlined" style={{ fontSize: '1.125rem' }}>add</span>
-                </button>
-              </div>
-
-              {isCreatingFile && (
-                <form 
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    handleCreateFile(newFileName);
-                  }}
-                  className={styles.createFileInputForm}
-                >
-                  <input
-                    autoFocus
-                    type="text"
-                    placeholder="filename.ts..."
-                    value={newFileName}
-                    onChange={(e) => setNewFileName(e.target.value)}
-                    className={styles.createFileInput}
-                    onBlur={() => {
-                      if (!newFileName.trim()) {
-                        setIsCreatingFile(false);
-                      }
-                    }}
-                  />
-                </form>
-              )}
-
-              <ul className={styles.fileList}>
-                {files.map((file, idx) => (
-                  <li 
-                    key={idx}
-                    className={idx === activeFileIndex ? styles.fileItemActive : styles.fileItem}
-                    onClick={() => handleTabSelect(idx)}
-                  >
-                    <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>description</span>
-                    <span className={styles.fileNameText}>{file.name}</span>
-                    {files.length > 1 && (
-                      <span 
-                        className={`material-symbols-outlined ${styles.fileDeleteBtn}`}
-                        onClick={(e) => handleDeleteFile(e, idx)}
-                      >
-                        close
-                      </span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
+          <section className={styles.editorPanelOverrode}>
             <div className={styles.codeCanvas}>
               {/* Tab Bar */}
               <div className={styles.tabBar}>
@@ -1179,8 +1478,18 @@ function WorkspaceContent() {
                   ))}
                 </div>
                 
-                {/* Language Dropdown */}
-                <div className={styles.languageSelectorContainer}>
+                {/* Tab Bar Actions */}
+                <div className={styles.tabBarActions}>
+                  <button
+                    onClick={handleRunCode}
+                    disabled={isRunningCode}
+                    className={styles.tabBarRunBtn}
+                    title="Run Code"
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
+                      {isRunningCode ? 'hourglass_empty' : 'play_arrow'}
+                    </span>
+                  </button>
                   <select 
                     value={files[activeFileIndex]?.language || 'TypeScript'}
                     onChange={(e) => handleLanguageChange(e.target.value)}
@@ -1189,8 +1498,18 @@ function WorkspaceContent() {
                     <option value="TypeScript">TypeScript</option>
                     <option value="JavaScript">JavaScript</option>
                     <option value="Python">Python</option>
+                    <option value="C++">C++</option>
+                    <option value="C">C</option>
+                    <option value="Java">Java</option>
                     <option value="Rust">Rust</option>
                     <option value="Go">Go</option>
+                    <option value="HTML">HTML</option>
+                    <option value="CSS">CSS</option>
+                    <option value="JSON">JSON</option>
+                    <option value="Markdown">Markdown</option>
+                    <option value="Shell">Shell</option>
+                    <option value="SQL">SQL</option>
+                    <option value="YAML">YAML</option>
                   </select>
                 </div>
               </div>
@@ -1198,13 +1517,16 @@ function WorkspaceContent() {
               <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
                 <Editor
                   height="100%"
-                  language={files[activeFileIndex]?.language.toLowerCase() || 'typescript'}
+                  language={files[activeFileIndex] ? getLanguageFromFilename(files[activeFileIndex].name) : 'typescript'}
                   theme="vs-dark"
                   value={files[activeFileIndex]?.content || ''}
                   onChange={handleEditorChange}
                   options={{
-                    fontSize: 14,
-                    minimap: { enabled: false },
+                    fontSize: editorFontSize,
+                    minimap: { enabled: editorMinimap },
+                    wordWrap: editorWordWrap,
+                    tabSize: editorTabSize,
+                    lineNumbers: editorLineNumbers,
                     automaticLayout: true,
                     fontFamily: 'var(--font-geist-mono), monospace',
                     cursorBlinking: 'smooth',
@@ -1219,26 +1541,6 @@ function WorkspaceContent() {
                   <div className={styles.consoleHeader}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                       <span className={styles.consoleTitle}>CONSOLE OUTPUT</span>
-                      <button
-                        onClick={handleRunCode}
-                        disabled={isRunningCode}
-                        style={{
-                          backgroundColor: 'var(--color-secondary)',
-                          color: 'var(--color-on-secondary)',
-                          border: 'none',
-                          borderRadius: '0.25rem',
-                          padding: '0.125rem 0.5rem',
-                          fontSize: '0.6875rem',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.25rem',
-                          fontFamily: 'var(--font-space-grotesk)'
-                        }}
-                      >
-                        <span className="material-symbols-outlined" style={{ fontSize: '0.875rem' }}>play_arrow</span>
-                        Run Code
-                      </button>
                     </div>
                     <button 
                       onClick={() => setIsConsoleOpen(false)}
@@ -1248,7 +1550,7 @@ function WorkspaceContent() {
                     </button>
                   </div>
                   <div className={styles.consoleOutputArea}>
-                    {!consoleOutput && 'Click "Run Code" to execute.'}
+                    {!consoleOutput && 'No execution output yet. Click the Play icon on the tab bar to run your code.'}
                     {consoleOutput && (
                       <>
                         {consoleOutput.stdout && (
@@ -1319,10 +1621,10 @@ function WorkspaceContent() {
                   />
                 ) : (
                   <div className={styles.videoPlaceholder}>
-                    <div className={styles.videoPlaceholderAvatar} style={{ border: isJoinedCall ? '2px solid #4ade80' : '2px dashed rgba(255,255,255,0.3)' }}>
-                      {(user?.fullName || user?.username || 'You')[0].toUpperCase()}
+                    <div style={{ border: isJoinedCall ? '2px solid #4ade80' : '2px dashed rgba(255,255,255,0.3)', borderRadius: '50%' }}>
+                      <Avatar src={user?.avatarUrl ?? null} name={user?.fullName || user?.username || 'You'} size={48} />
                     </div>
-                    <span style={{ fontSize: '0.625rem', color: 'var(--color-outline-variant)', marginTop: '0.25rem', fontFamily: 'var(--font-space-grotesk)' }}>
+                    <span style={{ fontSize: '0.625rem', color: 'rgba(255, 255, 255, 0.45)', marginTop: '0.25rem', fontFamily: 'var(--font-space-grotesk)' }}>
                       {isJoinedCall ? 'Camera Off' : 'Not in Call'}
                     </span>
                     {!isJoinedCall && (
@@ -1330,8 +1632,8 @@ function WorkspaceContent() {
                         onClick={startCall}
                         style={{
                           marginTop: '0.5rem',
-                          backgroundColor: 'var(--color-secondary)',
-                          color: 'var(--color-on-secondary)',
+                          backgroundColor: '#007acc',
+                          color: '#ffffff',
                           border: 'none',
                           borderRadius: '4px',
                           padding: '0.25rem 0.5rem',
@@ -1422,12 +1724,11 @@ function WorkspaceContent() {
                     ) : (
                       <div className={styles.videoPlaceholder}>
                         <div 
-                          className={styles.videoPlaceholderAvatar}
-                          style={{ border: isInCall ? '2px solid #4ade80' : '2px solid rgba(255,255,255,0.1)' }}
+                          style={{ border: isInCall ? '2px solid #4ade80' : '2px solid rgba(255,255,255,0.1)', borderRadius: '50%' }}
                         >
-                          {(peer.user?.fullName || peer.user?.username || 'P')[0].toUpperCase()}
+                          <Avatar src={peer.user?.avatarUrl ?? null} name={peer.user?.fullName || peer.user?.username || 'Peer'} size={48} />
                         </div>
-                        <span style={{ fontSize: '0.625rem', color: 'var(--color-outline-variant)', marginTop: '0.25rem', fontFamily: 'var(--font-space-grotesk)' }}>
+                        <span style={{ fontSize: '0.625rem', color: 'rgba(255, 255, 255, 0.45)', marginTop: '0.25rem', fontFamily: 'var(--font-space-grotesk)' }}>
                           {isInCall ? (mediaState.isCameraOff ? 'Camera Off' : 'Active') : 'In Room'}
                         </span>
                       </div>
@@ -1451,15 +1752,40 @@ function WorkspaceContent() {
             {/* Chat Interface */}
             <div className={styles.chatSection}>
               <div className={styles.chatHeader}>
-                <h4 className="font-tech uppercase" style={{ fontSize: '0.6875rem', letterSpacing: '0.1em' }}>Team Chat</h4>
-                {messages.length > 0 && (
-                  <span className={styles.chatBadge}>{messages.length} msg</span>
-                )}
+                <h4 className="font-tech uppercase" style={{ fontSize: '0.6875rem', letterSpacing: '0.1em', color: 'rgba(255, 255, 255, 0.9)' }}>Team Chat</h4>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {connectedUsers.length > 0 && (
+                    <div style={{ display: 'flex', marginRight: '4px' }}>
+                      {connectedUsers.map((peer, i) => {
+                        const isInCall = roomUsers.some((ru) => ru.socketId === peer.socketId || ru.user?._id === peer.user?._id);
+                        const peerName = peer.user?.fullName || peer.user?.username || 'Peer';
+                        return (
+                          <div 
+                            key={peer.socketId} 
+                            style={{ 
+                              marginLeft: i === 0 ? '0' : '-0.375rem',
+                              position: 'relative',
+                              borderRadius: '50%',
+                              border: isInCall ? '1.5px solid #4ade80' : '1.5px solid #252526',
+                              display: 'flex'
+                            }}
+                            title={`${peerName}${isInCall ? ' (In Call)' : ' (In Workspace)'}`}
+                          >
+                            <Avatar src={peer.user?.avatarUrl ?? null} name={peerName} size={20} />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {messages.length > 0 && (
+                    <span className={styles.chatBadge}>{messages.length} msg</span>
+                  )}
+                </div>
               </div>
 
               <div className={styles.chatMessages}>
                 {messages.length === 0 ? (
-                  <p style={{ fontSize: '0.8125rem', color: 'var(--color-outline-variant)', textAlign: 'center', marginTop: '2rem' }}>
+                  <p style={{ fontSize: '0.8125rem', color: 'rgba(255, 255, 255, 0.4)', textAlign: 'center', marginTop: '2rem' }}>
                     No messages yet. Send a message to start chatting!
                   </p>
                 ) : (
@@ -1496,10 +1822,7 @@ function WorkspaceContent() {
           </aside>
         </div>
 
-        {/* Floating AI Action Button */}
-        <Link href="/dashboard" className={styles.fabBtn}>
-          <span className="material-symbols-outlined" style={{ fontSize: '1.5rem' }}>auto_awesome</span>
-        </Link>
+        
       </main>
     </div>
   );

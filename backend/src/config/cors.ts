@@ -14,14 +14,23 @@ export const getAllowedOrigins = (): string[] => {
 };
 
 export const corsOptions: CorsOptions = {
-    origin(origin, callback) { 
-        if (!origin) {
-            return callback(null, true);
-        }
+    origin(origin, callback) {
         const allowedOrigins = getAllowedOrigins();
+        const isDevelopment = process.env.NODE_ENV !== "production";
+        
+        if (!origin) {
+            // In development, allow requests without origin (for Postman, etc.)
+            if (isDevelopment) {
+                return callback(null, true);
+            }
+            // In production, block requests without origin
+            return callback(new Error("CORS blocked: No origin header in production"));
+        }
+        
         if (allowedOrigins.includes(origin)) {
             return callback(null, true);
         }
+        
         return callback(new Error(`CORS blocked for origin: ${origin}`));
     },
     credentials: true,

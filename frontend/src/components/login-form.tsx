@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import React, { useState } from "react"
 import Link from "next/link"
@@ -35,9 +35,9 @@ export function LoginForm({
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError("")
+    e.preventDefault();
+    setIsLoading(true);
+    setError("");
 
     try {
       const response = await apiRequest<{
@@ -70,11 +70,11 @@ export function LoginForm({
         setError("Invalid response from server.")
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed")
+      setError(err instanceof Error ? err.message : "Login failed");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
@@ -162,5 +162,4 @@ export function LoginForm({
         and <a href="#">Privacy Policy</a>.
       </FieldDescription>
     </div>
-  )
 }

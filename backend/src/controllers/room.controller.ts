@@ -4,7 +4,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { Room } from "../models/room.model.js";
 import {User} from "../models/user.model.js";
-import { exec } from "child_process";
+import { exec, execFile } from "child_process";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -120,52 +120,112 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const runCode = asyncHandler(async (req: Request, res: Response) => {
+    // Disable code execution by default for security reasons
+    // To enable, set ENABLE_CODE_EXECUTION=true in .env
+    if (process.env.ENABLE_CODE_EXECUTION !== "true") {
+        throw new ApiError(403, "Code execution feature is disabled for security reasons");
+    }
+
     const { code, language } = req.body;
 
     if (!code) {
         throw new ApiError(400, "Code is required");
     }
 
-    const lang = (language || "TypeScript").toLowerCase();
+    const lang = (language || "TypeScript").trim().toLowerCase();
     let fileExtension = "ts";
-    let command = "";
+    let executablePath = "";
+    let args: string[] = [];
 
-    if (lang === "javascript") {
-        fileExtension = "js";
-    } else if (lang === "python") {
-        fileExtension = "py";
-    } else if (lang === "typescript") {
-        fileExtension = "ts";
-    } else {
-        throw new ApiError(400, `Language ${language} is not supported for execution. We support TypeScript, JavaScript, and Python.`);
-    }
-
-    // Create temp dir if not exists
+    // Setup temporary directory
     const tempDir = path.join(__dirname, "../../temp");
     if (!fs.existsSync(tempDir)) {
         fs.mkdirSync(tempDir, { recursive: true });
     }
 
-    // Generate unique temp filename
+    if (lang === "javascript" || lang === "js") {
+        fileExtension = "js";
+        executablePath = "node";
+    } else if (lang === "python" || lang === "py") {
+        fileExtension = "py";
+        executablePath = "python";
+    } else if (lang === "typescript" || lang === "ts") {
+        fileExtension = "ts";
+        executablePath = path.resolve(__dirname, "../../node_modules/.bin/tsx");
+        if (process.platform === "win32") {
+            executablePath += ".cmd";
+        }
+    } else if (lang === "go") {
+        fileExtension = "go";
+        executablePath = "go";
+    } else if (lang === "java") {
+        fileExtension = "java";
+        executablePath = "java";
+    } else if (lang === "cpp" || lang === "c++" || lang === "c" || lang === "rust" || lang === "rs") {
+        fileExtension = (lang === "cpp" || lang === "c++") ? "cpp" : (lang === "c" ? "c" : "rs");
+        const filename = `run_${Date.now()}_${Math.floor(Math.random() * 1000)}.${fileExtension}`;
+        const filePath = path.join(tempDir, filename);
+        fs.writeFileSync(filePath, code);
+
+        const outBinary = filePath.replace(`.${fileExtension}`, process.platform === "win32" ? ".exe" : "");
+        const compiler = fileExtension === "cpp" ? "g++" : (fileExtension === "c" ? "gcc" : "rustc");
+        const compilerArgs = fileExtension === "rs" ? [filePath, "-o", outBinary] : [filePath, "-o", outBinary];
+
+        execFile(compiler, compilerArgs, { timeout: 8000 }, (compileErr: any, compileStdout: string, compileStderr: string) => {
+            if (compileErr) {
+                fs.unlink(filePath, () => {});
+                return res.status(200).json(
+                    new ApiResponse(200, {
+                        stdout: compileStdout,
+                        stderr: compileStderr || compileErr.message,
+                        exitCode: compileErr.code || 1
+                    }, "Compilation failed")
+                );
+            }
+
+            execFile(outBinary, [], { timeout: 5000 }, (runErr: any, runStdout: string, runStderr: string) => {
+                fs.unlink(filePath, () => {});
+                fs.unlink(outBinary, () => {});
+
+                if (runErr && runErr.killed) {
+                    return res.status(200).json(
+                        new ApiResponse(200, {
+                            stdout: runStdout,
+                            stderr: runStderr || "Execution timed out (5s limit exceeded).",
+                            exitCode: runErr.code || -1
+                        }, "Code execution timed out")
+                    );
+                }
+
+                return res.status(200).json(
+                    new ApiResponse(200, {
+                        stdout: runStdout,
+                        stderr: runStderr,
+                        exitCode: runErr ? runErr.code || 1 : 0
+                    }, "Code executed successfully")
+                );
+            });
+        });
+        return;
+    } else {
+        throw new ApiError(400, `Language ${language} is not supported for execution.`);
+    }
+
+    // Generate unique temp filename for direct execution scripts
     const filename = `run_${Date.now()}_${Math.floor(Math.random() * 1000)}.${fileExtension}`;
     const filePath = path.join(tempDir, filename);
 
     // Write code to file
     fs.writeFileSync(filePath, code);
 
-    // Determine execution command
-    const isWindows = process.platform === "win32";
-    if (fileExtension === "py") {
-        command = `python "${filePath}"`;
-    } else if (fileExtension === "js") {
-        command = `node "${filePath}"`;
-    } else if (fileExtension === "ts") {
-        const localTsx = path.resolve(__dirname, "../../node_modules/.bin/tsx");
-        command = isWindows ? `"${localTsx}.cmd" "${filePath}"` : `"${localTsx}" "${filePath}"`;
+    if (lang === "go") {
+        args = ["run", filePath];
+    } else {
+        args = [filePath];
     }
 
     // Execute the code with a timeout of 5 seconds
-    exec(command, { timeout: 5000 }, (error, stdout, stderr) => {
+    execFile(executablePath, args, { timeout: 5000 }, (error: any, stdout: string, stderr: string) => {
         // Clean up temp file asynchronously
         fs.unlink(filePath, (unlinkErr) => {
             if (unlinkErr) console.error("Temp file cleanup error:", unlinkErr);
@@ -211,9 +271,20 @@ const getAllRoomsById = asyncHandler(async (req: Request, res: Response) => {
 const deleteRoom = asyncHandler(async (req: Request, res: Response) => {
     const { roomId } = req.params;
     if (!roomId) throw new ApiError(400, "Room ID is required");
+    if (!req.user) throw new ApiError(401, "Unauthorized");
+
+    const room = await Room.findOne({ roomId });
+    if (!room) throw new ApiError(404, "Room with this ID does not exist");
+
+    // Only allow the host to delete the room
+    if (room.host.toString() !== req.user._id.toString()) {
+        throw new ApiError(403, "Only the room host can delete this room");
+    }
 
     const deletedRoom = await Room.findOneAndDelete({ roomId });
-    if (!deletedRoom) throw new ApiError(404, "Room with this ID does not exist");
+    if (!deletedRoom) {
+        throw new ApiError(404, "Room not found during deletion");
+    }
 
     await User.updateMany(
         { rooms: deletedRoom._id },

@@ -16,6 +16,7 @@ import styles from './ProfileDropdown.module.css';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { logout } from '@/redux/features/authSlice';
 import { apiRequest } from '../../lib/api';
+import Avatar from '@/components/Avatar';
 
 export default function ProfileDropdown() {
   const router = useRouter();
@@ -33,18 +34,14 @@ export default function ProfileDropdown() {
     }
   };
 
-  const getInitials = () => {
-    if (user?.fullName) return user.fullName.slice(0, 2).toUpperCase();
-    if (user?.username) return user.username.slice(0, 2).toUpperCase();
-    return '?';
-  };
+  const displayName = user?.fullName || user?.username || 'User';
 
   return (
     <Menu>
       {/* ── Trigger ── */}
       <MenuButton className={styles.profileCircle} title={user ? 'Account menu' : 'Login'}>
         {user ? (
-          getInitials()
+          <Avatar src={user?.avatarUrl ?? null} name={displayName} size={32} />
         ) : (
           <span className="material-symbols-outlined" style={{ fontSize: '1.25rem' }}>
             account_circle
@@ -60,9 +57,9 @@ export default function ProfileDropdown() {
       >
         {user ? (
           <>
-            {/* User info header — not a menu item, just display */}
+            {/* User info header */}
             <div className={styles.profileHeader}>
-              <div className={styles.avatarLarge}>{getInitials()}</div>
+              <Avatar src={user?.avatarUrl ?? null} name={displayName} size={40} />
               <div>
                 <p className={styles.profileName}>{user.fullName || user.username || 'DevMeet User'}</p>
                 <p className={styles.profileEmail}>{user.email || ''}</p>
@@ -87,12 +84,11 @@ export default function ProfileDropdown() {
             {/* Account actions */}
             <MenuSection>
               <MenuHeading className={styles.menuHeading}>Account</MenuHeading>
-              <MenuItem disabled>
-                <span className={`${styles.menuItem} ${styles.menuItemDisabled}`}>
+              <MenuItem>
+                <Link href="/dashboard/settings" className={styles.menuItem}>
                   <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>settings</span>
                   Settings
-                  <span className={styles.comingSoon}>Soon</span>
-                </span>
+                </Link>
               </MenuItem>
             </MenuSection>
 

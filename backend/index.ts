@@ -4,9 +4,11 @@ import { Server } from "socket.io";
 import connectDB from "./src/db/index.js";
 import { app } from "./app.js";
 import { Room } from "./src/models/room.model.js";
+import { User } from "./src/models/user.model.js";
+import jwt from "jsonwebtoken";
 
 dotenv.config({
-    path: './.env'
+    path: "./.env"
 });
 
 const server = http.createServer(app);
@@ -23,17 +25,51 @@ const io = new Server(server, {
     }
 });
 
-io.on("connection", (socket) => {
-    console.log(`Socket connected: ${socket.id}`);
+// Socket.IO authentication middleware
+io.use(async (socket, next) => {
+    try {
+        let token = socket.handshake.auth.token || socket.handshake.headers?.authorization?.replace("Bearer ", "");
+        
+        if (!token && socket.handshake.headers?.cookie) {
+            const cookieMap = Object.fromEntries(
+                socket.handshake.headers.cookie.split(';').map(c => {
+                    const parts = c.trim().split('=');
+                    return [parts[0], parts.slice(1).join('=')];
+                })
+            );
+            token = cookieMap['accessToken'];
+        }
 
-    socket.on("join-room", async ({ roomId, user }) => {
-        if (!roomId || !user) return;
+        if (!token) {
+            return next(new Error("Authentication required"));
+        }
+
+        const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET as string) as any;
+        const user = await User.findById(decodedToken?._id).select("-password -refreshToken");
+        
+        if (!user) {
+            return next(new Error("Invalid token"));
+        }
+
+        (socket as any).user = user;
+        next();
+    } catch (err: any) {
+        return next(new Error("Authentication failed: " + err.message));
+    }
+});
+
+io.on("connection", (socket) => {
+    const authUser = (socket as any).user;
+    console.log(`Socket connected: ${socket.id} - User: ${authUser?._id}`);
+
+    socket.on("join-room", async ({ roomId }) => {
+        if (!roomId || !authUser) return;
 
         socket.join(roomId);
         socket.data.roomId = roomId;
-        socket.data.user = user;
+        socket.data.user = authUser;
 
-        console.log(`User ${user.username || user.fullName} joined room ${roomId}`);
+        console.log(`User ${authUser.username || authUser.fullName} joined room ${roomId}`);
 
         try {
             // Get all current sockets in this room
@@ -54,7 +90,8 @@ io.on("connection", (socket) => {
             // Build fallback file list if room has no files yet (backward compatibility)
             let files = room?.files || [];
             if (files.length === 0) {
-                const ext = language.toLowerCase() === 'python' ? 'py' : 'ts';
+                const ext = language.toLowerCase() === 'python' ? 'py' : 'ts';// it shouldnt be hardocded
+                
                 files = [
                     {
                         name: `main.${ext}`,
@@ -76,7 +113,7 @@ io.on("connection", (socket) => {
             // Notify everyone else in the room
             socket.to(roomId).emit("user-joined", {
                 socketId: socket.id,
-                user: user
+                user: authUser
             });
         } catch (error) {
             console.error("Error in join-room handler:", error);
