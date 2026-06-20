@@ -2,7 +2,6 @@ import express, { Express, Request, Response, NextFunction } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import { corsOptions } from "./src/config/cors.js";
-import { ApiError } from "./src/utils/ApiError.js";
 
 const app: Express = express();
 
@@ -23,7 +22,10 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 import userRouter from './src/routes/user.routes.js'
 import roomRouter from './src/routes/room.routes.js'
 
+//user routes
 app.use("/api/v1/users", userRouter)
+
+// rooms routes
 app.use("/api/v1/rooms", roomRouter)
 
 // Global error handling middleware

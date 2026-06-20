@@ -9,6 +9,7 @@ router.use(verifyJWT);
 
 router.route("/create").post(createRoom);
 router.route("/run").post(runCode);
+
 router.route("/history").get(getAllRoomsById);
 
 

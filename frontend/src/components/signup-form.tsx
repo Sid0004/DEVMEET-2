@@ -5,8 +5,6 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { useAppDispatch } from "@/redux/hooks"
-import { setCredentials } from "@/redux/features/authSlice"
 import { apiRequest } from "@/lib/api"
 import {
   Field,
@@ -17,15 +15,16 @@ import {
 import { Input } from "@/components/ui/input"
 import { SquigglyText } from "@/components/ui/squiggly-text"
 
-export function LoginForm({
+export function SignupForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
   const router = useRouter()
-  const dispatch = useAppDispatch()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [formData, setFormData] = useState({
+    fullName: "",
+    username: "",
     email: "",
     password: ""
   })
@@ -40,37 +39,13 @@ export function LoginForm({
     setError("")
 
     try {
-      const response = await apiRequest<{
-        data: {
-          user: {
-            _id?: string;
-            fullName?: string;
-            username: string;
-            email: string;
-            avatar?: string;
-          };
-          accessToken: string;
-          refreshToken: string;
-        };
-        message?: string;
-      }>("/api/v1/users/login", {
+      await apiRequest("/api/v1/users/register", {
         method: "POST",
         body: JSON.stringify(formData),
       })
-
-      if (response && response.data) {
-        dispatch(
-          setCredentials({
-            user: response.data.user,
-            token: response.data.accessToken,
-          })
-        )
-        router.push("/dashboard")
-      } else {
-        setError("Invalid response from server.")
-      }
+      router.push("/login")
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed")
+      setError(err instanceof Error ? err.message : "Registration failed")
     } finally {
       setIsLoading(false)
     }
@@ -82,15 +57,15 @@ export function LoginForm({
         <FieldGroup>
           <div className="flex flex-col items-center gap-2 text-center">
             <h1 className="text-3xl font-normal text-[#f3f3f3] tracking-tight" style={{ fontFamily: 'Inter, sans-serif' }}>
-              Login to{" "}
+              Signup to{" "}
               <SquigglyText stepDuration={150} scale={[6, 9]} className="text-[#3b82f6] font-normal">
                 connect
               </SquigglyText>
             </h1>
             <FieldDescription>
-              Don&apos;t have an account?{" "}
-              <Link href="/signup" className="underline underline-offset-4">
-                Sign up
+              Already have an account?{" "}
+              <Link href="/login" className="underline underline-offset-4">
+                Sign in
               </Link>
             </FieldDescription>
           </div>
@@ -102,12 +77,40 @@ export function LoginForm({
           )}
 
           <Field>
+            <FieldLabel htmlFor="fullName">Full Name</FieldLabel>
+            <Input
+              id="fullName"
+              name="fullName"
+              type="text"
+              placeholder="  John Doe"
+              className="px-5"
+              value={formData.fullName}
+              onChange={handleChange}
+              required
+            />
+          </Field>
+
+          <Field>
+            <FieldLabel htmlFor="username">Username</FieldLabel>
+            <Input
+              id="username"
+              name="username"
+              type="text"
+              placeholder="  John Doe"
+              className="px-5"
+              value={formData.username}
+              onChange={handleChange}
+              required
+            />
+          </Field>
+
+          <Field>
             <FieldLabel htmlFor="email">Email</FieldLabel>
             <Input
               id="email"
               name="email"
-              type="text"
-              placeholder="  name@example.com or username"
+              type="email"
+              placeholder="  name@example.com"
               className="px-5"
               value={formData.email}
               onChange={handleChange}
@@ -128,13 +131,13 @@ export function LoginForm({
               required
             />
           </Field>
-          
+
           <Field>
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? "Signing in..." : "Login"}
+              {isLoading ? "Signing up..." : "Sign up"}
             </Button>
           </Field>
-          
+
           <Field className="grid gap-4 sm:grid-cols-2">
             <Button variant="outline" type="button">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="mr-2 h-4 w-4">

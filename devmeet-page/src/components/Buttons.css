@@ -1,0 +1,60 @@
+.btn-primary {
+  background-color: var(--color-pure-white);
+  color: var(--color-obsidian-canvas);
+  font-family: var(--font-aeonik);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--text-caption); /* 13-14px */
+  text-transform: uppercase;
+  border-radius: var(--radius-buttons);
+  padding: 10px 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: var(--tracking-body);
+  transition: opacity 0.2s;
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+}
+
+.btn-outlined {
+  background-color: transparent;
+  color: var(--color-frost-text);
+  border: 1px solid var(--color-silver);
+  font-family: var(--font-aeonik);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--text-caption);
+  text-transform: uppercase;
+  border-radius: var(--radius-buttons);
+  padding: 10px 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: var(--tracking-body);
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.btn-outlined:hover {
+  background-color: var(--color-charcoal-surface);
+}
+
+.btn-chat-pill {
+  background-color: var(--color-pure-white);
+  color: var(--color-obsidian-canvas);
+  font-family: var(--font-aeonik);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--text-caption);
+  text-transform: uppercase;
+  border-radius: var(--radius-pills);
+  padding: 8px 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: var(--tracking-body);
+  transition: opacity 0.2s;
+}
+
+.btn-chat-pill:hover {
+  opacity: 0.9;
+}

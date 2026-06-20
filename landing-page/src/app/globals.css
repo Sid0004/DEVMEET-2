@@ -7,40 +7,53 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Colors */
-  --color-background: #f7f9fb;
-  --color-surface: #f7f9fb;
-  --color-surface-container-lowest: #ffffff;
-  --color-surface-container-low: #f2f4f6;
-  --color-surface-container: #eceef0;
-  --color-surface-container-high: #e6e8ea;
-  --color-surface-container-highest: #e0e3e5;
+  /* Officevibe Color Tokens */
+  --color-ink-navy: #0c1754;
+  --color-electric-cobalt: #2545ff;
+  --color-charcoal: #171417;
+  --color-warm-canvas: #f9f8f6;
+  --color-paper-white: #ffffff;
+  --color-cream-border: #f0e9e1;
+  --color-graphite: #222222;
+  --color-stone: #969696;
+  --color-smoke: #cccccc;
+  --color-lavender-mist: #eaebf8;
 
-  --color-on-surface: #191c1e;
-  --color-on-surface-variant: #434656;
+  /* Theme Mapping */
+  --color-background: var(--color-warm-canvas);
+  --color-surface: var(--color-warm-canvas);
+  --color-surface-container-lowest: var(--color-paper-white);
+  --color-surface-container-low: var(--color-warm-canvas);
+  --color-surface-container: var(--color-warm-canvas);
+  --color-surface-container-high: var(--color-lavender-mist);
+  --color-surface-container-highest: var(--color-lavender-mist);
 
-  --color-primary: #4d546a;
-  --color-primary-container: #656d83;
+  --color-on-surface: var(--color-charcoal);
+  --color-on-surface-variant: var(--color-graphite);
 
-  --color-secondary: #0051d5;
-  --color-on-secondary: #ffffff;
+  --color-primary: var(--color-ink-navy);
+  --color-primary-container: var(--color-ink-navy);
 
-  --color-tertiary-fixed: #63f7ff;
+  --color-secondary: var(--color-electric-cobalt);
+  --color-on-secondary: var(--color-paper-white);
 
-  --color-outline-variant: #c4c5d9;
+  --color-tertiary-fixed: var(--color-electric-cobalt);
+
+  --color-outline-variant: var(--color-cream-border);
 
   /* Typography variables */
   --font-newsreader: 'Newsreader', serif;
   --font-manrope: 'Manrope', sans-serif;
   --font-space-grotesk: 'Space Grotesk', monospace;
 
-  /* Elevated Soft Shadows (No hard black shadows) */
-  --shadow-ambient: 0px 20px 40px rgba(25, 28, 30, 0.06);
-  --border-ghost: 1px solid rgba(196, 197, 217, 0.15);
-  /* 15% opacity outline_variant */
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
+  /* Elevated Soft Shadows & Dividers */
+  --shadow-ambient: 0px 20px 40px rgba(12, 23, 84, 0.06);
+  --border-ghost: 1px solid var(--color-cream-border);
+
+  /* shadcn UI semantic colors */
+  --background: oklch(0.985 0 0); /* maps to Warm Canvas */
+  --foreground: oklch(0.145 0 0); /* maps to Charcoal */
+  --card: oklch(1 0 0); /* maps to Paper White */
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
@@ -61,8 +74,8 @@
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
+  --radius: 1rem; /* 16px cards/badges/inputs */
+  --sidebar: oklch(1 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
   --sidebar-primary-foreground: oklch(0.985 0 0);
@@ -119,15 +132,26 @@ body {
   font-family: var(--font-manrope);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  line-height: 1.6;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-manrope);
+  color: var(--color-ink-navy);
+  letter-spacing: -0.03em;
+  font-weight: 700;
+  line-height: 1.15;
 }
 
 /* Typography Classes */
 .font-editorial {
   font-family: var(--font-newsreader);
+  letter-spacing: -0.01em;
 }
 
 .font-tech {
   font-family: var(--font-space-grotesk);
+  letter-spacing: 0.05em;
 }
 
 .font-body {

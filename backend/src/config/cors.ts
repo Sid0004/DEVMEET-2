@@ -14,7 +14,7 @@ export const getAllowedOrigins = (): string[] => {
 };
 
 export const corsOptions: CorsOptions = {
-    origin(origin, callback) {
+    origin(origin, callback) { 
         if (!origin) {
             return callback(null, true);
         }

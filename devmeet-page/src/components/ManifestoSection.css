@@ -1,0 +1,40 @@
+.manifesto-section {
+  max-width: 680px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: left;
+}
+
+.manifesto-title {
+  font-family: var(--font-aeonik);
+  font-weight: var(--font-weight-regular);
+  font-size: var(--text-heading);
+  color: var(--color-frost-text);
+  line-height: var(--leading-heading);
+  letter-spacing: var(--tracking-heading);
+  margin-bottom: 40px;
+  text-align: center;
+}
+
+.manifesto-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin-bottom: 40px;
+}
+
+.manifesto-content p {
+  font-family: var(--font-aeonik);
+  font-weight: var(--font-weight-regular);
+  font-size: var(--text-body);
+  color: var(--color-frost-text);
+  line-height: var(--leading-body); /* ~1.5 actually is better for body in manifesto */
+}
+
+.manifesto-action {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
