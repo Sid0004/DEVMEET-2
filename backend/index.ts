@@ -128,7 +128,7 @@ io.on("connection", (socket) => {
         socket.to(roomId).emit("code-update", { code });
 
         // Save code to DB in background
-        Room.findOneAndUpdate({ roomId }, { code }).catch(err => {
+        Room.findOneAndUpdate({ roomId }, { code }).catch((err: any) => {
             console.error("Failed to save room code:", err);
         });
     });
@@ -147,7 +147,7 @@ io.on("connection", (socket) => {
             updateObj.primaryLanguage = files[0].language;
         }
 
-        Room.findOneAndUpdate({ roomId }, updateObj).catch(err => {
+        Room.findOneAndUpdate({ roomId }, updateObj).catch((err: any) => {
             console.error("Failed to save room files:", err);
         });
     });
@@ -174,7 +174,7 @@ io.on("connection", (socket) => {
         Room.findOneAndUpdate(
             { roomId },
             { $push: { messages: chatMsg } }
-        ).catch(err => {
+        ).catch((err: any) => {
             console.error("Failed to save chat message:", err);
         });
     });

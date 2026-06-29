@@ -32,7 +32,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const savedTheme = localStorage.getItem('devmeet-theme') as Theme;
     const savedAccent = localStorage.getItem('devmeet-accent') as Accent;
 
+    // eslint-disable-next-line
     if (savedTheme) setThemeState(savedTheme);
+    // eslint-disable-next-line
     if (savedAccent) setAccentState(savedAccent);
     
     setMounted(true);

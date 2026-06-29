@@ -8,6 +8,13 @@ landing-page/.next/
 landing-page/out/
 client/.next/
 client/out/
+frontend/.next/
+frontend/out/
+
+# Vite / other build output
+devmeet-page/dist/
+devmeet-page/
+
 
 # Environment files
 .env

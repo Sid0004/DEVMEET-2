@@ -14,6 +14,25 @@ This document summarizes the theme styling, color tokens, typography scales, and
 | `Surface Surface` | `#212121` | Standard card/container background. |
 | `Elevated Surface` | `#333333` | Lighter container background for hovered or elevated components. |
 
+### Global CSS Variable Mapping (Frontend Dashboard)
+Future updates must strictly adhere to this mapping to ensure the "Charcoal Grey/Obsidian" theme remains consistent across the `frontend` app:
+```css
+  --color-background: #000000;
+  --color-surface: #101010;
+  --color-surface-container-lowest: #080808;
+  --color-surface-container-low: #101010;
+  --color-surface-container: #212121;
+  --color-surface-container-high: #333333;
+  --color-surface-container-highest: #5a5a5a;
+  
+  --color-secondary: #067ff1;
+  --color-tertiary-fixed: #067ff1;
+  
+  --color-on-surface: #f3f3f3;
+  --color-on-surface-variant: #949494;
+  --color-outline-variant: #212121;
+```
+
 ### Text Colors
 | Variable Name | Hex Code | Description |
 | :--- | :--- | :--- |

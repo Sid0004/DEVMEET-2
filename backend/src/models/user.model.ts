@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 
 export interface IUser extends Document {
+    _id: mongoose.Types.ObjectId;
     username: string;
     email: string;
     fullName: string;
@@ -73,7 +74,7 @@ const userSchema = new Schema<IUser>(
     }
 )
 
-userSchema.pre("save", async function () {
+userSchema.pre("save", async function (this: any) {
     if (!this.isModified("password")) return;
     
     if (this.password) {

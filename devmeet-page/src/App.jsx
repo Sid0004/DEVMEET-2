@@ -7,9 +7,11 @@ import { SplitModeContainer, SplitModeCard } from './components/Cards';
 import { ManifestoSection } from './components/ManifestoSection';
 
 import heroImg from './assets/hero-hands-mobile.avif';
+import imagePng from './assets/image.png';
 import { SquigglyText } from './components/ui/squiggly-text';
 import { ScrollSplitCard } from './components/ui/scroll-split-card';
 import { DeveloperSection, InterviewerSection } from './components/FeatureSections';
+import { ProductivityBento } from './components/ui/productivity-bento';
 
 function App() {
   const headerRef = useRef(null);
@@ -80,20 +82,20 @@ function App() {
                   boundaries
                 </SquigglyText>
               </DisplayHeadline>
-              <p style={{ marginTop: '18px', color: 'var(--color-smoke)', fontSize: '18px', maxWidth: '600px' }}>
+              <p style={{ marginTop: '18px', color: 'var(--color-smoke)', fontSize: '18px', maxWidth: '600px',marginBottom:"1px "}}>
                 A unified, web-native digital environment to write code, build programs, and communicate simultaneously. No more context switching.
               </p>
               
               {/* Buttons overlapping the image */}
-              <div style={{ display: 'flex', gap: '2px', marginTop: '36px', position: 'relative', zIndex: 10 }}>
-                <PrimaryWhiteButton onClick={() => console.log('start')}>START CODING</PrimaryWhiteButton>
+              <div style={{ display: 'flex', gap: '10px', marginTop: '36px', position: 'relative', zIndex: 10 }}>
+                <PrimaryWhiteButton onClick={() => console.log('start')}>CONNECT</PrimaryWhiteButton>
                 <OutlinedButton onClick={() => console.log('demo')} showArrow={true}>REQUEST DEMO</OutlinedButton>
               </div>
             </div>
             
             {/* Full-width Image Container shifted up */}
-            <div style={{ width: '100vw', display: 'flex', justifyContent: 'center', overflow: 'hidden', marginTop: '-130px' }}>
-              <img 
+            <div style={{ width: '100vw', display: 'flex', justifyContent: 'center', overflow: 'hidden', marginTop: '-80px' }}>
+              <img
                 src={heroImg} 
                 alt="Hero Hand" 
                 style={{ width: '100%', minWidth: '1200px', height: 'auto', objectFit: 'cover' }} 
@@ -110,43 +112,47 @@ function App() {
         <main className="container">
           
           {/* THE PROBLEM / SOLUTION SECTION */}
-          <section className="section" id="services" style={{ paddingTop: '120px' }}>
+          <section className="section" id="services" style={{ paddingTop: '80px', paddingBottom: '40px' }}>
+            {/* 
             <div style={{ marginBottom: '24px', textAlign: 'center' }}>
               <span className="font-mono uppercase text-caption" style={{ color: 'var(--color-smoke)', letterSpacing: 'var(--tracking-caption)' }}>WHY DEVMEET EXISTS</span>
             </div>
             
             <ScrollSplitCard
               frontText="The fragmented workspace is breaking developer momentum."
-              
-              // Option B: To use three different texts or images on the front side of each card,
-              // simply uncomment the `frontText` or `frontImage` properties inside the cards array below.
               cards={[
                 {
                   title: "Zero Local Setup",
                   description: "Run complex programs directly in the browser. Pre-configured runtimes for Python, Go, Rust, and more. No more configuring compilers.",
                   bgColor: "#101010",
                   textColor: "#f3f3f3",
-                  // frontText: "Zero Local Setup", // Uncomment for a unique text on this card front
-                  // frontImage: "/src/assets/zero-setup.png", // Uncomment for a unique image on this card front
                 },
                 {
                   title: "Unified Workflow",
                   description: "Editing updates, cursor positions, compiler runs, and file selections sync instantly across all participants under 10 milliseconds.",
                   bgColor: "#067ff1ff",
                   textColor: "#f3f3f3",
-                  // frontText: "Unified Syncing", // Uncomment for a unique text on this card front
-                  // frontImage: "/src/assets/sync.png", // Uncomment for a unique image on this card front
                 },
                 {
                   title: "Secure & Tracked",
                   description: "Focus monitors track tab-switching and plagiarism, while session histories are logged keystroke-by-keystroke for replay.",
                   bgColor: "#f3f3f3",
                   textColor: "#101010",
-                  // frontText: "Anti-Plagiarism", // Uncomment for a unique text on this card front
-                  // frontImage: "/src/assets/security.png", // Uncomment for a unique image on this card front
                 },
               ]}
             />
+            */}
+
+            <div style={{ marginBottom: '32px', textAlign: 'center' }}>
+              <h2 style={{ fontSize: 'clamp(2rem, 3.5vw, 3.25rem)', fontWeight: 'bold', marginBottom: '12px', letterSpacing: '-0.02em' }}>
+                Unmatched productivity
+              </h2>
+              <p style={{ color: 'var(--color-smoke)', fontSize: '17px', maxWidth: '700px', margin: '0 auto', lineHeight: '1.5' }}>
+                DevMeet is a collaborative workspace platform that provides amazing pair-programming opportunities for developers and product teams alike.
+              </p>
+            </div>
+            
+            <ProductivityBento />
           </section>
 
           {/* CORE MODES SECTION */}

@@ -20,20 +20,22 @@ export function SquigglyText({
   const id = useId()
   const filterId = `squiggly-${id.replace(/:/g, "")}`
   const [baseFreq, setBaseFreq] = useState("0.015")
+  const [isMounted, setIsMounted] = useState(false)
+
+  const [activeScale, setActiveScale] = useState(Array.isArray(scale) ? scale[0] : scale)
 
   useEffect(() => {
     let timeoutId: NodeJS.Timeout
     const animate = () => {
       setBaseFreq(`${0.01 + Math.random() * 0.015}`)
+      if (Array.isArray(scale)) {
+        setActiveScale(scale[Math.floor(Math.random() * scale.length)])
+      }
       timeoutId = setTimeout(animate, stepDuration)
     }
     animate()
     return () => clearTimeout(timeoutId)
-  }, [stepDuration])
-
-  const activeScale = Array.isArray(scale)
-    ? scale[Math.floor(Math.random() * scale.length)]
-    : scale
+  }, [stepDuration, scale])
 
   return (
     <span
