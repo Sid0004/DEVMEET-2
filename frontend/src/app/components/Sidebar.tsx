@@ -68,10 +68,6 @@ export default function Sidebar({
             <span className="material-symbols-outlined">history</span>
             {!sidebarCollapsed && <span className="font-tech">Recent Meetings</span>}
           </span>
-          <span className={styles.navItem}>
-            <span className="material-symbols-outlined">notes</span>
-            {!sidebarCollapsed && <span className="font-tech">Saved Notes</span>}
-          </span>
         </nav>
       </div>
 

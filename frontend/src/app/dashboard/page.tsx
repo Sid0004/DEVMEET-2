@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Code2, FileCode2, Terminal, Plus, ArrowRight, Settings2, Sparkles, Loader2, Play } from 'lucide-react';
+import { Code2, FileCode2, Terminal, Plus, ArrowRight, Settings2, Sparkles, Loader2, Play, Trash2 } from 'lucide-react';
 import styles from './dashboard.module.css';
 import { apiRequest } from '../../lib/api';
 import { useAppSelector } from '@/redux/hooks';
@@ -267,15 +267,17 @@ export default function Dashboard() {
 
                       <div className={styles.inputGroup} style={{ marginBottom: '2rem' }}>
                         <label className="font-tech">Workspace Mode</label>
-                        <div className={styles.modeToggleCard} onClick={() => setIsInterviewMode(!isInterviewMode)}>
+                        <div className={styles.modeToggleCard} style={{ opacity: 0.6, cursor: 'not-allowed' }}>
                           <div className={styles.modeToggleInfo}>
-                            <Settings2 size={20} color={isInterviewMode ? "var(--color-secondary)" : "var(--color-outline-variant)"} />
+                            <Settings2 size={20} color="var(--color-outline-variant)" />
                             <div>
-                              <span className={`${styles.switchLabel} font-tech`}>Interview Assessment Mode</span>
+                              <span className={`${styles.switchLabel} font-tech`}>
+                                Interview Assessment Mode <span style={{ fontSize: '0.7rem', backgroundColor: 'var(--color-surface-variant)', padding: '2px 6px', borderRadius: '4px', marginLeft: '8px', color: 'var(--color-smoke)' }}>Coming Soon</span>
+                              </span>
                               <p className={styles.modeHint}>Enable monitoring and restrict clipboard access.</p>
                             </div>
                           </div>
-                          <div className={`${styles.toggleSwitch} ${isInterviewMode ? styles.toggleActive : ''}`} />
+                          <div className={`${styles.toggleSwitch}`} />
                         </div>
                       </div>
 
@@ -352,7 +354,14 @@ export default function Dashboard() {
                           </div>
                         </div>
                       </div>
-                      <div className={styles.itemRight}>
+                      <div className={styles.itemRight} style={{ display: 'flex', alignItems: 'center' }}>
+                        <button 
+                          onClick={() => handleDeleteRoom(room.roomId)} 
+                          style={{ color: '#ef4444', marginRight: '1rem', background: 'transparent', border: 'none', cursor: 'pointer', padding: '8px' }} 
+                          title="Delete Room"
+                        >
+                          <Trash2 size={18} />
+                        </button>
                         <button onClick={() => router.push(`/workspace?room=${room.roomId}`)} className={styles.joinBtn}>
                           Rejoin
                         </button>

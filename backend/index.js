@@ -6,17 +6,13 @@ import { app } from "./app.js";
 import { Room } from "./src/models/room.model.js";
 import { User } from "./src/models/user.model.js";
 import jwt from "jsonwebtoken";
-
 dotenv.config({
     path: "./.env"
 });
-
 const server = http.createServer(app);
-
 const allowedOrigins = process.env.CORS_ORIGIN
     ? process.env.CORS_ORIGIN.split(",").map(o => o.trim())
     : ["http://localhost:3000"];
-
 const io = new Server(server, {
     cors: {
         origin: allowedOrigins,
@@ -24,74 +20,60 @@ const io = new Server(server, {
         methods: ["GET", "POST"]
     }
 });
-
 // Socket.IO authentication middleware
 io.use(async (socket, next) => {
     try {
         let token = socket.handshake.auth.token || socket.handshake.headers?.authorization?.replace("Bearer ", "");
-        
         if (!token && socket.handshake.headers?.cookie) {
-            const cookieMap = Object.fromEntries(
-                socket.handshake.headers.cookie.split(';').map(c => {
-                    const parts = c.trim().split('=');
-                    return [parts[0], parts.slice(1).join('=')];
-                })
-            );
+            const cookieMap = Object.fromEntries(socket.handshake.headers.cookie.split(';').map(c => {
+                const parts = c.trim().split('=');
+                return [parts[0], parts.slice(1).join('=')];
+            }));
             token = cookieMap['accessToken'];
         }
-
         if (!token) {
             return next(new Error("Authentication required"));
         }
-
-        const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET as string) as any;
+        const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
         const user = await User.findById(decodedToken?._id).select("-password -refreshToken");
-        
         if (!user) {
             return next(new Error("Invalid token"));
         }
-
-        (socket as any).user = user;
+        socket.user = user;
         next();
-    } catch (err: any) {
+    }
+    catch (err) {
         return next(new Error("Authentication failed: " + err.message));
     }
 });
-
 io.on("connection", (socket) => {
-    const authUser = (socket as any).user;
+    const authUser = socket.user;
     console.log(`Socket connected: ${socket.id} - User: ${authUser?._id}`);
-
     socket.on("join-room", async ({ roomId }) => {
-        if (!roomId || !authUser) return;
-
+        if (!roomId || !authUser)
+            return;
         socket.join(roomId);
         socket.data.roomId = roomId;
         socket.data.user = authUser;
-
         console.log(`User ${authUser.username || authUser.fullName} joined room ${roomId}`);
-
         try {
             // Get all current sockets in this room
             const sockets = await io.in(roomId).fetchSockets();
             const usersInRoom = sockets
                 .filter(s => s.id !== socket.id)
                 .map(s => ({
-                    socketId: s.id,
-                    user: s.data.user
-                }));
-
+                socketId: s.id,
+                user: s.data.user
+            }));
             // Fetch current room state (code & language) from DB
             const room = await Room.findOne({ roomId });
             const currentCode = room ? room.code || "" : "";
             const language = room ? room.primaryLanguage || "TypeScript" : "TypeScript";
             const messages = room ? room.messages || [] : [];
-            
             // Build fallback file list if room has no files yet (backward compatibility)
             let files = room?.files || [];
             if (files.length === 0) {
-                const ext = language.toLowerCase() === 'python' ? 'py' : 'ts';// it shouldnt be hardocded
-                
+                const ext = language.toLowerCase() === 'python' ? 'py' : 'ts'; // it shouldnt be hardocded
                 files = [
                     {
                         name: `main.${ext}`,
@@ -100,7 +82,6 @@ io.on("connection", (socket) => {
                     }
                 ];
             }
-
             // Send current state to the joining user
             socket.emit("room-state", {
                 code: currentCode,
@@ -109,54 +90,48 @@ io.on("connection", (socket) => {
                 messages,
                 users: usersInRoom
             });
-
             // Notify everyone else in the room
             socket.to(roomId).emit("user-joined", {
                 socketId: socket.id,
                 user: authUser
             });
-        } catch (error) {
+        }
+        catch (error) {
             console.error("Error in join-room handler:", error);
         }
     });
-
     socket.on("code-change", ({ code }) => {
         const roomId = socket.data.roomId;
-        if (!roomId) return;
-
+        if (!roomId)
+            return;
         // Broadcast to other users in the room
         socket.to(roomId).emit("code-update", { code });
-
         // Save code to DB in background
-        Room.findOneAndUpdate({ roomId }, { code }).catch((err: any) => {
+        Room.findOneAndUpdate({ roomId }, { code }).catch((err) => {
             console.error("Failed to save room code:", err);
         });
     });
-
     socket.on("files-change", ({ files, activeFileIndex }) => {
         const roomId = socket.data.roomId;
-        if (!roomId) return;
-
+        if (!roomId)
+            return;
         // Broadcast updated files and active file index to other users
         socket.to(roomId).emit("files-update", { files, activeFileIndex });
-
         // Update room files in DB, and synchronize legacy code / primaryLanguage fields with the first file
-        const updateObj: any = { files };
+        const updateObj = { files };
         if (files && files[0]) {
             updateObj.code = files[0].content;
             updateObj.primaryLanguage = files[0].language;
         }
-
-        Room.findOneAndUpdate({ roomId }, updateObj).catch((err: any) => {
+        Room.findOneAndUpdate({ roomId }, updateObj).catch((err) => {
             console.error("Failed to save room files:", err);
         });
     });
-
     socket.on("send-message", async ({ message }) => {
         const roomId = socket.data.roomId;
         const user = socket.data.user;
-        if (!roomId || !user) return;
-
+        if (!roomId || !user)
+            return;
         const chatMsg = {
             sender: {
                 _id: user._id,
@@ -166,19 +141,13 @@ io.on("connection", (socket) => {
             text: message,
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
-
         // Broadcast to everyone in the room (including sender)
         io.to(roomId).emit("receive-message", chatMsg);
-
         // Save message to room in DB
-        Room.findOneAndUpdate(
-            { roomId },
-            { $push: { messages: chatMsg } }
-        ).catch((err: any) => {
+        Room.findOneAndUpdate({ roomId }, { $push: { messages: chatMsg } }).catch((err) => {
             console.error("Failed to save chat message:", err);
         });
     });
-
     socket.on("webrtc-signal", ({ targetSocketId, signal }) => {
         // Forward signal to the target peer
         io.to(targetSocketId).emit("webrtc-signal", {
@@ -186,49 +155,44 @@ io.on("connection", (socket) => {
             signal
         });
     });
-
     socket.on("join-call", async () => {
         const roomId = socket.data.roomId;
         const user = socket.data.user;
-        if (!roomId || !user) return;
-
+        if (!roomId || !user)
+            return;
         socket.data.inCall = true;
         console.log(`User ${user.username || user.fullName} joined video call in room ${roomId}`);
-
         try {
             // Get all current sockets in this room who are in the call
             const sockets = await io.in(roomId).fetchSockets();
             const usersInCall = sockets
                 .filter(s => s.id !== socket.id && s.data.inCall === true)
                 .map(s => ({
-                    socketId: s.id,
-                    user: s.data.user
-                }));
-
+                socketId: s.id,
+                user: s.data.user
+            }));
             // Send the list of people already in the call to this user
             socket.emit("call-state", { users: usersInCall });
-
             // Notify everyone else in the room
             socket.to(roomId).emit("user-joined-call", {
                 socketId: socket.id,
                 user: user
             });
-        } catch (error) {
+        }
+        catch (error) {
             console.error("Error in join-call handler:", error);
         }
     });
-
     socket.on("leave-call", () => {
         const roomId = socket.data.roomId;
-        if (!roomId) return;
-
+        if (!roomId)
+            return;
         socket.data.inCall = false;
         console.log(`Socket left call: ${socket.id}`);
         socket.to(roomId).emit("user-left-call", {
             socketId: socket.id
         });
     });
-
     socket.on("disconnecting", () => {
         socket.rooms.forEach((roomId) => {
             if (roomId !== socket.id) {
@@ -239,24 +203,20 @@ io.on("connection", (socket) => {
             }
         });
     });
-
     socket.on("disconnect", () => {
         console.log(`Socket disconnected: ${socket.id}`);
     });
 });
-
 connectDB()
     .then(() => {
-        server.on("error", (error: any) => {
-            console.log("ERR: ", error);
-            throw error;
-        });
-        
-        server.listen(process.env.PORT || 8000, () => {
-            console.log(`Server is running at port : ${process.env.PORT || 8000}`);
-        });
-    })
-    .catch((err: any) => {
-        console.log("MONGO db connection failed !!! ", err);
+    server.on("error", (error) => {
+        console.log("ERR: ", error);
+        throw error;
     });
-
+    server.listen(process.env.PORT || 8000, () => {
+        console.log(`Server is running at port : ${process.env.PORT || 8000}`);
+    });
+})
+    .catch((err) => {
+    console.log("MONGO db connection failed !!! ", err);
+});

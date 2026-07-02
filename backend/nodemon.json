@@ -1,5 +1,5 @@
 {
-  "watch": ["src", "index.ts", "app.ts"],
-  "ext": "ts,js,json",
-  "exec": "tsx index.ts"
+  "watch": ["src", "index.js", "app.js"],
+  "ext": "js,json",
+  "exec": "node index.js"
 }

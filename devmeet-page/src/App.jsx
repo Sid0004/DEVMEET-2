@@ -88,8 +88,8 @@ function App() {
               
               {/* Buttons overlapping the image */}
               <div style={{ display: 'flex', gap: '10px', marginTop: '36px', position: 'relative', zIndex: 10 }}>
-                <PrimaryWhiteButton onClick={() => console.log('start')}>CONNECT</PrimaryWhiteButton>
-                <OutlinedButton onClick={() => console.log('demo')} showArrow={true}>REQUEST DEMO</OutlinedButton>
+                <PrimaryWhiteButton onClick={() => window.location.href = 'http://localhost:3001/signup'}>GET STARTED</PrimaryWhiteButton>
+                <OutlinedButton onClick={() => window.location.href = 'http://localhost:3001/login'} showArrow={true}>LOG IN</OutlinedButton>
               </div>
             </div>
             

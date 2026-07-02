@@ -1,39 +1,5 @@
-import mongoose, { Schema, Document } from "mongoose";
-
-export interface IFile {
-    name: string;
-    content: string;
-    language: string;
-}
-
-export interface IMessage {
-    sender: {
-        _id?: string;
-        username?: string;
-        fullName?: string;
-    };
-    text: string;
-    timestamp: string;
-}
-
-export interface IRoom extends Document {
-    roomId: string;
-    roomName: string;
-    primaryLanguage: string;
-    host: mongoose.Types.ObjectId;
-    participants: mongoose.Types.ObjectId[];
-    status: "active" | "ended" | "scheduled";
-    code?: string;
-    files?: IFile[];
-    messages?: IMessage[];
-    roomSettings: {
-        micEnabled: boolean;
-        cameraEnabled: boolean;
-        waitingRoom: boolean;
-    };
-}
-
-const roomSchema = new Schema<IRoom>({
+import mongoose, { Schema } from "mongoose";
+const roomSchema = new Schema({
     roomId: {
         type: String,
         required: true,
@@ -106,5 +72,4 @@ const roomSchema = new Schema<IRoom>({
         }
     }
 }, { timestamps: true });
-
-export const Room = mongoose.model<IRoom>("Room", roomSchema);
+export const Room = mongoose.model("Room", roomSchema);
