@@ -10,6 +10,12 @@ const userSchema = new Schema({
         trim: true,
         index: true
     },
+    profession: {
+        type: String,
+        enum: ['Student', 'Employee', 'Freelancer', 'Other'],
+        required: true,
+        default: 'Other'
+    },
     email: {
         type: String,
         required: true,
@@ -42,12 +48,22 @@ const userSchema = new Schema({
             ref: "room"
         }
     ],
+    organizations: [
+        {
+            type: Schema.Types.ObjectId,
+            ref: "Organization"
+        }
+    ],
     password: {
         type: String,
         required: [true, 'Password is required']
     },
     refreshToken: {
         type: String
+    },
+    isOnboarded: {
+        type: Boolean,
+        default: false
     }
 }, {
     timestamps: true

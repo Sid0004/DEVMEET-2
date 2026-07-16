@@ -9,6 +9,10 @@ const roomSchema = new Schema({
         type: String,
         required: true,
     },
+    organization: {
+        type: Schema.Types.ObjectId,
+        ref: "Organization"
+    },
     primaryLanguage: {
         type: String,
         default: "TypeScript"
@@ -27,20 +31,11 @@ const roomSchema = new Schema({
         ],
         default: []
     },
-    messages: {
-        type: [
-            {
-                sender: {
-                    _id: { type: String },
-                    username: { type: String },
-                    fullName: { type: String }
-                },
-                text: { type: String, required: true },
-                timestamp: { type: String, required: true }
-            }
-        ],
-        default: []
-    },
+    activePeers: [
+        {
+            type: String // To store WebRTC socket IDs or User IDs
+        }
+    ],
     host: {
         type: Schema.Types.ObjectId,
         ref: "User",

@@ -63,6 +63,12 @@ const joinRoom = asyncHandler(async (req, res) => {
     const room = await Room.findOne({ roomId });
     if (!room)
         throw new ApiError(404, "Room with this ID does not exist");
+        
+    // Prevent joining if the room has ended
+    if (room.status === "ended") {
+        throw new ApiError(403, "This session has ended and can no longer be joined.");
+    }
+    
     if (room.participants.includes(userId)) {
         return res.status(200).json(new ApiResponse(200, room, "You have already joined this room"));
     }
@@ -80,6 +86,21 @@ const leaveRoom = asyncHandler(async (req, res) => {
     const userId = req.user?._id;
     const updatedRoom = await Room.findOneAndUpdate({ roomId }, { $pull: { participants: userId } }, { new: true });
     return res.status(200).json(new ApiResponse(200, updatedRoom, "Successfully left the room"));
+});
+const endRoom = asyncHandler(async (req, res) => {
+    const { roomId } = req.params;
+    if (!roomId)
+        throw new ApiError(400, "Please provide a room ID to end");
+    const room = await Room.findOne({ roomId });
+    if (!room)
+        throw new ApiError(404, "Room with this ID does not exist");
+        
+    if (room.host.toString() !== req.user?._id?.toString()) {
+        throw new ApiError(403, "Only the host can end the session");
+    }
+    
+    const updatedRoom = await Room.findOneAndUpdate({ roomId }, { status: "ended" }, { new: true });
+    return res.status(200).json(new ApiResponse(200, updatedRoom, "Session ended successfully"));
 });
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -238,4 +259,4 @@ const deleteRoom = asyncHandler(async (req, res) => {
     await User.updateMany({ rooms: deletedRoom._id }, { $pull: { rooms: deletedRoom._id } });
     return res.status(200).json(new ApiResponse(200, deletedRoom, "Room deleted successfully"));
 });
-export { createRoom, getRoomById, joinRoom, leaveRoom, runCode, getAllRoomsById, deleteRoom };
+export { createRoom, getRoomById, joinRoom, leaveRoom, endRoom, runCode, getAllRoomsById, deleteRoom };

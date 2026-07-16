@@ -2,24 +2,35 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import { corsOptions } from "./src/config/cors.js";
+
+
+
 const app = express();
+
+
 app.use(cors(corsOptions));
 app.use(express.json({ limit: "16kb" }));
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(express.static("public"));
 app.use(cookieParser());
+
+
+
 // Debugging: Log incoming requests to terminal
 app.use((req, res, next) => {
     console.log(`-------- ${req.method} request to ${req.url}`);
     next();
 });
+
+
 // routes import
 import userRouter from './src/routes/user.routes.js';
 import roomRouter from './src/routes/room.routes.js';
-//user routes
+
+
 app.use("/api/v1/users", userRouter);
-// rooms routes
 app.use("/api/v1/rooms", roomRouter);
+
 // Global error handling middleware
 app.use((err, req, res, next) => {
     const statusCode = err.statusCode || 500;

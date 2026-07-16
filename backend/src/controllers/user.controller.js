@@ -201,4 +201,25 @@ const changePassword = asyncHandler(async (req, res) => {
         .status(200)
         .json(new ApiResponse(200, {}, "Password changed successfully"));
 });
-export { registerUser, loginUser, logoutUser, getCurrentUser, refreshAccessToken, updateProfile, changePassword };
+
+const completeOnboarding = asyncHandler(async (req, res) => {
+    const { profession } = req.body;
+    if (!req.user) {
+        throw new ApiError(401, "Unauthorized request");
+    }
+    
+    const user = await User.findById(req.user._id);
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+    
+    if (profession) {
+        user.profession = profession;
+    }
+    user.isOnboarded = true;
+    await user.save({ validateBeforeSave: false });
+    
+    return res.status(200).json(new ApiResponse(200, user, "Onboarding completed successfully"));
+});
+
+export { registerUser, loginUser, logoutUser, refreshAccessToken, getCurrentUser, updateProfile, changePassword, completeOnboarding };
