@@ -7,6 +7,7 @@ import { apiRequest } from "@/lib/api";
 
 export default function RoomsPage() {
   const router = useRouter();
+  
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
 

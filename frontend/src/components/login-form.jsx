@@ -18,18 +18,22 @@ import { Input } from "@/components/ui/input";
 import { SquigglyText } from "@/components/ui/squiggly-text";
 
 export function LoginForm({ className, ...props }) {
+
   const router = useRouter();
   const dispatch = useAppDispatch();
+  
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [formData, setFormData] = useState({
-    email: "",
+    identifier: "",
     password: "",
   });
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
+
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -49,11 +53,12 @@ export function LoginForm({ className, ...props }) {
             token: response.data.accessToken,
           }),
         );
+        
         // If user has completed onboarding, route to dashboard. Otherwise onboarding.
         if (response.data.user.isOnboarded) {
-          router.push("/dashboard");
+          window.location.href = "/dashboard";
         } else {
-          router.push("/onboarding");
+          window.location.href = "/onboarding";
         }
       } else {
         setError("Invalid response from server.");
@@ -64,6 +69,9 @@ export function LoginForm({ className, ...props }) {
       setIsLoading(false);
     }
   };
+
+
+
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
@@ -98,14 +106,14 @@ export function LoginForm({ className, ...props }) {
           )}
 
           <Field>
-            <FieldLabel htmlFor="email">Email</FieldLabel>
+            <FieldLabel htmlFor="identifier">Email or Username</FieldLabel>
             <Input
-              id="email"
-              name="email"
+              id="identifier"
+              name="identifier"
               type="text"
               placeholder="  name@example.com or username"
               className="px-5"
-              value={formData.email}
+              value={formData.identifier}
               onChange={handleChange}
               required
             />

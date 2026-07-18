@@ -275,7 +275,7 @@ export default function DashboardOverview() {
             Welcome back, {user?.fullName || user?.username || "Architect"}
           </h1>
           <p className="text-gray-400 font-light">
-            Here's what's happening in your DevMeet environment today.
+            Here&apos;s what&apos;s happening in your DevMeet environment today.
           </p>
         </div>
 

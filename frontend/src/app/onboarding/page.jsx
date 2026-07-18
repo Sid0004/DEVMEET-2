@@ -39,11 +39,11 @@ export default function OnboardingPage() {
         body: JSON.stringify({ profession, orgAction, orgInput }),
       });
       console.log("Onboarding Complete:", { profession, orgAction, orgInput });
-      router.push("/dashboard");
+      window.location.href = "/dashboard";
     } catch (err) {
       console.error("Failed to complete onboarding:", err);
       // Push anyway to avoid soft-lock if API fails
-      router.push("/dashboard");
+      window.location.href = "/dashboard";
     }
   };
 
