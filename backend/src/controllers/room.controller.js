@@ -7,35 +7,20 @@ import { execFile } from "child_process";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import RoomService from "../services/room.service.js";
+
 const createRoom = asyncHandler(async (req, res) => {
     const { roomName, primaryLanguage, roomSettings } = req.body;
     if (!roomName || roomName.trim() === "") {
         throw new ApiError(400, "Room name is required");
     }
-    let generatedRoomId = "";
-    let isUnique = false;
-    let attempts = 0;
-    while (!isUnique && attempts < 5) {
-        generatedRoomId = Math.floor(100000 + Math.random() * 900000).toString();
-        const existingRoom = await Room.findOne({ roomId: generatedRoomId });
-        if (!existingRoom) {
-            isUnique = true;
-        }
-        attempts++;
-    }
-    if (!isUnique) {
-        throw new ApiError(500, "Could not generate a unique room code. Please try again.");
-    }
-    const newRoom = await Room.create({
-        roomId: generatedRoomId,
-        roomName: roomName.trim(),
-        primaryLanguage: primaryLanguage || "TypeScript",
-        host: req.user?._id,
-        participants: req.user?._id ? [req.user._id] : [],
-        status: "active",
-        roomSettings: roomSettings || {}
-    });
-    const createdRoom = await Room.findById(newRoom._id);
+    const createdRoom = await RoomService.createUniqueRoom(
+        roomName, 
+        primaryLanguage, 
+        req.user?._id, 
+        roomSettings
+    );
+
     if (!createdRoom) {
         throw new ApiError(500, "Something went wrong while creating the room");
     }

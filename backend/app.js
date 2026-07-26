@@ -2,8 +2,8 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import { corsOptions } from "./src/config/cors.js";
-
-
+import morgan from "morgan";
+import helmet from "helmet";
 
 const app = express();
 
@@ -13,14 +13,8 @@ app.use(express.json({ limit: "16kb" }));
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(express.static("public"));
 app.use(cookieParser());
-
-
-
-// Debugging: Log incoming requests to terminal
-app.use((req, res, next) => {
-    console.log(`-------- ${req.method} request to ${req.url}`);
-    next();
-});
+app.use(morgan("dev"));
+app.use(helmet());
 
 
 // routes import
