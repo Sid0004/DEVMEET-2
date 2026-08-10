@@ -53,3 +53,12 @@ tunnel.txt
 
 # Temp folders
 temp/
+
+# Logs
+logs/
+backend/logs/
+*.log
+
+# Documentation folder
+docs/
+
