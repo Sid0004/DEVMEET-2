@@ -13,14 +13,11 @@ const roomSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: "Organization"
     },
-    primaryLanguage: {
-        type: String,
-        default: "TypeScript"
-    },
-    code: {
+    description: {
         type: String,
         default: ""
     },
+
     files: {
         type: [
             {
@@ -31,11 +28,7 @@ const roomSchema = new Schema({
         ],
         default: []
     },
-    activePeers: [
-        {
-            type: String // To store WebRTC socket IDs or User IDs
-        }
-    ],
+
     host: {
         type: Schema.Types.ObjectId,
         ref: "User",

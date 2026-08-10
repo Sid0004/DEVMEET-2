@@ -18,6 +18,8 @@ import { setCredentials } from "@/redux/features/authSlice";
 import ProfileDropdown from "../components/ProfileDropdown";
 import Avatar from "@/components/Avatar";
 import { useTheme } from "@/components/ThemeProvider";
+import { setMessages, addMessage } from "@/redux/features/chatSlice";
+import ChatPanel from "@/components/workspace/ChatPanel";
 
 const rtcConfig = {
   iceServers: [
@@ -383,11 +385,10 @@ function WorkspaceContent() {
   const [isCreatingFile, setIsCreatingFile] = useState(false);
   const [newFileName, setNewFileName] = useState("");
   const [roomName, setRoomName] = useState("DevMeet Session");
+  const [roomHost, setRoomHost] = useState(null);
   const [roomUsers, setRoomUsers] = useState([]);
   const [connectedUsers, setConnectedUsers] = useState([]);
   const [remoteMediaStates, setRemoteMediaStates] = useState({});
-  const [messages, setMessages] = useState([]);
-  const [chatInput, setChatInput] = useState("");
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isFolderOpen, setIsFolderOpen] = useState(true);
   const [isOpenEditorsOpen, setIsOpenEditorsOpen] = useState(true);
@@ -403,14 +404,13 @@ function WorkspaceContent() {
   const [consoleOutput, setConsoleOutput] = useState(null);
   const [isJoinedCall, setIsJoinedCall] = useState(false);
 
-  // Resizer States
-  const [collabWidth, setCollabWidth] = useState(380);
-  const [videoHeight, setVideoHeight] = useState(160);
+  // Resizer states
+  const [collabWidth, setCollabWidth] = useState(320);
+  const [isResizingWidth, setIsResizingWidth] = useState(false);
 
   // Refs
   const socketRef = useRef(null);
   const peerConnections = useRef({});
-  const chatEndRef = useRef(null);
   const candidateQueue = useRef({});
   const localStreamRef = useRef(null);
   const isJoinedCallRef = useRef(false);
@@ -421,6 +421,7 @@ function WorkspaceContent() {
   // Resizer drag event handlers
   const handleWidthResizeMouseDown = (e) => {
     e.preventDefault();
+    setIsResizingWidth(true);
     const startX = e.clientX;
     const startWidth = collabWidth;
     document.body.style.cursor = "col-resize";
@@ -445,34 +446,6 @@ function WorkspaceContent() {
       if (editorCanvas) {
         editorCanvas.style.pointerEvents = "";
       }
-    };
-
-    document.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseup", handleMouseUp);
-  };
-
-  const handleHeightResizeMouseDown = (e) => {
-    e.preventDefault();
-    const startY = e.clientY;
-    const startHeight = videoHeight;
-    document.body.style.cursor = "row-resize";
-    document.body.style.userSelect = "none";
-
-    // Disable pointer events on editor canvas during resize to prevent iframe focus theft
-    const editorCanvas = document.querySelector(`.${styles.codeCanvas}`);
-    if (editorCanvas) {
-      editorCanvas.style.pointerEvents = "none";
-    }
-
-    const handleMouseMove = (moveEvent) => {
-      const deltaY = moveEvent.clientY - startY;
-      const newHeight = Math.max(120, Math.min(500, startHeight + deltaY));
-      setVideoHeight(newHeight);
-    };
-
-    const handleMouseUp = () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
       if (editorCanvas) {
@@ -606,6 +579,7 @@ function WorkspaceContent() {
         const response = await apiRequest(`/api/v1/rooms/${roomId}`);
         if (response?.data) {
           setRoomName(response.data.roomName);
+          setRoomHost(response.data.host);
           let roomFiles = response.data.files || [];
           if (roomFiles.length === 0) {
             const lang = response.data.primaryLanguage || "TypeScript";
@@ -669,7 +643,7 @@ function WorkspaceContent() {
           ]);
         }
         if (existingMessages) {
-          setMessages(existingMessages);
+          dispatch(setMessages(existingMessages));
         }
 
         if (roomUsersList) {
@@ -700,6 +674,16 @@ function WorkspaceContent() {
         const filtered = prev.filter((u) => u.socketId !== socketId);
         return [...filtered, { socketId, user: joinedUser }];
       });
+      dispatch(
+        addMessage({
+          type: "system",
+          text: `${joinedUser?.fullName || joinedUser?.username || "A user"} joined the room`,
+          timestamp: new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        }),
+      );
     });
 
     socket.on(
@@ -918,23 +902,7 @@ function WorkspaceContent() {
       }
     });
 
-    socket.on("code-update", ({ code: updatedCode }) => {
-      setFiles((prevFiles) => {
-        if (prevFiles.length === 0) return prevFiles;
-        return prevFiles.map((file, idx) => {
-          if (idx === 0) {
-            return { ...file, content: updatedCode || "" };
-          }
-          return file;
-        });
-      });
-    });
-
-    socket.on("receive-message", (chatMsg) => {
-      setMessages((prev) => [...prev, chatMsg]);
-    });
-
-    socket.on("user-disconnected", ({ socketId }) => {
+    socket.on("user-disconnected", ({ socketId, user: leftUser }) => {
       console.log("User disconnected:", socketId);
       if (soundNotificationsRef.current) {
         playNotificationSound(false);
@@ -950,6 +918,18 @@ function WorkspaceContent() {
       });
       setRoomUsers((prev) => prev.filter((u) => u.socketId !== socketId));
       setConnectedUsers((prev) => prev.filter((u) => u.socketId !== socketId));
+      if (leftUser) {
+        dispatch(
+          addMessage({
+            type: "system",
+            text: `${leftUser?.fullName || leftUser?.username || "A user"} left the room`,
+            timestamp: new Date().toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+          }),
+        );
+      }
     });
 
     // Cleanup on unmount
@@ -966,11 +946,6 @@ function WorkspaceContent() {
       peerConnections.current = {};
     };
   }, [isMounted, user, token, roomId]);
-
-  // Scroll chat to bottom
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
 
   // Code change emission
   const handleEditorChange = (value) => {
@@ -1119,15 +1094,6 @@ function WorkspaceContent() {
         activeFileIndex,
       });
     }
-  };
-
-  // Chat message emission
-  const handleSendMessage = (e) => {
-    e.preventDefault();
-    if (!chatInput.trim() || !socketRef.current) return;
-
-    socketRef.current.emit("send-message", { message: chatInput.trim() });
-    setChatInput("");
   };
 
   const broadcastMediaState = (cameraOff, micMuted) => {
@@ -1416,16 +1382,18 @@ function WorkspaceContent() {
         </div>
 
         <div className={styles.activityBarBottom}>
-          <button
-            className={styles.activityBtn}
-            onClick={handleEndSession}
-            title="End Session"
-            style={{ color: "#ef4444" }}
-          >
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
-              <path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z" />
-            </svg>
-          </button>
+          {user?._id === roomHost && (
+            <button
+              className={styles.activityBtn}
+              onClick={handleEndSession}
+              title="End Session"
+              style={{ color: "#ef4444" }}
+            >
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+                <path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z" />
+              </svg>
+            </button>
+          )}
           <button
             className={styles.activityBtn}
             onClick={() => {
@@ -1899,8 +1867,8 @@ function WorkspaceContent() {
             <div
               className={styles.videoGrid}
               style={{
-                height: `${videoHeight}px`,
-                maxHeight: `${videoHeight}px`,
+                height: `100%`,
+                maxHeight: `100%`,
               }}
             >
               {/* Local Stream */}
@@ -1934,7 +1902,7 @@ function WorkspaceContent() {
                       }}
                     >
                       <Avatar
-                        src={user?.avatarUrl ?? null}
+                        src={user?.avatar || user?.avatarUrl || null}
                         name={user?.fullName || user?.username || "You"}
                         size={48}
                       />
@@ -2090,7 +2058,7 @@ function WorkspaceContent() {
                           }}
                         >
                           <Avatar
-                            src={peer.user?.avatarUrl ?? null}
+                            src={peer.user?.avatar || peer.user?.avatarUrl || null}
                             name={
                               peer.user?.fullName ||
                               peer.user?.username ||
@@ -2132,136 +2100,14 @@ function WorkspaceContent() {
                 );
               })}
             </div>
-            {/* Height Resizer Handle */}
-            <div
-              className={styles.heightResizer}
-              onMouseDown={handleHeightResizeMouseDown}
-            />
 
             {/* Chat Interface */}
-            <div className={styles.chatSection}>
-              <div className={styles.chatHeader}>
-                <h4
-                  className="font-tech uppercase"
-                  style={{
-                    fontSize: "0.6875rem",
-                    letterSpacing: "0.1em",
-                    color: "rgba(255, 255, 255, 0.9)",
-                  }}
-                >
-                  Team Chat
-                </h4>
-                <div
-                  style={{ display: "flex", alignItems: "center", gap: "8px" }}
-                >
-                  {connectedUsers.length > 0 && (
-                    <div style={{ display: "flex", marginRight: "4px" }}>
-                      {connectedUsers.map((peer, i) => {
-                        const isInCall = roomUsers.some(
-                          (ru) =>
-                            ru.socketId === peer.socketId ||
-                            ru.user?._id === peer.user?._id,
-                        );
-                        const peerName =
-                          peer.user?.fullName || peer.user?.username || "Peer";
-                        return (
-                          <div
-                            key={peer.socketId}
-                            style={{
-                              marginLeft: i === 0 ? "0" : "-0.375rem",
-                              position: "relative",
-                              borderRadius: "50%",
-                              border: isInCall
-                                ? "1.5px solid #4ade80"
-                                : "1.5px solid #252526",
-                              display: "flex",
-                            }}
-                            title={`${peerName}${isInCall ? " (In Call)" : " (In Workspace)"}`}
-                          >
-                            <Avatar
-                              src={peer.user?.avatarUrl ?? null}
-                              name={peerName}
-                              size={20}
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                  {messages.length > 0 && (
-                    <span className={styles.chatBadge}>
-                      {messages.length} msg
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <div className={styles.chatMessages}>
-                {messages.length === 0 ? (
-                  <p
-                    style={{
-                      fontSize: "0.8125rem",
-                      color: "rgba(255, 255, 255, 0.4)",
-                      textAlign: "center",
-                      marginTop: "2rem",
-                    }}
-                  >
-                    No messages yet. Send a message to start chatting!
-                  </p>
-                ) : (
-                  messages.map((msg, index) => {
-                    const isMe = msg.sender?._id === user?._id;
-                    return (
-                      <div
-                        key={index}
-                        className={isMe ? styles.msgLocal : styles.msgRemote}
-                      >
-                        <p className={styles.msgMeta}>
-                          {isMe
-                            ? "You"
-                            : msg.sender?.fullName ||
-                              msg.sender?.username ||
-                              "Peer"}{" "}
-                          • {msg.timestamp}
-                        </p>
-                        <div
-                          className={
-                            isMe
-                              ? styles.msgBubbleLocal
-                              : styles.msgBubbleRemote
-                          }
-                        >
-                          {msg.text}
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-                <div ref={chatEndRef} />
-              </div>
-
-              <form
-                onSubmit={handleSendMessage}
-                className={styles.chatInputContainer}
-              >
-                <input
-                  type="text"
-                  placeholder="Send a message..."
-                  className={styles.chatInput}
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                />
-
-                <button type="submit" className={styles.chatSendBtn}>
-                  <span
-                    className="material-symbols-outlined"
-                    style={{ fontSize: "1.25rem" }}
-                  >
-                    send
-                  </span>
-                </button>
-              </form>
-            </div>
+            <ChatPanel 
+              socket={socketRef.current} 
+              connectedUsers={connectedUsers} 
+              roomUsers={roomUsers} 
+              user={user} 
+            />
           </aside>
         </div>
       </main>

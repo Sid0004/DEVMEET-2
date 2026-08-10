@@ -3,6 +3,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { Room } from "../models/room.model.js";
 import { User } from "../models/user.model.js";
+import { Message } from "../models/message.model.js";
 import { execFile } from "child_process";
 import fs from "fs";
 import path from "path";
@@ -10,13 +11,13 @@ import { fileURLToPath } from "url";
 import RoomService from "../services/room.service.js";
 
 const createRoom = asyncHandler(async (req, res) => {
-    const { roomName, primaryLanguage, roomSettings } = req.body;
+    const { roomName, description, roomSettings } = req.body;
     if (!roomName || roomName.trim() === "") {
         throw new ApiError(400, "Room name is required");
     }
     const createdRoom = await RoomService.createUniqueRoom(
         roomName, 
-        primaryLanguage, 
+        description,
         req.user?._id, 
         roomSettings
     );
@@ -85,6 +86,10 @@ const endRoom = asyncHandler(async (req, res) => {
     }
     
     const updatedRoom = await Room.findOneAndUpdate({ roomId }, { status: "ended" }, { new: true });
+    
+    // Auto-cleanup: Delete all chat messages for this room
+    await Message.deleteMany({ room: room._id });
+    
     return res.status(200).json(new ApiResponse(200, updatedRoom, "Session ended successfully"));
 });
 const __filename = fileURLToPath(import.meta.url);

@@ -1,4 +1,5 @@
 import { Room } from "../../models/room.model.js";
+import { Message } from "../../models/message.model.js";
 
 export const registerRoomHandlers = (io, socket) => {
   const authUser = socket.user;
@@ -35,29 +36,36 @@ export const registerRoomHandlers = (io, socket) => {
         return;
       }
 
-      const currentCode = room ? room.code || "" : "";
-      const language = room ? room.primaryLanguage || "TypeScript" : "TypeScript";
-      const messages = room ? room.messages || [] : [];
+      // Fetch the last 50 messages
+      const dbMessages = await Message.find({ room: room._id })
+        .sort({ createdAt: -1 })
+        .limit(50)
+        .populate("sender", "username fullName _id");
+      
+      const messages = dbMessages.reverse().map(msg => ({
+        sender: {
+          _id: msg.sender?._id,
+          username: msg.sender?.username,
+          fullName: msg.sender?.fullName
+        },
+        text: msg.content,
+        timestamp: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      }));
 
       // Build fallback file list if room has no files yet
       let files = room?.files || [];
       if (files.length === 0) {
-        const ext = language.toLowerCase() === "python" ? "py" : "ts";
         files = [
           {
-            name: `main.${ext}`,
-            content:
-              currentCode ||
-              '// Welcome to DevMeet Workspace. Collaborators will sync in real time.\nconsole.log("hello")\n',
-            language: language,
+            name: "main.ts",
+            content: '// Welcome to DevMeet Workspace. Collaborators will sync in real time.\nconsole.log("hello")\n',
+            language: "typescript",
           },
         ];
       }
 
       // Send current state to the joining user
       socket.emit("room-state", {
-        code: currentCode,
-        language,
         files,
         messages,
         users: usersInRoom,

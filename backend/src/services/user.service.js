@@ -32,7 +32,7 @@ class UserService {
         }
         const user = await User.create({
             fullName,
-            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=random&color=fff`,
+            avatar: `https://api.dicebear.com/7.x/dylan/svg?seed=${encodeURIComponent(username || fullName)}`,
             email,
             password,
             username: username.toLowerCase()
@@ -53,10 +53,10 @@ class UserService {
             ]
         });
 
-        if (!user) throw new ApiError(404, "User does not exist");
+        if (!user) throw new ApiError(401, "Invalid email/username or password");
 
         const isPasswordValid = await user.isPasswordCorrect(password);
-        if (!isPasswordValid) throw new ApiError(400, "Invalid user credentials");
+        if (!isPasswordValid) throw new ApiError(401, "Invalid email/username or password");
 
         const { accessToken, refreshToken } = await this.generateAccessAndRefreshTokens(user._id);
         const loggedInUser = await User.findById(user._id).select("-password -refreshToken");

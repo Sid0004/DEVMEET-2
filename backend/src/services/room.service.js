@@ -9,7 +9,7 @@ class RoomService {
     /**
      * Creates a new room with a unique 6-digit ID.
      */
-    static async createUniqueRoom(roomName, primaryLanguage, hostId, roomSettings) {
+    static async createUniqueRoom(roomName, description, hostId, roomSettings) {
         let generatedRoomId = "";
         let isUnique = false;
         let attempts = 0;
@@ -32,7 +32,7 @@ class RoomService {
         const newRoom = await Room.create({
             roomId: generatedRoomId,
             roomName: roomName.trim(),
-            primaryLanguage: primaryLanguage || "TypeScript",
+            description: description || "",
             host: hostId,
             participants: hostId ? [hostId] : [],
             status: "active",

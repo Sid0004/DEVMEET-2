@@ -44,7 +44,7 @@ export default function ProfileDropdown() {
         title={user ? "Account menu" : "Login"}
       >
         {user ? (
-          <Avatar src={user?.avatarUrl ?? null} name={displayName} size={32} />
+          <Avatar src={user?.avatar || user?.avatarUrl || null} name={displayName} size={32} />
         ) : (
           <span
             className="material-symbols-outlined"
@@ -66,7 +66,7 @@ export default function ProfileDropdown() {
             {/* User info header */}
             <div className={styles.profileHeader}>
               <Avatar
-                src={user?.avatarUrl ?? null}
+                src={user?.avatar || user?.avatarUrl || null}
                 name={displayName}
                 size={40}
               />

@@ -3,6 +3,7 @@
 import React from "react";
 import { useAppSelector } from "@/redux/hooks";
 import { User, Mail, Briefcase, Camera } from "lucide-react";
+import Avatar from "@/components/Avatar";
 
 export default function SettingsPage() {
   const { user } = useAppSelector((state) => state.auth);
@@ -27,19 +28,14 @@ export default function SettingsPage() {
           <div className="p-6 flex flex-col md:flex-row gap-12">
             {/* Avatar Section */}
             <div className="flex flex-col items-center gap-4">
-              <div className="h-32 w-32 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center relative group">
-                <span className="text-4xl text-blue-400 font-light uppercase">
-                  {user?.fullName?.charAt(0) ||
-                    user?.username?.charAt(0) ||
-                    "U"}
-                </span>
-
-                {/* Hover overlay for changing picture */}
-                <div className="absolute inset-0 bg-black/60 rounded-full opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition-opacity cursor-pointer">
-                  <Camera className="w-6 h-6 text-white mb-1" />
-                  <span className="text-xs font-medium">Change</span>
-                </div>
+              <div className="h-32 w-32 rounded-full overflow-hidden border border-blue-500/20 flex items-center justify-center relative group">
+                <Avatar
+                  src={user?.avatar || user?.avatarUrl || null}
+                  name={user?.fullName || user?.username || "User"}
+                  size={128}
+                />
               </div>
+              <span className="text-xs text-gray-400 font-light">Vector Avatar</span>
             </div>
 
             {/* Details Form */}
