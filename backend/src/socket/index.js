@@ -1,12 +1,12 @@
 import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
-import { User } from "../models/user.model.js";
+import { User } from "../modules/user/user.model.js";
 
-// Import modular handlers
-import { registerRoomHandlers } from "./handlers/room.handler.js";
-import { registerEditorHandlers } from "./handlers/editor.handler.js";
-import { registerChatHandlers } from "./handlers/chat.handler.js";
-import { registerWebRTCHandlers } from "./handlers/webrtc.handler.js";
+// Import modular handlers directly from modules
+import { registerRoomHandlers } from "../modules/room/room.handler.js";
+import { registerEditorHandlers } from "../modules/editor/editor.handler.js";
+import { registerChatHandlers } from "../modules/chat/chat.handler.js";
+import { registerWebRTCHandlers } from "../modules/webrtc/webrtc.handler.js";
 
 export const initSocket = (server) => {
   const allowedOrigins = process.env.CORS_ORIGIN

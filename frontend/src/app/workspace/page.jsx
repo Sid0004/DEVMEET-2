@@ -20,6 +20,7 @@ import Avatar from "@/components/Avatar";
 import { useTheme } from "@/components/ThemeProvider";
 import { setMessages, addMessage } from "@/redux/features/chatSlice";
 import ChatPanel from "@/components/workspace/ChatPanel";
+import LeftMeetingScreen from "../components/LeftMeetingScreen";
 
 const rtcConfig = {
   iceServers: [
@@ -62,6 +63,30 @@ const createDummyAudioTrack = () => {
     return track || null;
   } catch (e) {
     return null;
+  }
+};
+
+const attachTracksToPeerConnection = (pc, stream) => {
+  if (!pc) return;
+  const audioTrack = stream?.getAudioTracks()[0] || createDummyAudioTrack();
+  const videoTrack = stream?.getVideoTracks()[0] || createDummyVideoTrack();
+
+  const mediaStream = new MediaStream();
+
+  // Always add Audio track first (m=audio index 0)
+  if (audioTrack) {
+    mediaStream.addTrack(audioTrack);
+    try {
+      pc.addTrack(audioTrack, mediaStream);
+    } catch (e) {}
+  }
+
+  // Always add Video track second (m=video index 1)
+  if (videoTrack) {
+    mediaStream.addTrack(videoTrack);
+    try {
+      pc.addTrack(videoTrack, mediaStream);
+    } catch (e) {}
   }
 };
 
@@ -417,6 +442,7 @@ function WorkspaceContent() {
   const isCameraOffRef = useRef(true);
   const isMicMutedRef = useRef(true);
   const soundNotificationsRef = useRef(soundNotifications);
+  const [hasLeftMeeting, setHasLeftMeeting] = useState(false);
 
   // Resizer drag event handlers
   const handleWidthResizeMouseDown = (e) => {
@@ -561,7 +587,9 @@ function WorkspaceContent() {
         }
       } catch (err) {
         console.error("Failed to fetch user:", err);
-        router.push("/login");
+        if (err?.message?.includes("Session expired") || err?.message?.includes("unauthorized") || err?.message?.includes("Unauthorized")) {
+          router.push("/login");
+        }
       }
     };
 
@@ -652,6 +680,16 @@ function WorkspaceContent() {
           );
           setConnectedUsers(filtered);
         }
+
+        // Auto-rejoin call if user was in a call before refreshing
+        if (typeof window !== "undefined" && roomId) {
+          const wasInCall = sessionStorage.getItem(`devmeet_in_call_${roomId}`);
+          if (wasInCall === "true" && !isJoinedCallRef.current) {
+            setTimeout(() => {
+              startCall();
+            }, 300);
+          }
+        }
       },
     );
 
@@ -699,23 +737,27 @@ function WorkspaceContent() {
     );
 
     socket.on("call-state", ({ users }) => {
-      // Filter out own socket
-      const filtered = users.filter(
-        (u) => u.socketId !== socketRef.current?.id,
-      );
+      // Deduplicate users by user._id so refreshed sockets don't produce duplicate video cards
+      const userMap = new Map();
+      (users || []).forEach((item) => {
+        if (item.socketId === socketRef.current?.id) return;
+        const key = item.user?._id ? String(item.user._id) : item.socketId;
+        userMap.set(key, item);
+      });
+      const filtered = Array.from(userMap.values());
       setRoomUsers(filtered);
-      // Initiate WebRTC connection to each user actively in the call
+
+      // Initiate WebRTC connection to each unique user actively in the call
       filtered.forEach(async (peer) => {
         const targetSocketId = peer.socketId;
+        if (peerConnections.current[targetSocketId]) {
+          peerConnections.current[targetSocketId].close();
+          delete peerConnections.current[targetSocketId];
+        }
         const pc = new RTCPeerConnection(rtcConfig);
         peerConnections.current[targetSocketId] = pc;
-        // Add our local tracks
-        const activeStream = localStreamRef.current;
-        if (activeStream) {
-          activeStream.getTracks().forEach((track) => {
-            pc.addTrack(track, activeStream);
-          });
-        }
+        // Add local tracks deterministically (audio m-line 0, video m-line 1)
+        attachTracksToPeerConnection(pc, localStreamRef.current);
         // Handle Ice Candidate
         pc.onicecandidate = (event) => {
           if (event.candidate) {
@@ -757,12 +799,88 @@ function WorkspaceContent() {
       });
     });
 
-    socket.on("user-joined-call", ({ socketId, user: joinedUser }) => {
-      console.log("User joined call:", joinedUser.username);
+    socket.on("user-joined-call", async ({ socketId, user: joinedUser, mediaState }) => {
+      console.log("User joined call:", joinedUser?.username || socketId);
+      
       setRoomUsers((prev) => {
-        const filtered = prev.filter((u) => u.socketId !== socketId);
+        // Find and clean up any old socket connection for the same user _id
+        const userKey = joinedUser?._id ? String(joinedUser._id) : null;
+        const staleItems = prev.filter(
+          (u) =>
+            u.socketId === socketId ||
+            (userKey && u.user?._id && String(u.user._id) === userKey)
+        );
+
+        staleItems.forEach((stale) => {
+          if (peerConnections.current[stale.socketId]) {
+            peerConnections.current[stale.socketId].close();
+            delete peerConnections.current[stale.socketId];
+          }
+          setRemoteStreams((streams) => {
+            const next = { ...streams };
+            delete next[stale.socketId];
+            return next;
+          });
+        });
+
+        const filtered = prev.filter(
+          (u) =>
+            u.socketId !== socketId &&
+            (!userKey || !u.user?._id || String(u.user._id) !== userKey)
+        );
         return [...filtered, { socketId, user: joinedUser }];
       });
+
+      if (mediaState) {
+        setRemoteMediaStates((prev) => ({
+          ...prev,
+          [socketId]: mediaState,
+        }));
+      }
+
+      // If we are currently in the call, initiate a fresh WebRTC connection to the joined peer
+      if (isJoinedCallRef.current) {
+        const pc = new RTCPeerConnection(rtcConfig);
+        peerConnections.current[socketId] = pc;
+        attachTracksToPeerConnection(pc, localStreamRef.current);
+
+        pc.onicecandidate = (event) => {
+          if (event.candidate) {
+            socket.emit("webrtc-signal", {
+              targetSocketId: socketId,
+              signal: { type: "candidate", candidate: event.candidate },
+            });
+          }
+        };
+
+        pc.ontrack = (event) => {
+          const remoteStream =
+            event.streams[0] || new MediaStream([event.track]);
+          setRemoteStreams((prev) => ({
+            ...prev,
+            [socketId]: remoteStream,
+          }));
+        };
+
+        try {
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+          socket.emit("webrtc-signal", {
+            targetSocketId: socketId,
+            signal: { type: "offer", offer },
+          });
+          socket.emit("webrtc-signal", {
+            targetSocketId: socketId,
+            signal: {
+              type: "media-state",
+              isCameraOff: isCameraOffRef.current,
+              isMicMuted: isMicMutedRef.current,
+            },
+          });
+        } catch (err) {
+          console.error("Error creating offer for joined peer:", err);
+        }
+      }
     });
 
     socket.on("user-left-call", ({ socketId }) => {
@@ -777,6 +895,13 @@ function WorkspaceContent() {
         return next;
       });
       setRoomUsers((prev) => prev.filter((u) => u.socketId !== socketId));
+    });
+
+    socket.on("peer-media-toggled", ({ socketId, isMicMuted, isCameraOff }) => {
+      setRemoteMediaStates((prev) => ({
+        ...prev,
+        [socketId]: { isMicMuted, isCameraOff },
+      }));
     });
 
     socket.on("webrtc-signal", async ({ senderSocketId, signal }) => {
@@ -799,12 +924,8 @@ function WorkspaceContent() {
           pc = new RTCPeerConnection(rtcConfig);
           peerConnections.current[senderSocketId] = pc;
 
-          const activeStream = localStreamRef.current;
-          if (activeStream) {
-            activeStream.getTracks().forEach((track) => {
-              pc.addTrack(track, activeStream);
-            });
-          }
+          // Add local tracks deterministically (audio m-line 0, video m-line 1)
+          attachTracksToPeerConnection(pc, localStreamRef.current);
 
           pc.onicecandidate = (event) => {
             if (event.candidate) {
@@ -1097,6 +1218,12 @@ function WorkspaceContent() {
   };
 
   const broadcastMediaState = (cameraOff, micMuted) => {
+    if (socketRef.current) {
+      socketRef.current.emit("toggle-media", {
+        isCameraOff: cameraOff,
+        isMicMuted: micMuted,
+      });
+    }
     Object.keys(peerConnections.current).forEach((socketId) => {
       if (socketRef.current) {
         socketRef.current.emit("webrtc-signal", {
@@ -1126,7 +1253,8 @@ function WorkspaceContent() {
             : false,
         });
       } catch (e) {
-        // Fallback if camera is missing but they have a mic
+        console.warn(`Media acquisition error [${e?.name || "Error"}]: ${e?.message || e}`);
+        // Fallback if camera is missing/locked but they have a mic
         if (requestVideo && requestAudio) {
           try {
             stream = await navigator.mediaDevices.getUserMedia({
@@ -1134,7 +1262,7 @@ function WorkspaceContent() {
               audio: true,
             });
             requestVideo = false;
-            console.warn("Camera not found, falling back to audio only");
+            console.warn("Camera not available or locked by another app, falling back to audio only");
           } catch (e2) {
             // Fallback to video only if mic is missing
             try {
@@ -1172,9 +1300,7 @@ function WorkspaceContent() {
       // Add tracks to all active RTCPeerConnections
       Object.keys(peerConnections.current).forEach(async (socketId) => {
         const pc = peerConnections.current[socketId];
-        stream.getTracks().forEach((track) => {
-          pc.addTrack(track, stream);
-        });
+        attachTracksToPeerConnection(pc, stream);
 
         // Renegotiate: create new offer and send to remote peer
         try {
@@ -1203,16 +1329,37 @@ function WorkspaceContent() {
 
   // Start Video Call
   const startCall = async () => {
+    // Check if user selected Code & Chat Only mode (No VC)
+    if (typeof window !== "undefined") {
+      const isNoVcPref = sessionStorage.getItem(`devmeet_no_vc_${roomId}`) === "true";
+      if (isNoVcPref) {
+        console.log("User selected Code & Chat Only mode (No VC).");
+        return;
+      }
+
+      // Check pre-join lobby mic/cam preferences
+      const micPref = sessionStorage.getItem(`devmeet_mic_pref_${roomId}`);
+      const camPref = sessionStorage.getItem(`devmeet_cam_pref_${roomId}`);
+      if (micPref === "false") {
+        setIsMicMuted(true);
+        isMicMutedRef.current = true;
+      }
+      if (camPref === "false") {
+        setIsCameraOff(true);
+        isCameraOffRef.current = true;
+      }
+    }
+
     // Acquire both video and audio tracks from getUserMedia
     await acquireLocalStream(true, true);
-    // Apply initial mute/camera preferences loaded from settings
+    // Apply initial mute/camera preferences
     if (localStreamRef.current) {
-      if (isMicMuted) {
+      if (isMicMutedRef.current) {
         localStreamRef.current
           .getAudioTracks()
           .forEach((t) => (t.enabled = false));
       }
-      if (isCameraOff) {
+      if (isCameraOffRef.current) {
         localStreamRef.current
           .getVideoTracks()
           .forEach((t) => (t.enabled = false));
@@ -1223,6 +1370,10 @@ function WorkspaceContent() {
     isCameraOffRef.current = isCameraOff;
 
     setIsJoinedCall(true);
+    isJoinedCallRef.current = true;
+    if (typeof window !== "undefined" && roomId) {
+      sessionStorage.setItem(`devmeet_in_call_${roomId}`, "true");
+    }
     if (socketRef.current) {
       socketRef.current.emit("join-call");
     }
@@ -1238,6 +1389,11 @@ function WorkspaceContent() {
     setLocalStream(null);
     localStreamRef.current = null;
     setIsJoinedCall(false);
+    isJoinedCallRef.current = false;
+
+    if (typeof window !== "undefined" && roomId) {
+      sessionStorage.removeItem(`devmeet_in_call_${roomId}`);
+    }
 
     if (socketRef.current) {
       socketRef.current.emit("leave-call");
@@ -1330,22 +1486,28 @@ function WorkspaceContent() {
   };
 
   const handleEndSession = async () => {
-    if (
-      confirm(
-        "Are you sure you want to permanently end this session for everyone?",
-      )
-    ) {
-      try {
-        await apiRequest(`/api/v1/rooms/${roomId}/end`, { method: "POST" });
-        if (socketRef.current) {
-          socketRef.current.emit("end-session-broadcast", { roomId });
-        }
-        router.push("/dashboard");
-      } catch (err) {
-        alert(err.message || "Failed to end session. Are you the host?");
+    try {
+      await apiRequest(`/api/v1/rooms/${roomId}/end`, { method: "POST" });
+      if (socketRef.current) {
+        socketRef.current.emit("end-session-broadcast", { roomId });
       }
+    } catch (err) {
+      console.warn("End session notice:", err);
     }
+    setHasLeftMeeting(true);
   };
+
+  if (hasLeftMeeting) {
+    return (
+      <LeftMeetingScreen
+        roomId={roomId}
+        onRejoin={() => {
+          setHasLeftMeeting(false);
+          startCall();
+        }}
+      />
+    );
+  }
 
   return (
     <div className={styles.layout}>
@@ -1396,11 +1558,7 @@ function WorkspaceContent() {
           )}
           <button
             className={styles.activityBtn}
-            onClick={() => {
-              if (confirm("Are you sure you want to leave the room?")) {
-                router.push("/dashboard");
-              }
-            }}
+            onClick={() => setHasLeftMeeting(true)}
             title="Leave Room"
           >
             <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">

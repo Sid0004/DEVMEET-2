@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Image from "next/image";
 import { useAppSelector } from "@/redux/hooks";
 import {
   Plus,
@@ -10,35 +11,89 @@ import {
   X,
   Copy,
   Check,
-  Clock,
   Play,
-  AlignLeft
+  AlignLeft,
+  Calendar as CalendarIcon,
+  ShieldCheck,
+  ChevronLeft,
+  ChevronRight,
+  Keyboard,
+  Video,
+  GitBranch,
+  Mail,
+  UserPlus,
+  MoreVertical,
+  Trash2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { apiRequest } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
+import PreJoinLobbyModal from "../components/PreJoinLobbyModal";
+import DevmeetConnectIllustration from "../components/DevmeetConnectIllustration";
+import InlineCodeJoinBar from "../components/InlineCodeJoinBar";
 
 export default function DashboardOverview() {
   const { user } = useAppSelector((state) => state.auth);
   const router = useRouter();
-  
+
   // Loading states
   const [globalLoading, setGlobalLoading] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [loaderText, setLoaderText] = useState("");
   const [historyLoading, setHistoryLoading] = useState(true);
-  
+
   // Data states
   const [history, setHistory] = useState([]);
   const [joinCode, setJoinCode] = useState("");
+  const [lobbyTargetRoomId, setLobbyTargetRoomId] = useState(null);
+  const [activeCardMenuId, setActiveCardMenuId] = useState(null);
 
   // Modal states
-  const [activeModal, setActiveModal] = useState(null); // 'join' or 'create'
-  const [modalStep, setModalStep] = useState("setup");
+  const [activeModal, setActiveModal] = useState(null); // 'create'
+  const [modalStep, setModalStep] = useState("setup"); // 'setup' | 'invite' | 'success'
   const [newRoomName, setNewRoomName] = useState("");
   const [newRoomDescription, setNewRoomDescription] = useState("");
+  const [repoUrl, setRepoUrl] = useState("");
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+  const [inviteEmailInput, setInviteEmailInput] = useState("");
+  const [inviteEmails, setInviteEmails] = useState([]);
   const [createdRoomId, setCreatedRoomId] = useState("");
   const [copied, setCopied] = useState(false);
+
+  // Date Strip Days Generator (Google Meet Style)
+  const today = new Date();
+  const [selectedDayOffset, setSelectedDayOffset] = useState(0);
+
+  const daysOfWeek = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(today.getDate() - 1 + i);
+    return {
+      dayName: d.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase(),
+      dateNum: d.getDate(),
+      isToday: d.toDateString() === today.toDateString(),
+      fullDate: d,
+    };
+  });
+
+  const formattedHeaderDate = today.toLocaleDateString("en-US", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
+
+  // URL / Code Smart Extractor
+  const parseRoomCode = (input) => {
+    if (!input) return "";
+    const trimmed = input.trim();
+    const urlMatch = trimmed.match(/[?&]room=([a-zA-Z0-9]{4,8})/);
+    if (urlMatch) return urlMatch[1];
+    const codeMatch = trimmed.match(/\b([a-zA-Z0-9]{6})\b/);
+    if (codeMatch) return codeMatch[1];
+    return trimmed;
+  };
+
+  const parsedTargetRoomId = parseRoomCode(joinCode);
+  const isValidJoinCode = parsedTargetRoomId.length >= 6;
 
   // Fetch History on Mount
   useEffect(() => {
@@ -48,7 +103,18 @@ export default function DashboardOverview() {
           method: "GET",
         });
         if (response.data) {
-          setHistory(response.data.slice(0, 3)); // Only take top 3 for overview
+          let cleared = [];
+          if (typeof window !== "undefined") {
+            try {
+              cleared = JSON.parse(
+                localStorage.getItem("devmeet_cleared_rooms") || "[]"
+              );
+            } catch (e) {}
+          }
+          const filtered = response.data.filter(
+            (r) => !cleared.includes(r.roomId) && !cleared.includes(r._id)
+          );
+          setHistory(filtered);
         }
       } catch (error) {
         console.error("Failed to fetch history:", error);
@@ -59,27 +125,27 @@ export default function DashboardOverview() {
     fetchHistory();
   }, []);
 
-  const handleJoinRoom = async (e) => {
+  const handleJoinRoom = (e) => {
+    if (e) e.preventDefault();
+    if (!isValidJoinCode) return;
+    setLobbyTargetRoomId(parsedTargetRoomId);
+  };
+
+  const handleAddInviteEmail = (e) => {
     e.preventDefault();
-    if (!joinCode.trim()) return;
-    setLoaderText(`Connecting to room ${joinCode.trim()}...`);
-    setGlobalLoading(true);
-    try {
-      await apiRequest(`/api/v1/rooms/${joinCode.trim()}/join`, {
-        method: "POST",
-      });
-      router.push(`/workspace?room=${joinCode.trim()}`);
-    } catch (error) {
-      alert(
-        error.response?.data?.message ||
-          "Failed to join room. Check your code.",
-      );
-      setGlobalLoading(false);
+    if (!inviteEmailInput.trim() || !inviteEmailInput.includes("@")) return;
+    if (!inviteEmails.includes(inviteEmailInput.trim())) {
+      setInviteEmails([...inviteEmails, inviteEmailInput.trim()]);
     }
+    setInviteEmailInput("");
+  };
+
+  const handleRemoveInviteEmail = (emailToRemove) => {
+    setInviteEmails(inviteEmails.filter((e) => e !== emailToRemove));
   };
 
   const handleCreateWorkspace = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (!newRoomName.trim()) return;
     setIsCreating(true);
     try {
@@ -88,11 +154,14 @@ export default function DashboardOverview() {
         body: JSON.stringify({
           roomName: newRoomName,
           description: newRoomDescription,
+          repoUrl,
+          invitedEmails: inviteEmails,
         }),
       });
       if (response.data?.roomId) {
         setCreatedRoomId(response.data.roomId);
         setModalStep("success");
+        setHistory((prev) => [response.data, ...prev]);
       }
     } catch (error) {
       alert("Failed to create workspace.");
@@ -101,10 +170,14 @@ export default function DashboardOverview() {
     }
   };
 
+  const joiningLink = typeof window !== "undefined"
+    ? `${window.location.origin}/workspace?room=${createdRoomId}`
+    : `devmeet.com/workspace?room=${createdRoomId}`;
+
   const copyToClipboard = () => {
-    navigator.clipboard.writeText(createdRoomId);
+    navigator.clipboard.writeText(joiningLink);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setTimeout(() => setCopied(false), 2500);
   };
 
   const resetModal = () => {
@@ -113,13 +186,23 @@ export default function DashboardOverview() {
       setModalStep("setup");
       setNewRoomName("");
       setNewRoomDescription("");
+      setRepoUrl("");
+      setInviteEmailInput("");
+      setInviteEmails([]);
       setCreatedRoomId("");
-      setJoinCode("");
+      setCopied(false);
     }, 300);
   };
 
   return (
     <>
+      {/* Pre-Join Green Room Lobby Modal */}
+      <PreJoinLobbyModal
+        isOpen={!!lobbyTargetRoomId}
+        roomId={lobbyTargetRoomId}
+        onClose={() => setLobbyTargetRoomId(null)}
+      />
+
       {/* Global Loading Overlay */}
       <AnimatePresence>
         {globalLoading && (
@@ -129,328 +212,361 @@ export default function DashboardOverview() {
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex flex-col items-center justify-center"
           >
-            <Loader2 className="w-12 h-12 text-blue-500 animate-spin mb-4" />
-            <p className="text-white font-medium">{loaderText}</p>
+            <Loader2 className="w-12 h-12 text-blue-400 animate-spin mb-4" />
+            <p className="text-white font-medium text-sm">{loaderText}</p>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Modals Container */}
+      {/* SPOTLIGHT COMMAND CENTER MODAL FOR NEW SESSION */}
       <AnimatePresence>
         {activeModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div className="fixed inset-0 z-[500] flex items-start justify-center pt-20 px-4">
+            {/* Backdrop Blur */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/70 backdrop-blur-md"
               onClick={resetModal}
             />
 
+            {/* Spotlight Command Box */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              initial={{ opacity: 0, scale: 0.96, y: -15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative bg-[#111] border border-white/10 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+              exit={{ opacity: 0, scale: 0.96, y: -15 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="relative bg-[#1e1f24] border border-white/15 rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden z-10 text-white"
             >
               <button
                 onClick={resetModal}
-                className="absolute top-4 right-4 p-2 text-gray-500 hover:text-white hover:bg-white/5 rounded-full transition-colors z-10"
+                className="absolute top-4 right-4 p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-full transition-colors z-10"
+                title="Close dialogue"
               >
                 <X className="w-5 h-5" />
               </button>
 
-              {/* CREATE WORKSPACE MODAL CONTENT */}
-              {activeModal === "create" && (
-                <AnimatePresence mode="wait">
-                  {modalStep === "setup" ? (
-                    <motion.div
-                      key="setup"
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 20 }}
-                      className="p-8"
-                    >
-                      <div className="flex items-center gap-3 mb-6">
-                        <div className="h-10 w-10 rounded-lg bg-purple-500/10 flex items-center justify-center border border-purple-500/20">
-                          <FolderCode className="w-5 h-5 text-purple-400" />
-                        </div>
-                        <h2 className="text-xl font-medium text-white">
+              <AnimatePresence mode="wait">
+                {/* STEP 1: WORKSPACE DETAILS */}
+                {modalStep === "setup" && (
+                  <motion.div
+                    key="step-setup"
+                    initial={{ opacity: 0, x: -15 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 15 }}
+                    transition={{ duration: 0.2 }}
+                    className="p-8"
+                  >
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="h-10 w-10 rounded-2xl bg-blue-500/15 flex items-center justify-center border border-blue-500/20">
+                        <FolderCode className="w-5 h-5 text-blue-400" />
+                      </div>
+                      <div>
+                        <h2 className="text-[22px] font-medium text-white tracking-tight">
                           New Workspace
                         </h2>
+                        <p className="text-xs text-gray-400">Step 1 of 2: Basic Setup</p>
                       </div>
+                    </div>
 
-                      <form
-                        onSubmit={handleCreateWorkspace}
-                        className="flex flex-col gap-6"
-                      >
-                        <div className="flex flex-col gap-2">
-                          <label className="text-sm font-medium text-gray-400">
-                            Workspace Name
-                          </label>
-                          <input
-                            type="text"
-                            value={newRoomName}
-                            onChange={(e) => setNewRoomName(e.target.value)}
-                            placeholder="e.g. Core Architecture"
-                            className="bg-black/50 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500/50 transition-colors"
-                            required
-                            autoFocus
-                          />
-                        </div>
-
-                        <div className="flex flex-col gap-2">
-                          <label className="text-sm font-medium text-gray-400 flex items-center gap-1">
-                            <AlignLeft className="w-4 h-4" /> Description <span className="text-gray-600">(Optional)</span>
-                          </label>
-                          <textarea
-                            value={newRoomDescription}
-                            onChange={(e) => setNewRoomDescription(e.target.value)}
-                            placeholder="Briefly describe what your team is building here..."
-                            className="bg-black/50 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500/50 transition-colors min-h-[100px] resize-none"
-                          />
-                        </div>
-
-                        <button
-                          type="submit"
-                          disabled={isCreating}
-                          className="mt-2 w-full py-3 bg-white text-black font-medium rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
-                        >
-                          {isCreating ? (
-                            <>
-                              <Loader2 className="w-5 h-5 animate-spin" />
-                              Creating...
-                            </>
-                          ) : (
-                            <>
-                              Create Workspace <ArrowRight className="w-4 h-4" />
-                            </>
-                          )}
-                        </button>
-                      </form>
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key="success"
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 20 }}
-                      className="p-8 text-center flex flex-col items-center"
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        if (newRoomName.trim()) setModalStep("invite");
+                      }}
+                      className="flex flex-col gap-5"
                     >
-                      <div className="h-16 w-16 rounded-full bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 mb-6">
-                        <Check className="w-8 h-8 text-emerald-400" />
+                      <div className="flex flex-col gap-2">
+                        <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                          Workspace Name
+                        </label>
+                        <input
+                          type="text"
+                          value={newRoomName}
+                          onChange={(e) => setNewRoomName(e.target.value)}
+                          placeholder="e.g. Core Architecture"
+                          className="bg-[#141518] border border-white/10 rounded-2xl px-4 py-3 text-white text-[15px] focus:outline-none focus:border-blue-500 transition-colors"
+                          required
+                          autoFocus
+                        />
                       </div>
-                      <h2 className="text-2xl font-medium text-white mb-2">
-                        Workspace Ready!
-                      </h2>
-                      <p className="text-gray-400 text-sm mb-8">
-                        Share this 6-digit code with your team to invite them to
-                        collaborate.
-                      </p>
 
-                      <div className="bg-black/50 border border-white/10 rounded-xl p-4 w-full flex items-center justify-between mb-8">
-                        <span className="text-3xl font-mono tracking-[0.2em] text-white ml-4">
-                          {createdRoomId}
-                        </span>
-                        <button
-                          onClick={copyToClipboard}
-                          className="p-3 bg-white/5 hover:bg-white/10 rounded-lg transition-colors text-gray-300 hover:text-white"
-                          title="Copy to clipboard"
-                        >
-                          {copied ? (
-                            <Check className="w-5 h-5 text-emerald-400" />
-                          ) : (
-                            <Copy className="w-5 h-5" />
-                          )}
-                        </button>
+                      <div className="flex flex-col gap-2">
+                        <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                          <AlignLeft className="w-3.5 h-3.5" /> Description{" "}
+                          <span className="text-gray-500 font-normal lowercase">
+                            (optional)
+                          </span>
+                        </label>
+                        <textarea
+                          value={newRoomDescription}
+                          onChange={(e) => setNewRoomDescription(e.target.value)}
+                          placeholder="Briefly describe what your team is building here..."
+                          className="bg-[#141518] border border-white/10 rounded-2xl px-4 py-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors min-h-[75px] resize-none"
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-2">
+                        <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                          <GitBranch className="w-3.5 h-3.5" /> GitHub Repository Link{" "}
+                          <span className="text-gray-500 font-normal lowercase">
+                            (optional)
+                          </span>
+                        </label>
+                        <input
+                          type="url"
+                          value={repoUrl}
+                          onChange={(e) => setRepoUrl(e.target.value)}
+                          placeholder="https://github.com/org/repository"
+                          className="bg-[#141518] border border-white/10 rounded-2xl px-4 py-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors"
+                        />
                       </div>
 
                       <button
-                        onClick={() =>
-                          router.push(`/workspace?room=${createdRoomId}`)
-                        }
-                        className="w-full py-3 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 transition-colors"
+                        type="submit"
+                        disabled={!newRoomName.trim()}
+                        className="mt-2 w-full h-12 bg-[#c2e7ff] text-[#001d35] font-semibold text-sm rounded-full hover:bg-[#b3dcf7] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                       >
-                        Enter Workspace
+                        Next: Invite Collaborators <ArrowRight className="w-4 h-4" />
                       </button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              )}
+                    </form>
+                  </motion.div>
+                )}
 
-              {/* JOIN WORKSPACE MODAL CONTENT */}
-              {activeModal === "join" && (
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  className="p-8"
-                >
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="h-10 w-10 rounded-lg bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
-                      <ArrowRight className="w-5 h-5 text-emerald-400" />
-                    </div>
-                    <h2 className="text-xl font-medium text-white">
-                      Join Session
-                    </h2>
-                  </div>
-
-                  <form
-                    onSubmit={handleJoinRoom}
-                    className="flex flex-col gap-6"
+                {/* STEP 2: INVITE COLLABORATORS (EMAIL) */}
+                {modalStep === "invite" && (
+                  <motion.div
+                    key="step-invite"
+                    initial={{ opacity: 0, x: 15 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -15 }}
+                    transition={{ duration: 0.2 }}
+                    className="p-8"
                   >
-                    <div className="flex flex-col gap-2">
-                      <label className="text-sm font-medium text-gray-400">
-                        Room Code
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="e.g. 123456"
-                        value={joinCode}
-                        onChange={(e) => setJoinCode(e.target.value)}
-                        className="bg-black/50 border border-white/10 rounded-lg px-4 py-4 text-center text-2xl tracking-[0.3em] text-white focus:outline-none focus:border-emerald-500/50 transition-colors uppercase font-mono"
-                        required
-                        autoFocus
-                        maxLength={6}
-                      />
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="h-10 w-10 rounded-2xl bg-purple-500/15 flex items-center justify-center border border-purple-500/20">
+                        <UserPlus className="w-5 h-5 text-purple-400" />
+                      </div>
+                      <div>
+                        <h2 className="text-[22px] font-medium text-white tracking-tight">
+                          Invite Team Members
+                        </h2>
+                        <p className="text-xs text-gray-400">Step 2 of 2: Send Invites</p>
+                      </div>
                     </div>
 
-                    <button
-                      type="submit"
-                      className="mt-2 w-full py-3 bg-white text-black font-medium rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
-                    >
-                      Connect <ArrowRight className="w-4 h-4" />
-                    </button>
-                  </form>
-                </motion.div>
-              )}
+                    <form onSubmit={handleAddInviteEmail} className="flex flex-col gap-4 mb-6">
+                      <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                        <Mail className="w-3.5 h-3.5" /> Invite by Email
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type="email"
+                          value={inviteEmailInput}
+                          onChange={(e) => setInviteEmailInput(e.target.value)}
+                          placeholder="teammate@company.com"
+                          className="flex-1 bg-[#141518] border border-white/10 rounded-2xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-blue-500"
+                        />
+                        <button
+                          type="submit"
+                          disabled={!inviteEmailInput.trim() || !inviteEmailInput.includes("@")}
+                          className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-2xl text-xs font-medium transition-colors disabled:opacity-40"
+                        >
+                          Add
+                        </button>
+                      </div>
+                    </form>
+
+                    {/* Added Email Chips */}
+                    {inviteEmails.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mb-6 max-h-28 overflow-y-auto p-2 bg-[#141518] rounded-2xl border border-white/5">
+                        {inviteEmails.map((email) => (
+                          <span
+                            key={email}
+                            className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-500/15 border border-blue-500/30 text-blue-300 text-xs rounded-full"
+                          >
+                            <span>{email}</span>
+                            <button
+                              onClick={() => handleRemoveInviteEmail(email)}
+                              className="text-blue-400 hover:text-white"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="flex gap-3 mt-4">
+                      <button
+                        type="button"
+                        onClick={() => setModalStep("setup")}
+                        className="px-5 h-12 bg-white/10 hover:bg-white/15 text-white font-medium text-sm rounded-full transition-colors"
+                      >
+                        Back
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleCreateWorkspace}
+                        disabled={isCreating}
+                        className="flex-1 h-12 bg-[#c2e7ff] text-[#001d35] font-semibold text-sm rounded-full hover:bg-[#b3dcf7] transition-all flex items-center justify-center gap-2 disabled:opacity-70"
+                      >
+                        {isCreating ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Creating...
+                          </>
+                        ) : (
+                          <>
+                            Create & Generate Link <ArrowRight className="w-4 h-4" />
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* STEP 3: GOOGLE MEET STYLE "Here's your joining information" */}
+                {modalStep === "success" && (
+                  <motion.div
+                    key="step-success"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="p-8 flex flex-col items-start text-left"
+                  >
+                    <h2 className="text-[24px] font-normal text-white mb-2 tracking-tight">
+                      Here&apos;s your joining information
+                    </h2>
+                    <p className="text-sm text-gray-300 mb-6 leading-relaxed">
+                      Send this to people that you want to meet with. Make sure that
+                      you save it so that you can use it later, too.
+                    </p>
+
+                    {/* Copy Box Container */}
+                    <div className="w-full p-3.5 bg-[#282a30] border border-white/10 rounded-2xl flex items-center justify-between mb-6">
+                      <span className="text-sm font-mono text-gray-200 truncate pr-2">
+                        {joiningLink}
+                      </span>
+                      <button
+                        onClick={copyToClipboard}
+                        className="p-2 text-gray-300 hover:text-white hover:bg-white/10 rounded-xl transition-colors flex-shrink-0"
+                        title="Copy joining info"
+                      >
+                        {copied ? (
+                          <Check className="w-5 h-5 text-emerald-400" />
+                        ) : (
+                          <Copy className="w-5 h-5" />
+                        )}
+                      </button>
+                    </div>
+
+                    {copied && (
+                      <p className="text-xs text-emerald-400 font-medium mb-4 flex items-center gap-1.5">
+                        <Check className="w-3.5 h-3.5" /> Joining link copied to clipboard!
+                      </p>
+                    )}
+
+                    <div className="flex gap-3 w-full mt-2">
+                      <button
+                        onClick={copyToClipboard}
+                        className="flex-1 h-12 bg-white/10 hover:bg-white/15 text-white font-medium text-sm rounded-full transition-colors flex items-center justify-center gap-2"
+                      >
+                        <Copy className="w-4 h-4" /> Copy Link
+                      </button>
+                      <button
+                        onClick={() => {
+                          resetModal();
+                          setLobbyTargetRoomId(createdRoomId);
+                        }}
+                        className="flex-1 h-12 bg-[#c2e7ff] text-[#001d35] font-semibold text-sm rounded-full hover:bg-[#b3dcf7] transition-colors flex items-center justify-center gap-2"
+                      >
+                        Enter Workspace <ArrowRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
 
-      <div className="p-8 max-w-6xl mx-auto text-white">
-        {/* Header */}
-        <div className="mb-12">
-          <h1 className="text-3xl font-light mb-2">
-            Welcome back, {user?.fullName || user?.username || "Architect"}
-          </h1>
-          <p className="text-gray-400 font-light">
-            Here&apos;s what&apos;s happening in your DevMeet environment today.
-          </p>
-        </div>
-
-        {/* Quick Actions Grid (Redesigned as clean entry points) */}
-        <div className="grid md:grid-cols-2 gap-6 mb-12">
-          {/* Join Room Card */}
-          <button
-            onClick={() => setActiveModal("join")}
-            className="group flex flex-col items-start p-6 rounded-2xl bg-[#111] border border-white/5 hover:border-emerald-500/50 hover:bg-[#161616] transition-all text-left relative overflow-hidden"
-          >
-            <div className="absolute -right-4 -top-4 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl group-hover:bg-emerald-500/10 transition-colors" />
-            
-            <div className="h-10 w-10 rounded-full bg-emerald-500/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-              <ArrowRight className="w-5 h-5 text-emerald-400" />
-            </div>
-            <h3 className="text-lg font-medium mb-2">Join Session</h3>
-            <p className="text-sm text-gray-400 font-light mb-4">
-              Enter a 6-digit access code to join an active room.
-            </p>
-            <div className="mt-auto flex items-center text-emerald-400 text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-              Connect <ArrowRight className="w-4 h-4 ml-1" />
-            </div>
-          </button>
-
-          {/* New Project Workspace */}
-          <button
-            onClick={() => setActiveModal("create")}
-            className="group flex flex-col items-start p-6 rounded-2xl bg-[#111] border border-white/5 hover:border-purple-500/50 hover:bg-[#161616] transition-all text-left relative overflow-hidden"
-          >
-            <div className="absolute -right-4 -top-4 w-24 h-24 bg-purple-500/5 rounded-full blur-2xl group-hover:bg-purple-500/10 transition-colors" />
-
-            <div className="h-10 w-10 rounded-full bg-purple-500/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-              <FolderCode className="w-5 h-5 text-purple-400" />
-            </div>
-            <h3 className="text-lg font-medium mb-2">New Workspace</h3>
-            <p className="text-sm text-gray-400 font-light mb-4">
-              Configure a long-lived generic project environment.
-            </p>
-            <div className="mt-auto flex items-center text-purple-400 text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-              Configure <Plus className="w-4 h-4 ml-1" />
-            </div>
-          </button>
-        </div>
-
-        {/* Recent Activity Mini-View */}
-        <div>
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-light">Recent Activity</h2>
-            <button
-              onClick={() => router.push("/dashboard/rooms")}
-              className="text-sm text-gray-400 hover:text-white transition-colors"
+      <div className="w-full min-h-[calc(100vh-110px)] flex flex-col items-center justify-center my-auto text-white py-4 transition-all duration-300">
+        {/* HERO CONNECT ILLUSTRATION SECTION */}
+        <AnimatePresence mode="wait">
+          {!isSearchExpanded && (
+            <motion.div
+              initial={{ opacity: 0, height: 0, scale: 0.96 }}
+              animate={{ opacity: 1, height: "auto", scale: 1 }}
+              exit={{ opacity: 0, height: 0, scale: 0.96 }}
+              transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+              className="text-center flex flex-col items-center justify-center mb-8 overflow-hidden"
             >
-              View all →
-            </button>
-          </div>
-
-          {historyLoading ? (
-            <div className="bg-[#111] border border-white/5 rounded-2xl p-8 flex justify-center items-center">
-              <Loader2 className="w-6 h-6 text-gray-500 animate-spin" />
-            </div>
-          ) : history.length === 0 ? (
-            <div className="bg-[#111] border border-white/5 rounded-2xl p-8 text-center text-gray-500 font-light flex flex-col items-center">
-              <Clock className="w-8 h-8 mb-3 opacity-20" />
-              Your recent workspaces will appear here once you start
-              collaborating.
-            </div>
-          ) : (
-            <div className="flex flex-col gap-3">
-              {history.map((room) => (
+              <div
+                className="relative mb-6 select-none"
+                onContextMenu={(e) => e.preventDefault()}
+              >
+                {/* Protection Overlay Shield */}
                 <div
-                  key={room._id}
-                  className="group flex items-center justify-between p-4 bg-[#111] border border-white/5 rounded-xl hover:border-blue-500/30 transition-all"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-lg bg-white/5 flex items-center justify-center border border-white/10 group-hover:border-blue-500/20 group-hover:bg-blue-500/5 transition-colors">
-                      <FolderCode className="w-5 h-5 text-gray-400 group-hover:text-blue-400 transition-colors" />
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-white mb-1">
-                        {room.roomName}
-                      </h4>
-                      <div className="flex items-center gap-3 text-xs text-gray-500">
-                        <span className="font-mono bg-white/5 px-2 py-0.5 rounded text-gray-400">
-                          {room.roomId}
-                        </span>
-                        {/* We removed primary language, so it no longer shows here */}
-                        {room.description && (
-                          <span className="truncate max-w-[150px]">{room.description}</span>
-                        )}
-                        {room.status === "ended" && (
-                          <span className="bg-red-500/10 text-red-400 px-2 py-0.5 rounded">
-                            Ended
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  {room.status !== "ended" && (
-                    <button
-                      onClick={() => {
-                        setLoaderText("Reconnecting...");
-                        setGlobalLoading(true);
-                        router.push(`/workspace?room=${room.roomId}`);
-                      }}
-                      className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 text-sm font-medium rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                    >
-                      <Play className="w-4 h-4" fill="currentColor" /> Resume
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
+                  className="absolute inset-0 z-10 bg-transparent"
+                  onContextMenu={(e) => e.preventDefault()}
+                />
+                <DevmeetConnectIllustration className="w-80 h-auto mb-2" />
+              </div>
+
+              <h3 className="text-[28px] font-normal text-white mb-2 tracking-tight">
+                Connect with someone you know
+              </h3>
+              <p className="text-[15px] text-gray-400 max-w-md font-normal mb-2">
+                Connect, collaborate and code together from anywhere with DevMeet
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ACTION CONTROLS BELOW ILLUSTRATION: Search Bar + New Session Button */}
+        <div className={`flex flex-col sm:flex-row items-center justify-center gap-4 w-full transition-all duration-300 ${
+          isSearchExpanded ? "max-w-5xl" : "max-w-2xl"
+        }`}>
+          {/* Inline Expandable Code & Link Search Bar */}
+          <InlineCodeJoinBar onExpandChange={setIsSearchExpanded} />
+
+          {!isSearchExpanded && (
+            <button
+              onClick={() => setActiveModal("create")}
+              className="inline-flex items-center gap-2.5 px-6 h-12 rounded-full bg-[#c2e7ff] hover:bg-[#b3dcf7] text-[#001d35] font-semibold text-sm transition-all shadow-sm active:scale-95 flex-shrink-0"
+            >
+              <Video className="w-4 h-4" />
+              <span>New Session</span>
+            </button>
           )}
         </div>
+
+        {/* Quick Rejoin Pill for Last Active Session */}
+        {history.length > 0 && !isSearchExpanded && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-6 flex items-center gap-2.5 px-4 py-2 bg-white/5 border border-white/10 rounded-full text-xs text-gray-300 hover:border-blue-500/30 transition-colors"
+          >
+            <span className="text-gray-400 font-normal">Last active:</span>
+            <span className="font-medium text-white truncate max-w-[160px]">
+              {history[0].roomName}
+            </span>
+            <span className="font-mono text-[11px] text-gray-400 bg-white/5 px-2 py-0.5 rounded-md">
+              #{history[0].roomId}
+            </span>
+            <button
+              type="button"
+              onClick={() => setLobbyTargetRoomId(history[0].roomId)}
+              className="ml-1 text-blue-400 hover:text-blue-300 font-semibold flex items-center gap-1 hover:underline"
+            >
+              <Play className="w-3 h-3" /> Rejoin
+            </button>
+          </motion.div>
+        )}
       </div>
     </>
   );

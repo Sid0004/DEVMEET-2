@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Newsreader:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Google+Sans:ital,wght@0,400;0,500;0,700;1,400;1,500&family=Google+Sans+Text:wght@400;500;700&family=Inter:wght@300;400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined');
 @import "tailwindcss";
 @import "tw-animate-css";
@@ -30,9 +30,10 @@
   --color-outline-variant: #212121;
 
   /* Typography variables */
+  --font-google-sans: 'Google Sans', 'Google Sans Text', 'Roboto', 'Inter', sans-serif;
   --font-newsreader: 'Newsreader', serif;
-  --font-manrope: 'Manrope', sans-serif;
-  --font-space-grotesk: 'Manrope', sans-serif;
+  --font-manrope: 'Google Sans', sans-serif;
+  --font-space-grotesk: 'Google Sans', sans-serif;
 
   /* Elevated Soft Shadows (No hard black shadows) */
   --shadow-ambient: 0px 20px 40px rgba(25, 28, 30, 0.06);
@@ -99,7 +100,6 @@ html, body {
 }
 
 html {
-  scrollbar-gutter: stable;
   overflow-x: hidden;
 }
 
@@ -107,10 +107,10 @@ html {
   box-sizing: border-box;
 }
 
-body {
+body, button, input, textarea, select {
   background-color: var(--color-background);
   color: var(--color-on-surface);
-  font-family: var(--font-manrope);
+  font-family: 'Google Sans', 'Google Sans Text', 'Roboto', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -147,6 +147,16 @@ a {
 }
 
 /* Global Utility Classes used in page.tsx */
+.unstealable {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -webkit-user-drag: none !important;
+  -khtml-user-drag: none !important;
+  -moz-user-drag: none !important;
+  -o-user-drag: none !important;
+  pointer-events: none !important;
+}
+
 .italic {
   font-style: italic;
 }

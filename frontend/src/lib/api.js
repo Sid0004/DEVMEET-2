@@ -36,16 +36,25 @@ async function refreshAccessToken() {
   return refreshPromise;
 }
 
-export async function apiRequest(path, options = {}) {
-  const response = await fetch(buildApiUrl(path), {
-    credentials: "include",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      "ngrok-skip-browser-warning": "true",
-      ...(options.headers || {}),
-    },
-  });
+export async function apiRequest(path, options = {}, retries = 2) {
+  let response;
+  try {
+    response = await fetch(buildApiUrl(path), {
+      credentials: "include",
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        "ngrok-skip-browser-warning": "true",
+        ...(options.headers || {}),
+      },
+    });
+  } catch (err) {
+    if (retries > 0) {
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      return apiRequest(path, options, retries - 1);
+    }
+    throw err;
+  }
 
   const cleanPath =
     typeof window !== "undefined"

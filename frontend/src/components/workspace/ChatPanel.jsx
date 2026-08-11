@@ -32,14 +32,29 @@ export default function ChatPanel({ socket, connectedUsers, roomUsers, user }) {
       dispatch(removeTypingUser(userId));
     };
 
+    const handleChatError = ({ message }) => {
+      dispatch(
+        addMessage({
+          type: "system",
+          text: `⚠️ ${message}`,
+          timestamp: new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        }),
+      );
+    };
+
     socket.on("receive-message", handleReceiveMessage);
     socket.on("user-typing", handleUserTyping);
     socket.on("user-stopped-typing", handleUserStoppedTyping);
+    socket.on("chat-error", handleChatError);
 
     return () => {
       socket.off("receive-message", handleReceiveMessage);
       socket.off("user-typing", handleUserTyping);
       socket.off("user-stopped-typing", handleUserStoppedTyping);
+      socket.off("chat-error", handleChatError);
     };
   }, [socket, isOpen, activeTab, dispatch]);
 

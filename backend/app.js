@@ -18,8 +18,8 @@ app.use(helmet());
 
 
 // routes import
-import userRouter from './src/routes/user.routes.js';
-import roomRouter from './src/routes/room.routes.js';
+import userRouter from './src/modules/user/user.routes.js';
+import roomRouter from './src/modules/room/room.routes.js';
 import { errorHandler } from "./src/middlewares/error.middleware.js";
 
 
