@@ -8,6 +8,9 @@ import { User, Building2, CheckCircle2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { apiRequest } from "@/lib/api";
+import { useAppDispatch } from "@/redux/hooks";
+import { setCredentials } from "@/redux/features/authSlice";
+import { useGoogleLogin } from "@react-oauth/google";
 import {
   Field,
   FieldDescription,
@@ -19,6 +22,7 @@ import { SquigglyText } from "@/components/ui/squiggly-text";
 
 export function SignupForm({ className, ...props }) {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [accountType, setAccountType] = useState("individual"); // 'individual' | 'organization'
@@ -33,6 +37,45 @@ export function SignupForm({ className, ...props }) {
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
+
+  const handleGoogleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setIsLoading(true);
+      setError("");
+      try {
+        const response = await apiRequest("/api/v1/users/google-login", {
+          method: "POST",
+          body: JSON.stringify({ token: tokenResponse.access_token }),
+        });
+
+        if (response && response.data) {
+          dispatch(
+            setCredentials({
+              user: response.data.user,
+              token: response.data.accessToken,
+            }),
+          );
+
+          if (response.data.user.isOnboarded) {
+            window.location.href = "/dashboard";
+          } else {
+            window.location.href = "/onboarding";
+          }
+        } else {
+          setError("Invalid response from server.");
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        setError(msg || "Google authentication failed.");
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    onError: (errorResponse) => {
+      console.error("Google Login Error:", errorResponse);
+      setError("Google sign-in was cancelled or encountered an error.");
+    },
+  });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -88,7 +131,11 @@ export function SignupForm({ className, ...props }) {
   };
 
   const handleSocialClick = (provider) => {
-    setError(`${provider} authentication is coming soon in the next release.`);
+    if (provider === "Google") {
+      handleGoogleLogin();
+    } else {
+      setError(`${provider} authentication is coming soon in the next release.`);
+    }
   };
 
   return (

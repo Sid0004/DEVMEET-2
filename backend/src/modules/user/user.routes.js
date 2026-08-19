@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
     loginUser,
+    googleLoginUser,
     logoutUser,
     registerUser,
     getCurrentUser,
@@ -16,6 +17,7 @@ const router = Router();
 router.route("/register").post(registerUser);
 router.route("/refresh-token").post(refreshAccessToken);
 router.route("/login").post(loginUser);
+router.route("/google-login").post(googleLoginUser);
 
 // Secured routes
 router.route("/logout").post(verifyJWT, logoutUser);

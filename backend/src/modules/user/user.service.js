@@ -2,6 +2,7 @@ import { User } from "./user.model.js";
 import { Organization } from "../organization/organization.model.js";
 import { ApiError } from "../../utils/ApiError.js";
 import jwt from "jsonwebtoken";
+import { OAuth2Client } from "google-auth-library";
 
 class UserService {
     static generateAccessAndRefreshTokens = async (userId) => {
@@ -91,9 +92,107 @@ class UserService {
         else return null;
     }
 
+    static async googleLogin(googleAuthToken) {
+        if (!googleAuthToken) {
+            throw new ApiError(400, "Google authentication token is required");
+        }
+
+        let payload;
+        const clientId = process.env.GOOGLE_CLIENT_ID;
+        const client = new OAuth2Client(clientId);
+
+        try {
+            // Attempt 1: Verify as Google ID Token (standard Google credential / One-Tap JWT)
+            const ticket = await client.verifyIdToken({
+                idToken: googleAuthToken,
+                audience: clientId ? [clientId] : undefined,
+            });
+            payload = ticket.getPayload();
+        } catch (idTokenError) {
+            // Attempt 2: Fallback to verify as OAuth2 access_token (Google popup flow)
+            try {
+                const userInfoRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+                    headers: { Authorization: `Bearer ${googleAuthToken}` },
+                });
+                if (userInfoRes.ok) {
+                    payload = await userInfoRes.json();
+                } else {
+                    throw new Error("Unable to verify Google access token");
+                }
+            } catch (fetchError) {
+                throw new ApiError(401, `Google verification failed: ${idTokenError?.message || "Invalid Google token"}`);
+            }
+        }
+
+        if (!payload || !payload.email) {
+            throw new ApiError(400, "Google account does not contain a valid email address");
+        }
+
+        const email = payload.email.toLowerCase();
+        const googleId = payload.sub || payload.id;
+        const fullName = payload.name || `${payload.given_name || ""} ${payload.family_name || ""}`.trim() || "Google User";
+        const avatar = payload.picture;
+
+        // Check if user already exists
+        let user = await User.findOne({
+            $or: [
+                { googleId },
+                { email }
+            ]
+        });
+
+        if (user) {
+            let updated = false;
+            if (!user.googleId) {
+                user.googleId = googleId;
+                user.authProvider = "google";
+                updated = true;
+            }
+            if (!user.avatar && avatar) {
+                user.avatar = avatar;
+                updated = true;
+            }
+            if (updated) {
+                await user.save({ validateBeforeSave: false });
+            }
+        } else {
+            // Auto-generate a clean unique username
+            const rawUsername = (email.split("@")[0] || fullName)
+                .toLowerCase()
+                .replace(/[^a-z0-9_]/g, "_")
+                .slice(0, 20);
+
+            let username = rawUsername.length >= 3 ? rawUsername : `user_${Math.floor(1000 + Math.random() * 9000)}`;
+            let attempts = 0;
+            while (await User.findOne({ username }) && attempts < 10) {
+                username = `${rawUsername.slice(0, 15)}_${Math.floor(1000 + Math.random() * 9000)}`;
+                attempts++;
+            }
+
+            user = await User.create({
+                username,
+                fullName,
+                email,
+                avatar: avatar || `https://api.dicebear.com/7.x/dylan/svg?seed=${encodeURIComponent(username)}`,
+                googleId,
+                authProvider: "google",
+                accountType: "individual",
+                isOnboarded: false
+            });
+        }
+
+        const { accessToken, refreshToken } = await this.generateAccessAndRefreshTokens(user._id);
+        const loggedInUser = await User.findById(user._id)
+            .populate("organizations", "name slug")
+            .select("-password -refreshToken");
+
+        if (loggedInUser) return { accessToken, refreshToken, loggedInUser };
+        else return null;
+    }
+
     static async logoutUser(userId) {
         await User.findByIdAndUpdate(userId,
-            { $set: { refreshToken: undefined } },
+            { $unset: { refreshToken: 1 } },
             { new: true }
         );
     }

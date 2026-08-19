@@ -36,9 +36,6 @@ export default function RootLayout({ children }) {
       <body>
         <StoreProvider>
           <ThemeProvider>
-            <div className="fixed top-4 right-4 z-50">
-              <AnimatedThemeToggler />
-            </div>
             {children}
           </ThemeProvider>
         </StoreProvider>

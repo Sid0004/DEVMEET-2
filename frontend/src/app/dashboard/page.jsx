@@ -536,7 +536,7 @@ export default function DashboardOverview() {
           )}
         </div>
 
-        {/* Quick Rejoin Pill for Last Active Session */}
+        {/* Quick Rejoin Pill for Last Active Session
         {history.length > 0 && !isSearchExpanded && (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
@@ -558,7 +558,7 @@ export default function DashboardOverview() {
               <Play className="w-3 h-3" /> Rejoin
             </button>
           </motion.div>
-        )}
+        )} */}
       </div>
     </>
   );

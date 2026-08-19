@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Provider } from "react-redux";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 import { makeStore } from "../redux/store";
 import { apiRequest } from "@/lib/api";
 import { setCredentials } from "@/redux/features/authSlice";
@@ -29,5 +30,13 @@ export default function StoreProvider({ children }) {
     loadUser();
   }, [store]);
 
-  return <Provider store={store}>{children}</Provider>;
+  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
+
+  return (
+    <Provider store={store}>
+      <GoogleOAuthProvider clientId={googleClientId}>
+        {children}
+      </GoogleOAuthProvider>
+    </Provider>
+  );
 }

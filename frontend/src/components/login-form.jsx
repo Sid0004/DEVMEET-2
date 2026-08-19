@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useAppDispatch } from "@/redux/hooks";
 import { setCredentials } from "@/redux/features/authSlice";
 import { apiRequest } from "@/lib/api";
+import { useGoogleLogin } from "@react-oauth/google";
 import {
   Field,
   FieldDescription,
@@ -42,8 +43,51 @@ export function LoginForm({ className, ...props }) {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleGoogleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setIsLoading(true);
+      setError("");
+      try {
+        const response = await apiRequest("/api/v1/users/google-login", {
+          method: "POST",
+          body: JSON.stringify({ token: tokenResponse.access_token }),
+        });
+
+        if (response && response.data) {
+          dispatch(
+            setCredentials({
+              user: response.data.user,
+              token: response.data.accessToken,
+            }),
+          );
+
+          if (response.data.user.isOnboarded) {
+            window.location.href = "/dashboard";
+          } else {
+            window.location.href = "/onboarding";
+          }
+        } else {
+          setError("Invalid response from server.");
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        setError(msg || "Google sign-in failed.");
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    onError: (errorResponse) => {
+      console.error("Google Login Error:", errorResponse);
+      setError("Google sign-in was cancelled or encountered an error.");
+    },
+  });
+
   const handleSocialClick = (provider) => {
-    setError(`${provider} authentication is coming soon in the next release.`);
+    if (provider === "Google") {
+      handleGoogleLogin();
+    } else {
+      setError(`${provider} authentication is coming soon in the next release.`);
+    }
   };
 
 

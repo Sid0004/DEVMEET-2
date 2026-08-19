@@ -62,6 +62,26 @@ const loginUser = asyncHandler(async (req, res) => {
         }, "User logged in successfully"));
 });
 
+const googleLoginUser = asyncHandler(async (req, res) => {
+    const { token, idToken, credential } = req.body;
+    const googleToken = token || idToken || credential;
+
+    if (!googleToken) {
+        throw new ApiError(400, "Google authentication token is required");
+    }
+
+    const { accessToken, refreshToken, loggedInUser } = await UserService.googleLogin(googleToken);
+
+    const options = getCookieOptions(req);
+    return res
+        .status(200)
+        .cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", refreshToken, options)
+        .json(new ApiResponse(200, {
+            user: loggedInUser, accessToken, refreshToken
+        }, "Google login successful"));
+});
+
 const logoutUser = asyncHandler(async (req, res) => {
     if (!req.user) throw new ApiError(401, "Unauthorized");
         
@@ -129,6 +149,7 @@ const completeOnboarding = asyncHandler(async (req, res) => {
 export {
     registerUser,
     loginUser,
+    googleLoginUser,
     logoutUser,
     getCurrentUser,
     refreshAccessToken,

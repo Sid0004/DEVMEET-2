@@ -8,6 +8,7 @@ import { useAppSelector, useAppDispatch } from "@/redux/hooks";
 import { logout } from "@/redux/features/authSlice";
 import { apiRequest } from "@/lib/api";
 import Avatar from "@/components/Avatar";
+import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 import {
   Home,
   Users,
@@ -129,9 +130,9 @@ export default function Sidebar({ sidebarCollapsed, setSidebarCollapsed }) {
         })}
       </div>
 
-      {/* Bottom Profile / Settings / Logout */}
+      {/* Bottom Profile / Theme / Settings / Logout */}
       <div className={`p-2.5 border-t border-neutral-200 dark:border-white/10 flex items-center transition-colors duration-300 ${
-        sidebarCollapsed ? "flex-col gap-2" : "justify-between gap-1.5"
+        sidebarCollapsed ? "flex-col gap-2" : "justify-between gap-1"
       }`}>
         <Link
           href="/dashboard/settings"
@@ -150,18 +151,20 @@ export default function Sidebar({ sidebarCollapsed, setSidebarCollapsed }) {
               <span className="text-xs font-semibold text-neutral-900 dark:text-white truncate">
                 {user?.fullName || user?.username || "User"}
               </span>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
-                  Available
-                </span>
-              </div>
+              <span className="text-[11px] text-neutral-400 dark:text-neutral-500 truncate font-mono">
+                @{user?.username || (user?.email ? user.email.split("@")[0] : "user")}
+              </span>
             </div>
           )}
         </Link>
 
-        {/* Action buttons: Settings & Logout */}
-        <div className={`flex items-center gap-1 ${sidebarCollapsed ? "flex-col" : ""}`}>
+        {/* Action buttons: Theme Toggler, Settings, and Logout */}
+        <div className={`flex items-center gap-0.5 ${sidebarCollapsed ? "flex-col" : ""}`}>
+          <AnimatedThemeToggler
+            className="p-2 text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-white/[0.1] rounded-full transition-colors flex-shrink-0 cursor-pointer"
+            title="Toggle theme"
+          />
+
           {!sidebarCollapsed && (
             <Link
               href="/dashboard/settings"
@@ -171,6 +174,7 @@ export default function Sidebar({ sidebarCollapsed, setSidebarCollapsed }) {
               <Settings className="w-4 h-4" />
             </Link>
           )}
+
           <button
             type="button"
             onClick={handleLogout}
