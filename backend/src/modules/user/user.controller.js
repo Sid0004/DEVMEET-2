@@ -5,17 +5,42 @@ import { getCookieOptions } from "../../utils/cookieOptions.js";
 import UserService from "./user.service.js";
 
 const registerUser = asyncHandler(async (req, res) => {
-    const { fullName, email, username, password } = req.body;
-    if ([fullName, email, username, password].some((field) => field?.trim() === "")) {
-        throw new ApiError(400, "All fields are required");
+    const { fullName, email, username, password, accountType, organizationName } = req.body;
+    if ([fullName, email, username, password].some((field) => !field || field?.trim() === "")) {
+        throw new ApiError(400, "All required fields must be filled");
     }
 
-    const createdUser = await UserService.registerUser({ username, fullName, email, password });
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+        throw new ApiError(400, "Please provide a valid email address");
+    }
+
+    const usernameRegex = /^[a-zA-Z0-9_]{3,30}$/;
+    if (!usernameRegex.test(username.trim())) {
+        throw new ApiError(400, "Username must be 3-30 characters long and can only contain letters, numbers, and underscores");
+    }
+
+    if (password.length < 8 || !/\d/.test(password)) {
+        throw new ApiError(400, "Password must be at least 8 characters long and contain at least one number");
+    }
+
+    if (accountType === "organization" && (!organizationName || organizationName.trim() === "")) {
+        throw new ApiError(400, "Organization name is required for team accounts");
+    }
+
+    const createdUser = await UserService.registerUser({
+        username,
+        fullName,
+        email,
+        password,
+        accountType,
+        organizationName
+    });
     
     if (!createdUser) {
         throw new ApiError(500, "Something went wrong while registering the user");
     }
-    return res.status(201).json(new ApiResponse(200, createdUser, "User registered successfully"));
+    return res.status(201).json(new ApiResponse(201, createdUser, "User registered successfully"));
 });
 
 const loginUser = asyncHandler(async (req, res) => {
@@ -94,10 +119,10 @@ const changePassword = asyncHandler(async (req, res) => {
 });
 
 const completeOnboarding = asyncHandler(async (req, res) => {
-    const { profession } = req.body;
+    const { profession, orgAction, orgInput } = req.body;
     if (!req.user) throw new ApiError(401, "Unauthorized");
 
-    const updatedUser = await UserService.completeOnboarding(req.user._id, profession);
+    const updatedUser = await UserService.completeOnboarding(req.user._id, { profession, orgAction, orgInput });
     return res.status(200).json(new ApiResponse(200, updatedUser, "Onboarding completed successfully"));
 });
 

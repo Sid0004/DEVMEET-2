@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useAppDispatch } from "@/redux/hooks";
@@ -20,17 +21,29 @@ import { SquigglyText } from "@/components/ui/squiggly-text";
 export function LoginForm({ className, ...props }) {
 
   const router = useRouter();
+  const searchParams = useSearchParams();
   const dispatch = useAppDispatch();
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
   const [formData, setFormData] = useState({
     identifier: "",
     password: "",
   });
 
+  useEffect(() => {
+    if (searchParams.get("registered") === "true") {
+      setSuccessMsg("Account created successfully! Please sign in with your credentials.");
+    }
+  }, [searchParams]);
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSocialClick = (provider) => {
+    setError(`${provider} authentication is coming soon in the next release.`);
   };
 
 
@@ -64,7 +77,12 @@ export function LoginForm({ className, ...props }) {
         setError("Invalid response from server.");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.toLowerCase().includes("failed to fetch") || msg.toLowerCase().includes("network")) {
+        setError("Unable to connect. Please check your internet connection and try again.");
+      } else {
+        setError(msg || "Invalid email/username or password.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -79,29 +97,34 @@ export function LoginForm({ className, ...props }) {
         <FieldGroup>
           <div className="flex flex-col items-center gap-2 text-center">
             <h1
-              className="text-3xl font-normal text-[#f3f3f3] tracking-tight"
-              style={{ fontFamily: "Inter, sans-serif" }}
+              className="text-3xl font-normal text-neutral-900 dark:text-[#f3f3f3] tracking-tight"
+              style={{ fontFamily: "var(--font-default)" }}
             >
               Login to{" "}
               <SquigglyText
                 stepDuration={150}
                 scale={[6, 9]}
-                className="text-[#3b82f6] font-normal"
+                className="text-[#0051d5] dark:text-[#3b82f6] font-normal"
               >
                 connect
               </SquigglyText>
             </h1>
-            <FieldDescription>
-              Don&apos;t have an account?{" "}
-              <Link href="/signup" className="underline underline-offset-4">
-                Sign up
-              </Link>
-            </FieldDescription>
+            <p className="text-sm text-neutral-500 dark:text-neutral-400">
+              Welcome back! Please enter your details.
+            </p>
           </div>
 
+          {successMsg && (
+            <div className="p-3 text-xs sm:text-sm font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-xl flex items-center justify-center gap-2 text-center">
+              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+              <span>{successMsg}</span>
+            </div>
+          )}
+
           {error && (
-            <div className="p-3 text-sm font-medium text-red-500 bg-red-950/40 border border-red-500/30 rounded-xl text-center">
-              {error}
+            <div className="p-3 text-xs sm:text-sm font-medium text-red-500 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl flex items-center justify-center gap-2 text-center">
+              <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+              <span>{error}</span>
             </div>
           )}
 
@@ -111,8 +134,7 @@ export function LoginForm({ className, ...props }) {
               id="identifier"
               name="identifier"
               type="text"
-              placeholder="  name@example.com or username"
-              className="px-5"
+              placeholder="name@example.com or username"
               value={formData.identifier}
               onChange={handleChange}
               required
@@ -125,8 +147,7 @@ export function LoginForm({ className, ...props }) {
               id="password"
               name="password"
               type="password"
-              placeholder="  enter your password"
-              className="px-5"
+              placeholder="Enter your password"
               value={formData.password}
               onChange={handleChange}
               required
@@ -134,13 +155,25 @@ export function LoginForm({ className, ...props }) {
           </Field>
 
           <Field>
-            <Button type="submit" disabled={isLoading}>
+            <Button type="submit" disabled={isLoading} className="w-full h-11">
               {isLoading ? "Signing in..." : "Login"}
             </Button>
           </Field>
 
+          <div className="relative my-1 flex items-center justify-center">
+            <div className="border-t border-neutral-200 dark:border-white/10 w-full" />
+            <span className="bg-white dark:bg-[#101010] px-3 text-xs uppercase text-neutral-400 dark:text-neutral-500 font-mono tracking-wider absolute">
+              or
+            </span>
+          </div>
+
           <Field className="grid gap-4 sm:grid-cols-2">
-            <Button variant="outline" type="button">
+            <Button
+              variant="outline"
+              type="button"
+              className="h-10"
+              onClick={() => handleSocialClick("Apple")}
+            >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 24 24"
@@ -153,7 +186,12 @@ export function LoginForm({ className, ...props }) {
               </svg>
               Apple
             </Button>
-            <Button variant="outline" type="button">
+            <Button
+              variant="outline"
+              type="button"
+              className="h-10"
+              onClick={() => handleSocialClick("Google")}
+            >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 24 24"
@@ -167,11 +205,21 @@ export function LoginForm({ className, ...props }) {
               Google
             </Button>
           </Field>
+
+          <div className="pt-2 text-center text-sm text-neutral-500 dark:text-neutral-400">
+            Don&apos;t have an account?{" "}
+            <Link
+              href="/signup"
+              className="font-medium text-neutral-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 underline underline-offset-4 transition-colors"
+            >
+              Sign up
+            </Link>
+          </div>
         </FieldGroup>
       </form>
-      <FieldDescription className="px-6 text-center">
-        By clicking continue, you agree to our <a href="#">Terms of Service</a>{" "}
-        and <a href="#">Privacy Policy</a>.
+      <FieldDescription className="px-6 text-center text-xs text-neutral-400 dark:text-neutral-500">
+        By clicking continue, you agree to our <a href="#" className="underline hover:text-neutral-900 dark:hover:text-white">Terms of Service</a>{" "}
+        and <a href="#" className="underline hover:text-neutral-900 dark:hover:text-white">Privacy Policy</a>.
       </FieldDescription>
     </div>
   );

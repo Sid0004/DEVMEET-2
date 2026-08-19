@@ -1,6 +1,5 @@
 "use client";
-
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState, useSyncExternalStore } from "react";
 
 const ThemeContext = createContext(undefined);
 
@@ -12,22 +11,28 @@ const ACCENT_COLORS = {
   amber: "#d97706",
 };
 
+const emptySubscribe = () => () => {};
+
 export function ThemeProvider({ children }) {
-  const [theme, setThemeState] = useState("system");
-  const [accent, setAccentState] = useState("cobalt");
-  const [mounted, setMounted] = useState(false);
+  const [theme, setThemeState] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("devmeet-theme") || "light";
+    }
+    return "light";
+  });
 
-  // Load from localStorage on mount
-  useEffect(() => {
-    const savedTheme = localStorage.getItem("devmeet-theme");
-    const savedAccent = localStorage.getItem("devmeet-accent");
+  const [accent, setAccentState] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("devmeet-accent") || "cobalt";
+    }
+    return "cobalt";
+  });
 
-    // eslint-disable-next-line
-    if (savedTheme) setThemeState(savedTheme);
-    // eslint-disable-next-line
-    if (savedAccent) setAccentState(savedAccent);
-    setMounted(true);
-  }, []);
+  const mounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
 
   // Apply theme & accent when state changes
   useEffect(() => {
@@ -40,13 +45,6 @@ export function ThemeProvider({ children }) {
       root.classList.remove("dark");
       if (t === "dark") {
         root.classList.add("dark");
-      } else if (t === "system") {
-        const systemPrefersDark = window.matchMedia(
-          "(prefers-color-scheme: dark)",
-        ).matches;
-        if (systemPrefersDark) {
-          root.classList.add("dark");
-        }
       }
     };
 
@@ -56,14 +54,6 @@ export function ThemeProvider({ children }) {
     const accentHex = ACCENT_COLORS[accent] || ACCENT_COLORS.cobalt;
     root.style.setProperty("--color-secondary", accentHex);
     root.style.setProperty("--secondary", accentHex);
-
-    // Watch for system theme changes if set to system
-    if (theme === "system") {
-      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-      const handleChange = () => applyTheme("system");
-      mediaQuery.addEventListener("change", handleChange);
-      return () => mediaQuery.removeEventListener("change", handleChange);
-    }
   }, [theme, accent, mounted]);
 
   const setTheme = (newTheme) => {

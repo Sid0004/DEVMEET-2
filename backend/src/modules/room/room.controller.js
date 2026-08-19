@@ -55,11 +55,24 @@ const joinRoom = asyncHandler(async (req, res) => {
     if (room.status === "ended") {
         throw new ApiError(403, "This session has ended and can no longer be joined.");
     }
+
+    const isHost = room.host.toString() === userId.toString();
+
+    if (room.roomSettings?.isLocked && !isHost && !room.participants.some(p => p.toString() === userId.toString())) {
+        throw new ApiError(403, "This room is locked by the host.");
+    }
+
+    if (room.organization && !isHost) {
+        const userOrgs = req.user.organizations?.map(o => o.toString()) || [];
+        if (!userOrgs.includes(room.organization.toString())) {
+            throw new ApiError(403, "You do not have permission to join this organization room.");
+        }
+    }
     
-    if (room.participants.includes(userId)) {
+    if (room.participants.some(p => p.toString() === userId.toString())) {
         return res.status(200).json(new ApiResponse(200, room, "You have already joined this room"));
     }
-    const updatedRoom = await Room.findOneAndUpdate({ roomId }, { $push: { participants: userId } }, { new: true });
+    const updatedRoom = await Room.findOneAndUpdate({ roomId }, { $addToSet: { participants: userId } }, { new: true });
     await User.findOneAndUpdate({ _id: userId }, { $addToSet: { rooms: room._id } });
     return res.status(200).json(new ApiResponse(200, updatedRoom, "Successfully joined the room"));
 });

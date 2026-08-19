@@ -1,10 +1,13 @@
+import { Suspense } from "react";
 import { LoginForm } from "@/components/login-form";
 
 export default function LoginPage() {
   return (
-    <div className="dark flex min-h-svh flex-col items-center justify-center gap-6 bg-[#101010] text-white p-6 md:p-10">
-      <div className="w-full max-w-[320px]">
-        <LoginForm />
+    <div className="auth-container min-h-screen flex flex-col items-center justify-center bg-white dark:bg-[#101010] text-neutral-900 dark:text-white p-4">
+      <div className="w-full max-w-[360px]">
+        <Suspense fallback={<div className="text-center text-sm text-neutral-400">Loading...</div>}>
+          <LoginForm />
+        </Suspense>
       </div>
     </div>
   );

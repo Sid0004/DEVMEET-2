@@ -7,7 +7,7 @@ export default function DashboardLayout({ children }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[#0a0b0d] text-[#e3e3e3] w-full relative">
+    <div className="min-h-screen bg-white dark:bg-[#0a0b0d] text-neutral-900 dark:text-[#e3e3e3] w-full relative">
       <Sidebar
         sidebarCollapsed={sidebarCollapsed}
         setSidebarCollapsed={setSidebarCollapsed}

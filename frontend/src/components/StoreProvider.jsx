@@ -17,7 +17,7 @@ export default function StoreProvider({ children }) {
           store.dispatch(
             setCredentials({
               user: response.data,
-              token: response.data.accessToken,
+              token: response.data.accessToken || null,
             }),
           );
         }

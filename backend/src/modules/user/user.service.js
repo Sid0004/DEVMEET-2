@@ -1,4 +1,5 @@
 import { User } from "./user.model.js";
+import { Organization } from "../organization/organization.model.js";
 import { ApiError } from "../../utils/ApiError.js";
 import jwt from "jsonwebtoken";
 
@@ -22,24 +23,49 @@ class UserService {
     };
 
     static async registerUser(userData) {
-        const { username, fullName, email, password } = userData;
+        const { username, fullName, email, password, accountType = "individual", organizationName } = userData;
         const existedUser = await User.findOne({
-            $or: [{ username }, { email }]
+            $or: [{ username: username.toLowerCase() }, { email: email.toLowerCase() }]
         });
 
         if (existedUser) {
             throw new ApiError(409, "User with this email or username already exists");
         }
+
         const user = await User.create({
             fullName,
             avatar: `https://api.dicebear.com/7.x/dylan/svg?seed=${encodeURIComponent(username || fullName)}`,
-            email,
+            email: email.toLowerCase(),
             password,
-            username: username.toLowerCase()
+            username: username.toLowerCase(),
+            accountType: accountType === "organization" ? "organization" : "individual"
         });
 
-        const createdUser = await User.findById(user._id).select("-password -refreshToken");
-        if(createdUser) return createdUser;
+        if (accountType === "organization" && organizationName && organizationName.trim()) {
+            const baseSlug = organizationName.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+            let slug = baseSlug || "org";
+            let attempts = 0;
+            while (await Organization.findOne({ slug }) && attempts < 5) {
+                slug = `${baseSlug}-${Math.floor(1000 + Math.random() * 9000)}`;
+                attempts++;
+            }
+
+            const org = await Organization.create({
+                name: organizationName.trim(),
+                slug,
+                owner: user._id,
+                members: [{ user: user._id, role: "Admin" }]
+            });
+
+            user.organizations = [org._id];
+            await user.save({ validateBeforeSave: false });
+        }
+
+        const createdUser = await User.findById(user._id)
+            .populate("organizations", "name slug")
+            .select("-password -refreshToken");
+
+        if (createdUser) return createdUser;
         else return null;
     }
 
@@ -141,19 +167,71 @@ class UserService {
         await user.save();
     }
 
-    static async completeOnboarding(userId, profession) {
+    static async completeOnboarding(userId, onboardingData = {}) {
+        const { profession, orgAction, orgInput } = onboardingData;
         const user = await User.findById(userId);
         if (!user) {
             throw new ApiError(404, "User not found");
         }
         
         if (profession) {
-            user.profession = profession;
+            const allowedProfessions = ['Student', 'Employee', 'Freelancer', 'Other'];
+            user.profession = allowedProfessions.includes(profession) ? profession : 'Other';
         }
+
+        if (orgAction === "create" && orgInput && orgInput.trim()) {
+            const orgName = orgInput.trim();
+            const baseSlug = orgName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+            let slug = baseSlug || "org";
+            let attempts = 0;
+            while (await Organization.findOne({ slug }) && attempts < 5) {
+                slug = `${baseSlug}-${Math.floor(1000 + Math.random() * 9000)}`;
+                attempts++;
+            }
+
+            const org = await Organization.create({
+                name: orgName,
+                slug,
+                owner: user._id,
+                members: [{ user: user._id, role: "Admin" }]
+            });
+
+            if (!user.organizations) user.organizations = [];
+            user.organizations.push(org._id);
+            user.accountType = "organization";
+        } else if (orgAction === "join" && orgInput && orgInput.trim()) {
+            const query = orgInput.trim();
+            const org = await Organization.findOne({
+                $or: [
+                    { slug: query.toLowerCase() },
+                    { name: new RegExp(`^${query}$`, "i") }
+                ]
+            });
+
+            if (org) {
+                const isMember = org.members.some(
+                    (m) => m.user.toString() === user._id.toString()
+                );
+                if (!isMember) {
+                    org.members.push({ user: user._id, role: "Member" });
+                    await org.save();
+                }
+                if (!user.organizations) user.organizations = [];
+                if (!user.organizations.some((o) => o.toString() === org._id.toString())) {
+                    user.organizations.push(org._id);
+                }
+                user.accountType = "organization";
+            }
+        }
+
         user.isOnboarded = true;
         await user.save({ validateBeforeSave: false });
         
-        return user;
+        const populatedUser = await User.findById(user._id)
+            .populate("organizations", "name slug")
+            .select("-password -refreshToken");
+
+        return populatedUser || user;
     }
 }
 

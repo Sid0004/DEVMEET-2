@@ -18,6 +18,7 @@ export const metadata = {
 
 import StoreProvider from "@/components/StoreProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 
 export default function RootLayout({ children }) {
   return (
@@ -34,7 +35,12 @@ export default function RootLayout({ children }) {
       </head>
       <body>
         <StoreProvider>
-          <ThemeProvider>{children}</ThemeProvider>
+          <ThemeProvider>
+            <div className="fixed top-4 right-4 z-50">
+              <AnimatedThemeToggler />
+            </div>
+            {children}
+          </ThemeProvider>
         </StoreProvider>
       </body>
     </html>

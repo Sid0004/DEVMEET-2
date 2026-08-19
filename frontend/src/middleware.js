@@ -6,7 +6,9 @@ export function middleware(request) {
 
   // Define protected routes
   const isProtectedRoute =
-    pathname.startsWith("/dashboard") || pathname.startsWith("/workspace");
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/workspace") ||
+    pathname.startsWith("/onboarding");
   // Define auth routes (only for guests)
   const isAuthRoute = pathname === "/login" || pathname === "/signup";
 
@@ -23,5 +25,12 @@ export function middleware(request) {
 
 // See "Matching Paths" below to learn more
 export const config = {
-  matcher: ["/dashboard/:path*", "/workspace/:path*", "/login", "/signup"],
+  matcher: [
+    "/dashboard/:path*",
+    "/workspace/:path*",
+    "/onboarding/:path*",
+    "/onboarding",
+    "/login",
+    "/signup",
+  ],
 };

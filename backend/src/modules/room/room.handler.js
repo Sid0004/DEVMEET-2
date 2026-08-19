@@ -34,6 +34,23 @@ export const registerRoomHandlers = (io, socket) => {
         return;
       }
 
+      const isHost = room.host.toString() === authUser._id.toString();
+      if (room.roomSettings?.isLocked && !isHost && !room.participants.some(p => p.toString() === authUser._id.toString())) {
+        socket.emit("room-error", { message: "This room is locked by the host." });
+        return;
+      }
+
+      if (room.organization && !isHost) {
+        const userOrgs = authUser.organizations?.map(o => o.toString()) || [];
+        if (!userOrgs.includes(room.organization.toString())) {
+          socket.emit("room-error", { message: "You do not have permission to join this organization room." });
+          return;
+        }
+      }
+
+      // Ensure user is added to participants in database
+      await Room.findOneAndUpdate({ roomId }, { $addToSet: { participants: authUser._id } });
+
       const dbMessages = await Message.find({ room: room._id })
         .sort({ createdAt: -1 })
         .limit(50)

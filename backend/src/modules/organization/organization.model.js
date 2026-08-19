@@ -7,6 +7,14 @@ const organizationSchema = new Schema(
             required: true,
             trim: true,
         },
+        slug: {
+            type: String,
+            required: true,
+            unique: true,
+            lowercase: true,
+            trim: true,
+            index: true,
+        },
         description: {
             type: String,
             trim: true,
@@ -34,9 +42,27 @@ const organizationSchema = new Schema(
         rooms: [
             {
                 type: Schema.Types.ObjectId,
-                ref: "Room" // Capitalized "Room" instead of "room" which matches exports
+                ref: "Room"
             }
-        ]
+        ],
+        verificationStatus: {
+            type: String,
+            enum: ["unverified", "pending", "verified"],
+            default: "unverified"
+        },
+        verifiedDomain: {
+            type: String,
+            default: null
+        },
+        verificationToken: {
+            type: String,
+            default: null
+        },
+        plan: {
+            type: String,
+            enum: ["free", "pro", "enterprise"],
+            default: "free"
+        }
     },
     { timestamps: true }
 );

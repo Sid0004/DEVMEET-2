@@ -33,6 +33,16 @@ const roomSchema = new Schema({
         enum: ["active", "ended", "scheduled"],
         default: "active",
     },
+    roomType: {
+        type: String,
+        enum: ["public", "private", "interview", "team"],
+        default: "public",
+    },
+    organization: {
+        type: Schema.Types.ObjectId,
+        ref: "Organization",
+        default: null,
+    },
     files: [
         {
             name: { type: String, required: true },

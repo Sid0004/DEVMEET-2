@@ -1240,6 +1240,13 @@ function WorkspaceContent() {
 
   const acquireLocalStream = async (requestVideo, requestAudio) => {
     try {
+      // Release any existing local stream tracks first to prevent driver lock conflicts
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach((t) => t.stop());
+        localStreamRef.current = null;
+        setLocalStream(null);
+      }
+
       let stream = null;
       try {
         stream = await navigator.mediaDevices.getUserMedia({
@@ -1254,15 +1261,35 @@ function WorkspaceContent() {
         });
       } catch (e) {
         console.warn(`Media acquisition error [${e?.name || "Error"}]: ${e?.message || e}`);
+
+        // If OS camera driver is in transition or locked by pre-join lobby, wait 200ms and retry
+        if (e.name === "NotReadableError" || e.name === "OverconstrainedError") {
+          await new Promise((res) => setTimeout(res, 200));
+          try {
+            stream = await navigator.mediaDevices.getUserMedia({
+              video: requestVideo,
+              audio: requestAudio
+                ? {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true,
+                  }
+                : false,
+            });
+          } catch (retryErr) {
+            console.warn("Retry failed, attempting fallback modes");
+          }
+        }
+
         // Fallback if camera is missing/locked but they have a mic
-        if (requestVideo && requestAudio) {
+        if (!stream && requestVideo && requestAudio) {
           try {
             stream = await navigator.mediaDevices.getUserMedia({
               video: false,
               audio: true,
             });
             requestVideo = false;
-            console.warn("Camera not available or locked by another app, falling back to audio only");
+            console.warn("Camera not available or locked, falling back to audio only");
           } catch (e2) {
             // Fallback to video only if mic is missing
             try {
@@ -1276,7 +1303,7 @@ function WorkspaceContent() {
               throw e;
             }
           }
-        } else {
+        } else if (!stream) {
           throw e;
         }
       }

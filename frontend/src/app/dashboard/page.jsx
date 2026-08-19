@@ -493,41 +493,33 @@ export default function DashboardOverview() {
         )}
       </AnimatePresence>
 
-      <div className="w-full min-h-[calc(100vh-110px)] flex flex-col items-center justify-center my-auto text-white py-4 transition-all duration-300">
+      <div className="w-full min-h-[calc(100vh-110px)] flex flex-col items-center justify-center my-auto text-neutral-900 dark:text-white py-4">
         {/* HERO CONNECT ILLUSTRATION SECTION */}
-        <AnimatePresence mode="wait">
-          {!isSearchExpanded && (
-            <motion.div
-              initial={{ opacity: 0, height: 0, scale: 0.96 }}
-              animate={{ opacity: 1, height: "auto", scale: 1 }}
-              exit={{ opacity: 0, height: 0, scale: 0.96 }}
-              transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
-              className="text-center flex flex-col items-center justify-center mb-8 overflow-hidden"
+        {!isSearchExpanded && (
+          <div className="text-center flex flex-col items-center justify-center mb-8 overflow-hidden">
+            <div
+              className="relative mb-6 select-none"
+              onContextMenu={(e) => e.preventDefault()}
             >
+              {/* Protection Overlay Shield */}
               <div
-                className="relative mb-6 select-none"
+                className="absolute inset-0 z-10 bg-transparent"
                 onContextMenu={(e) => e.preventDefault()}
-              >
-                {/* Protection Overlay Shield */}
-                <div
-                  className="absolute inset-0 z-10 bg-transparent"
-                  onContextMenu={(e) => e.preventDefault()}
-                />
-                <DevmeetConnectIllustration className="w-80 h-auto mb-2" />
-              </div>
+              />
+              <DevmeetConnectIllustration className="w-80 h-auto mb-2" />
+            </div>
 
-              <h3 className="text-[28px] font-normal text-white mb-2 tracking-tight">
-                Connect with someone you know
-              </h3>
-              <p className="text-[15px] text-gray-400 max-w-md font-normal mb-2">
-                Connect, collaborate and code together from anywhere with DevMeet
-              </p>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            <h3 className="text-[28px] font-normal text-neutral-900 dark:text-white mb-2 tracking-tight">
+              Connect with someone you know
+            </h3>
+            <p className="text-[15px] text-neutral-500 dark:text-gray-400 max-w-md font-normal mb-2">
+              Connect, collaborate and code together from anywhere with DevMeet
+            </p>
+          </div>
+        )}
 
         {/* ACTION CONTROLS BELOW ILLUSTRATION: Search Bar + New Session Button */}
-        <div className={`flex flex-col sm:flex-row items-center justify-center gap-4 w-full transition-all duration-300 ${
+        <div className={`flex flex-col sm:flex-row items-center justify-center gap-4 w-full ${
           isSearchExpanded ? "max-w-5xl" : "max-w-2xl"
         }`}>
           {/* Inline Expandable Code & Link Search Bar */}
@@ -536,9 +528,9 @@ export default function DashboardOverview() {
           {!isSearchExpanded && (
             <button
               onClick={() => setActiveModal("create")}
-              className="inline-flex items-center gap-2.5 px-6 h-12 rounded-full bg-[#c2e7ff] hover:bg-[#b3dcf7] text-[#001d35] font-semibold text-sm transition-all shadow-sm active:scale-95 flex-shrink-0"
+              className="inline-flex items-center gap-2.5 px-6 h-12 rounded-full bg-[#1a73e8] hover:bg-[#1557b0] text-white font-semibold text-sm transition-all shadow-md active:scale-95 flex-shrink-0 cursor-pointer"
             >
-              <Video className="w-4 h-4" />
+              <Video className="w-4 h-4 text-white" />
               <span>New Session</span>
             </button>
           )}
@@ -549,19 +541,19 @@ export default function DashboardOverview() {
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-6 flex items-center gap-2.5 px-4 py-2 bg-white/5 border border-white/10 rounded-full text-xs text-gray-300 hover:border-blue-500/30 transition-colors"
+            className="mt-6 flex items-center gap-2.5 px-4 py-2 bg-white dark:bg-white/5 border border-neutral-200 dark:border-white/10 rounded-full text-xs text-neutral-600 dark:text-gray-300 shadow-sm hover:border-blue-500/40 transition-colors"
           >
-            <span className="text-gray-400 font-normal">Last active:</span>
-            <span className="font-medium text-white truncate max-w-[160px]">
+            <span className="text-neutral-400 dark:text-gray-400 font-normal">Last active:</span>
+            <span className="font-medium text-neutral-900 dark:text-white truncate max-w-[160px]">
               {history[0].roomName}
             </span>
-            <span className="font-mono text-[11px] text-gray-400 bg-white/5 px-2 py-0.5 rounded-md">
+            <span className="font-mono text-[11px] text-neutral-500 dark:text-gray-400 bg-neutral-100 dark:bg-white/5 px-2 py-0.5 rounded-md">
               #{history[0].roomId}
             </span>
             <button
               type="button"
               onClick={() => setLobbyTargetRoomId(history[0].roomId)}
-              className="ml-1 text-blue-400 hover:text-blue-300 font-semibold flex items-center gap-1 hover:underline"
+              className="ml-1 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-semibold flex items-center gap-1 hover:underline"
             >
               <Play className="w-3 h-3" /> Rejoin
             </button>

@@ -41,16 +41,21 @@ const userSchema = new Schema({
     coverImage: {
         type: String, // cloudinary url
     },
+    accountType: {
+        type: String,
+        enum: ['individual', 'organization'],
+        default: 'individual'
+    },
     sessionHistory: [
         {
             type: Schema.Types.ObjectId,
-            ref: "Session"
+            ref: "Room"
         }
     ],
     rooms: [
         {
             type: Schema.Types.ObjectId,
-            ref: "room"
+            ref: "Room"
         }
     ],
     organizations: [
