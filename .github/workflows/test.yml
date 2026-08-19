@@ -1,0 +1,38 @@
+name: Backend Automated Tests CI
+
+on:
+  push:
+    branches: [ "main", "master", "dev", "develop" ]
+  pull_request:
+    branches: [ "main", "master", "dev", "develop" ]
+
+jobs:
+  test:
+    name: Run API & Unit Tests
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./backend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: './backend/package-lock.json'
+
+      - name: Install backend dependencies
+        run: npm ci
+
+      - name: Run automated test suite
+        run: npm test
+        env:
+          ACCESS_TOKEN_SECRET: ci-access-token-secret-test-key-12345
+          REFRESH_TOKEN_SECRET: ci-refresh-token-secret-test-key-12345
+          ACCESS_TOKEN_EXPIRY: 1d
+          REFRESH_TOKEN_EXPIRY: 10d
