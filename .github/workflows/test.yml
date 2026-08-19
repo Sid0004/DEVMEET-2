@@ -11,6 +11,12 @@ jobs:
     name: Run API & Unit Tests
     runs-on: ubuntu-latest
 
+    services:
+      mongodb:
+        image: mongo:6.0
+        ports:
+          - 27017:27017
+
     defaults:
       run:
         working-directory: ./backend
@@ -27,12 +33,17 @@ jobs:
           cache-dependency-path: './backend/package-lock.json'
 
       - name: Install backend dependencies
-        run: npm ci
+        run: npm install
 
       - name: Run automated test suite
         run: npm test
         env:
+          NODE_ENV: test
+          MONGODB_URI: mongodb://127.0.0.1:27017/devmeet_test_automation
           ACCESS_TOKEN_SECRET: ci-access-token-secret-test-key-12345
           REFRESH_TOKEN_SECRET: ci-refresh-token-secret-test-key-12345
           ACCESS_TOKEN_EXPIRY: 1d
           REFRESH_TOKEN_EXPIRY: 10d
+          GOOGLE_CLIENT_ID: ci-google-client-id-test
+          GITHUB_CLIENT_ID: ci-github-client-id-test
+          GITHUB_CLIENT_SECRET: ci-github-client-secret-test
