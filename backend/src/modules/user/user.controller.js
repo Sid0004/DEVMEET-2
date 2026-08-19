@@ -82,6 +82,24 @@ const googleLoginUser = asyncHandler(async (req, res) => {
         }, "Google login successful"));
 });
 
+const githubLoginUser = asyncHandler(async (req, res) => {
+    const { code } = req.body;
+    if (!code) {
+        throw new ApiError(400, "GitHub authorization code is required");
+    }
+
+    const { accessToken, refreshToken, loggedInUser } = await UserService.githubLogin(code);
+
+    const options = getCookieOptions(req);
+    return res
+        .status(200)
+        .cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", refreshToken, options)
+        .json(new ApiResponse(200, {
+            user: loggedInUser, accessToken, refreshToken
+        }, "GitHub login successful"));
+});
+
 const logoutUser = asyncHandler(async (req, res) => {
     if (!req.user) throw new ApiError(401, "Unauthorized");
         
@@ -150,6 +168,7 @@ export {
     registerUser,
     loginUser,
     googleLoginUser,
+    githubLoginUser,
     logoutUser,
     getCurrentUser,
     refreshAccessToken,

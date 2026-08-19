@@ -190,6 +190,127 @@ class UserService {
         else return null;
     }
 
+    static async githubLogin(code) {
+        if (!code) {
+            throw new ApiError(400, "GitHub authorization code is required");
+        }
+
+        // Exchange authorization code for GitHub access_token
+        const tokenRes = await fetch("https://github.com/login/oauth/access_token", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Accept: "application/json",
+            },
+            body: JSON.stringify({
+                client_id: process.env.GITHUB_CLIENT_ID,
+                client_secret: process.env.GITHUB_CLIENT_SECRET,
+                code,
+            }),
+        });
+
+        const tokenData = await tokenRes.json();
+        if (!tokenData.access_token) {
+            throw new ApiError(401, `GitHub authentication failed: ${tokenData.error_description || "Invalid authorization code"}`);
+        }
+
+        const githubAccessToken = tokenData.access_token;
+
+        // Fetch user profile from GitHub
+        const userRes = await fetch("https://api.github.com/user", {
+            headers: {
+                Authorization: `Bearer ${githubAccessToken}`,
+                "User-Agent": "Devmeet-App",
+            },
+        });
+
+        if (!userRes.ok) {
+            throw new ApiError(401, "Failed to fetch user profile from GitHub");
+        }
+
+        const ghUser = await userRes.json();
+
+        // Fetch primary verified email from GitHub if email is not public
+        let email = ghUser.email;
+        if (!email) {
+            const emailsRes = await fetch("https://api.github.com/user/emails", {
+                headers: {
+                    Authorization: `Bearer ${githubAccessToken}`,
+                    "User-Agent": "Devmeet-App",
+                },
+            });
+
+            if (emailsRes.ok) {
+                const emails = await emailsRes.json();
+                const primaryEmailObj = emails.find(e => e.primary && e.verified) || emails.find(e => e.verified) || emails[0];
+                if (primaryEmailObj) {
+                    email = primaryEmailObj.email;
+                }
+            }
+        }
+
+        const githubId = String(ghUser.id);
+        const emailLower = (email || `${ghUser.login}@github.devmeet`).toLowerCase();
+        const fullName = ghUser.name || ghUser.login || "GitHub User";
+        const avatar = ghUser.avatar_url;
+
+        // Check if user already exists
+        let user = await User.findOne({
+            $or: [
+                { githubId },
+                { email: emailLower }
+            ]
+        });
+
+        if (user) {
+            let updated = false;
+            if (!user.githubId) {
+                user.githubId = githubId;
+                user.authProvider = "github";
+                updated = true;
+            }
+            if (!user.avatar && avatar) {
+                user.avatar = avatar;
+                updated = true;
+            }
+            if (updated) {
+                await user.save({ validateBeforeSave: false });
+            }
+        } else {
+            // Generate clean unique username
+            const rawUsername = (ghUser.login || emailLower.split("@")[0])
+                .toLowerCase()
+                .replace(/[^a-z0-9_]/g, "_")
+                .slice(0, 20);
+
+            let username = rawUsername.length >= 3 ? rawUsername : `user_${Math.floor(1000 + Math.random() * 9000)}`;
+            let attempts = 0;
+            while (await User.findOne({ username }) && attempts < 10) {
+                username = `${rawUsername.slice(0, 15)}_${Math.floor(1000 + Math.random() * 9000)}`;
+                attempts++;
+            }
+
+            user = await User.create({
+                username,
+                fullName,
+                email: emailLower,
+                avatar: avatar || `https://api.dicebear.com/7.x/dylan/svg?seed=${encodeURIComponent(username)}`,
+                githubId,
+                authProvider: "github",
+                accountType: "individual",
+                isOnboarded: false
+            });
+        }
+
+        const { accessToken, refreshToken } = await this.generateAccessAndRefreshTokens(user._id);
+        const loggedInUser = await User.findById(user._id)
+            .populate("organizations", "name slug")
+            .select("-password -refreshToken");
+
+        if (loggedInUser) return { accessToken, refreshToken, loggedInUser };
+        else return null;
+    }
+
     static async logoutUser(userId) {
         await User.findByIdAndUpdate(userId,
             { $unset: { refreshToken: 1 } },

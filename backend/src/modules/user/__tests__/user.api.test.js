@@ -286,7 +286,66 @@ describe("User & Authentication API Automation Tests", () => {
     });
 
     // ==========================================
-    // 4. REFRESH TOKEN TESTS (/refresh-token)
+    // 4. GITHUB LOGIN TESTS (/github-login)
+    // ==========================================
+    describe("POST /api/v1/users/github-login", () => {
+        it("should reject request if GitHub code is missing", async () => {
+            const res = await request(app)
+                .post("/api/v1/users/github-login")
+                .send({});
+
+            expect(res.status).toBe(400);
+            expect(res.body.success).toBe(false);
+            expect(res.body.message).toMatch(/GitHub authorization code is required/i);
+        });
+
+        it("should login user successfully with valid GitHub code and return cookies & tokens", async () => {
+            const githubUser = {
+                ...mockUser,
+                authProvider: "github",
+                githubId: "98765432"
+            };
+
+            jest.spyOn(UserService, "githubLogin").mockResolvedValue({
+                accessToken: mockAccessToken,
+                refreshToken: mockRefreshToken,
+                loggedInUser: githubUser
+            });
+
+            const res = await request(app)
+                .post("/api/v1/users/github-login")
+                .send({ code: "valid-github-oauth-code-123" });
+
+            expect(res.status).toBe(200);
+            expect(res.body.success).toBe(true);
+            expect(res.body.data.accessToken).toBe(mockAccessToken);
+            expect(res.body.data.refreshToken).toBe(mockRefreshToken);
+            expect(res.body.data.user.email).toBe(githubUser.email);
+            expect(res.body.data.user.authProvider).toBe("github");
+
+            // Verify cookies
+            const cookies = res.headers["set-cookie"];
+            expect(cookies).toBeDefined();
+            expect(cookies.some((c) => c.includes("accessToken="))).toBe(true);
+        });
+
+        it("should return 401 if GitHub code exchange fails", async () => {
+            jest.spyOn(UserService, "githubLogin").mockRejectedValue(
+                new ApiError(401, "GitHub authentication failed: bad_verification_code")
+            );
+
+            const res = await request(app)
+                .post("/api/v1/users/github-login")
+                .send({ code: "invalid-or-expired-code" });
+
+            expect(res.status).toBe(401);
+            expect(res.body.success).toBe(false);
+            expect(res.body.message).toMatch(/GitHub authentication failed/i);
+        });
+    });
+
+    // ==========================================
+    // 5. REFRESH TOKEN TESTS (/refresh-token)
     // ==========================================
     describe("POST /api/v1/users/refresh-token", () => {
         it("should return 401 if refresh token is missing", async () => {

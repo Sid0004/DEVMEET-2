@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
     loginUser,
     googleLoginUser,
+    githubLoginUser,
     logoutUser,
     registerUser,
     getCurrentUser,
@@ -18,6 +19,7 @@ router.route("/register").post(registerUser);
 router.route("/refresh-token").post(refreshAccessToken);
 router.route("/login").post(loginUser);
 router.route("/google-login").post(googleLoginUser);
+router.route("/github-login").post(githubLoginUser);
 
 // Secured routes
 router.route("/logout").post(verifyJWT, logoutUser);

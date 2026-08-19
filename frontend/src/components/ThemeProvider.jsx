@@ -16,7 +16,11 @@ const emptySubscribe = () => () => {};
 export function ThemeProvider({ children }) {
   const [theme, setThemeState] = useState(() => {
     if (typeof window !== "undefined") {
-      return localStorage.getItem("devmeet-theme") || "light";
+      const saved = localStorage.getItem("devmeet-theme");
+      if (saved === "dark" || saved === "light") {
+        return saved;
+      }
+      return "light";
     }
     return "light";
   });
@@ -36,8 +40,6 @@ export function ThemeProvider({ children }) {
 
   // Apply theme & accent when state changes
   useEffect(() => {
-    if (!mounted) return;
-
     const root = document.documentElement;
 
     // Apply theme
