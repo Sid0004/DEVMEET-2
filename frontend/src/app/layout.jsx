@@ -1,39 +1,24 @@
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
 export const metadata = {
-  title: "Devmeet",
-  description: "Devmeet App",
+  title: "Devmeet - Technical Collaboration & Assessments",
+  description: "Real-time pair programming, WebRTC video calling, and AI-proctored technical assessments.",
 };
 
 import StoreProvider from "@/components/StoreProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 
 export default function RootLayout({ children }) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-    >
+    <html lang="en" suppressHydrationWarning>
       <head>
         {/* eslint-disable-next-line @next/next/google-font-display, @next/next/no-page-custom-font */}
         <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&display=block"
+          href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Material+Symbols+Outlined&display=swap"
         />
       </head>
-      <body>
+      <body className="antialiased">
         <StoreProvider>
           <ThemeProvider>
             {children}

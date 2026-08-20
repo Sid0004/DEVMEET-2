@@ -138,10 +138,9 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 });
 
 const updateProfile = asyncHandler(async (req, res) => {
-    const { fullName, username } = req.body;
     if (!req.user) throw new ApiError(401, "Unauthorized");
 
-    const updatedUser = await UserService.updateProfile(req.user._id, fullName, username, req.user.avatar);
+    const updatedUser = await UserService.updateProfile(req.user._id, req.body);
     return res.status(200).json(new ApiResponse(200, updatedUser, "Profile updated successfully"));
 });
 

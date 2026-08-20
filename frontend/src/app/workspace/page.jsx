@@ -196,7 +196,7 @@ const renderFileIcon = (fileName) => {
     fontWeight: 800,
     padding: "1px 4px",
     borderRadius: "3px",
-    fontFamily: "var(--font-geist-mono), monospace",
+    fontFamily: "var(--font-mono), monospace",
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
@@ -1927,7 +1927,7 @@ function WorkspaceContent() {
                     tabSize: editorTabSize,
                     lineNumbers: editorLineNumbers,
                     automaticLayout: true,
-                    fontFamily: "var(--font-geist-mono), monospace",
+                    fontFamily: "var(--font-mono), monospace",
                     cursorBlinking: "smooth",
                     padding: { top: 16 },
                   }}

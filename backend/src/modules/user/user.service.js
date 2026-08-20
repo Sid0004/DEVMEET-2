@@ -148,8 +148,13 @@ class UserService {
                 user.authProvider = "google";
                 updated = true;
             }
-            if (!user.avatar && avatar) {
-                user.avatar = avatar;
+            if (avatar) {
+                if (!user.avatar || user.avatar.includes("dicebear.com") || user.avatar.includes("ui-avatars.com")) {
+                    user.avatar = avatar;
+                    updated = true;
+                }
+            } else if (!user.avatar) {
+                user.avatar = `https://api.dicebear.com/7.x/dylan/svg?seed=${encodeURIComponent(user.username || user.fullName)}`;
                 updated = true;
             }
             if (updated) {
@@ -173,7 +178,7 @@ class UserService {
                 username,
                 fullName,
                 email,
-                avatar: avatar || `https://api.dicebear.com/7.x/dylan/svg?seed=${encodeURIComponent(username)}`,
+                avatar: avatar || `https://api.dicebear.com/7.x/dylan/svg?seed=${encodeURIComponent(username || fullName)}`,
                 googleId,
                 authProvider: "google",
                 accountType: "individual",
@@ -269,8 +274,13 @@ class UserService {
                 user.authProvider = "github";
                 updated = true;
             }
-            if (!user.avatar && avatar) {
-                user.avatar = avatar;
+            if (avatar) {
+                if (!user.avatar || user.avatar.includes("dicebear.com") || user.avatar.includes("ui-avatars.com")) {
+                    user.avatar = avatar;
+                    updated = true;
+                }
+            } else if (!user.avatar) {
+                user.avatar = `https://api.dicebear.com/7.x/dylan/svg?seed=${encodeURIComponent(user.username || user.fullName)}`;
                 updated = true;
             }
             if (updated) {
@@ -294,7 +304,7 @@ class UserService {
                 username,
                 fullName,
                 email: emailLower,
-                avatar: avatar || `https://api.dicebear.com/7.x/dylan/svg?seed=${encodeURIComponent(username)}`,
+                avatar: avatar || `https://api.dicebear.com/7.x/dylan/svg?seed=${encodeURIComponent(username || fullName)}`,
                 githubId,
                 authProvider: "github",
                 accountType: "individual",
@@ -342,7 +352,8 @@ class UserService {
         }
     }
 
-    static async updateProfile(userId, fullName, username, currentAvatar) {
+    static async updateProfile(userId, data = {}) {
+        const { fullName, username, profession, bio, githubUrl, linkedinUrl, avatar, preferences } = data;
         const updates = {};
         if (fullName !== undefined) {
             if (fullName.trim() === "") {
@@ -361,15 +372,31 @@ class UserService {
             }
             updates.username = cleanUsername;
         }
-        if (updates.fullName && currentAvatar && currentAvatar.startsWith("https://ui-avatars.com/")) {
-            updates.avatar = `https://api.dicebear.com/7.x/dylan/svg?seed=${encodeURIComponent(updates.fullName)}`;
+        if (profession !== undefined) {
+            const allowed = ['Student', 'Employee', 'Freelancer', 'Other'];
+            updates.profession = allowed.includes(profession) ? profession : 'Other';
+        }
+        if (bio !== undefined) {
+            updates.bio = bio.trim().slice(0, 300);
+        }
+        if (githubUrl !== undefined) {
+            updates.githubUrl = githubUrl.trim();
+        }
+        if (linkedinUrl !== undefined) {
+            updates.linkedinUrl = linkedinUrl.trim();
+        }
+        if (avatar !== undefined && avatar.trim()) {
+            updates.avatar = avatar.trim();
+        }
+        if (preferences !== undefined && typeof preferences === "object") {
+            updates.preferences = preferences;
         }
 
         const updatedUser = await User.findByIdAndUpdate(userId, {
             $set: updates
         }, {
             new: true
-        }).select("-password -refreshToken");
+        }).populate("organizations", "name slug").select("-password -refreshToken");
 
         return updatedUser;
     }

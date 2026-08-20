@@ -85,6 +85,34 @@ const userSchema = new Schema({
         enum: ["local", "google", "github"],
         default: "local"
     },
+    bio: {
+        type: String,
+        default: ""
+    },
+    githubUrl: {
+        type: String,
+        default: ""
+    },
+    linkedinUrl: {
+        type: String,
+        default: ""
+    },
+    preferences: {
+        type: Object,
+        default: {
+            defaultLanguage: "javascript",
+            editorKeybinding: "standard",
+            editorFontSize: 14,
+            editorTabSize: 2,
+            wordWrap: true,
+            aiCopilot: true,
+            noiseSuppression: true,
+            autoMuteOnJoin: false,
+            videoMirror: true,
+            chatChimes: true,
+            emailNotifications: true,
+        }
+    },
     refreshToken: {
         type: String
     },
