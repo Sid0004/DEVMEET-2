@@ -60,11 +60,13 @@ export async function apiRequest(path, options = {}, retries = 2) {
     typeof window !== "undefined"
       ? window.location.pathname.replace(/\/$/, "")
       : "";
-  const isGuestRoute =
-    cleanPath === "/login" ||
-    cleanPath === "/signup" ||
-    cleanPath === "" ||
-    cleanPath === "/";
+
+  const isProtectedRoute =
+    cleanPath.startsWith("/dashboard") ||
+    cleanPath.startsWith("/workspace") ||
+    cleanPath.startsWith("/onboarding");
+
+  const isAuthCheck = path === "/api/v1/users/current-user";
 
   if (
     response.status === 401 &&
@@ -72,7 +74,6 @@ export async function apiRequest(path, options = {}, retries = 2) {
     path !== "/api/v1/users/refresh-token" &&
     path !== "/api/v1/users/register" &&
     path !== "/api/v1/users/logout" &&
-    !isGuestRoute &&
     !isRedirecting
   ) {
     const success = await refreshAccessToken();
@@ -95,11 +96,11 @@ export async function apiRequest(path, options = {}, retries = 2) {
       }
       return retryData;
     } else {
-      if (typeof window !== "undefined" && !isRedirecting) {
+      if (typeof window !== "undefined" && isProtectedRoute && !isAuthCheck && !isRedirecting) {
         isRedirecting = true;
         window.location.href = "/login";
       }
-      throw new Error("Session expired. Please log in again.");
+      throw new Error("Session expired or not logged in.");
     }
   }
 

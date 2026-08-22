@@ -9,6 +9,7 @@ export default function RoomsPage() {
   const router = useRouter();
   
   const [history, setHistory] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -37,6 +38,16 @@ export default function RoomsPage() {
     }
   };
 
+  const filteredHistory = history.filter((room) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      (room.roomName || "").toLowerCase().includes(q) ||
+      (room.roomId || "").toLowerCase().includes(q) ||
+      (room.primaryLanguage || "").toLowerCase().includes(q)
+    );
+  });
+
   return (
     <div className="p-8 max-w-6xl mx-auto text-white">
       {/* Header */}
@@ -54,13 +65,12 @@ export default function RoomsPage() {
             <Search className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search workspaces..."
               className="bg-[#111] border border-white/10 rounded-lg pl-9 pr-4 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50 w-64 transition-colors"
             />
           </div>
-          <button className="p-2 bg-[#111] border border-white/10 rounded-lg hover:bg-white/5 transition-colors">
-            <Filter className="w-4 h-4 text-gray-400" />
-          </button>
         </div>
       </div>
 
@@ -68,17 +78,21 @@ export default function RoomsPage() {
         <div className="flex items-center justify-center p-12 text-gray-500 font-light">
           Loading workspaces...
         </div>
-      ) : history.length === 0 ? (
+      ) : filteredHistory.length === 0 ? (
         <div className="flex flex-col items-center justify-center p-16 bg-[#111] border border-white/5 rounded-2xl">
           <FolderCode className="w-12 h-12 text-gray-600 mb-4" />
-          <h3 className="text-lg font-medium mb-1">No workspaces found</h3>
+          <h3 className="text-lg font-medium mb-1">
+            {searchQuery ? "No matching workspaces" : "No workspaces found"}
+          </h3>
           <p className="text-gray-500 font-light text-sm">
-            Create an instant room from the Overview page to get started.
+            {searchQuery
+              ? "Try adjusting your search terms."
+              : "Create an instant room from the Overview page to get started."}
           </p>
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          {history.map((room) => (
+          {filteredHistory.map((room) => (
             <div
               key={room._id}
               className="group flex items-center justify-between p-5 bg-[#111] border border-white/5 rounded-xl hover:border-blue-500/50 hover:bg-[#161616] transition-all"
