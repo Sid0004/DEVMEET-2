@@ -20,9 +20,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { SquigglyText } from "@/components/ui/squiggly-text";
 
+import LegalModal from "@/components/LegalModal";
+
 export function SignupForm({ className, ...props }) {
   const router = useRouter();
   const dispatch = useAppDispatch();
+  const [legalModal, setLegalModal] = useState({ isOpen: false, tab: 'privacy' });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [accountType, setAccountType] = useState("individual"); // 'individual' | 'organization'
@@ -373,9 +376,30 @@ export function SignupForm({ className, ...props }) {
         </div>
       </form>
       <FieldDescription className="px-4 text-center text-[11px] text-neutral-400 dark:text-neutral-500">
-        By clicking continue, you agree to our <a href="#" className="underline hover:text-neutral-900 dark:hover:text-white">Terms of Service</a>{" "}
-        and <a href="#" className="underline hover:text-neutral-900 dark:hover:text-white">Privacy Policy</a>.
+        By clicking continue, you agree to our{" "}
+        <button
+          type="button"
+          onClick={() => setLegalModal({ isOpen: true, tab: 'terms' })}
+          className="underline hover:text-neutral-900 dark:hover:text-white cursor-pointer"
+        >
+          Terms of Service
+        </button>{" "}
+        and{" "}
+        <button
+          type="button"
+          onClick={() => setLegalModal({ isOpen: true, tab: 'privacy' })}
+          className="underline hover:text-neutral-900 dark:hover:text-white cursor-pointer"
+        >
+          Privacy Policy
+        </button>.
       </FieldDescription>
+
+      {/* Interactive In-App Legal Modal */}
+      <LegalModal
+        isOpen={legalModal.isOpen}
+        initialTab={legalModal.tab}
+        onClose={() => setLegalModal(prev => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 }

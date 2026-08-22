@@ -82,7 +82,7 @@ export default function ProfileSection({
 
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-mono uppercase text-neutral-600 dark:text-neutral-400">
-              Email Address (Fixed)
+              Email Address 
             </label>
             <input
               type="email"
@@ -133,7 +133,7 @@ export default function ProfileSection({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-neutral-200 dark:border-neutral-800">
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-mono uppercase text-neutral-600 dark:text-neutral-400 flex items-center gap-1.5">
-              <GithubIcon className="w-3.5 h-3.5" /> GitHub Profile
+              <GithubIcon className="w-3.5 h-3.5" /> GitHub
             </label>
             <input
               type="text"
@@ -149,7 +149,7 @@ export default function ProfileSection({
 
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-mono uppercase text-neutral-600 dark:text-neutral-400 flex items-center gap-1.5">
-              <LinkedinIcon className="w-3.5 h-3.5" /> LinkedIn Profile
+              <LinkedinIcon className="w-3.5 h-3.5" /> LinkedIn
             </label>
             <input
               type="text"

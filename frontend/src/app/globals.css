@@ -376,3 +376,72 @@ html.lenis body {
 .animate-wobble {
   animation: wobble 0.5s ease-in-out;
 }
+
+/* =========================================================
+   DEVMEET LANDING PAGE THEME SCOPE
+   Preserves crisp light mode & high contrast on the landing page
+   regardless of the global dashboard dark mode state.
+   ========================================================= */
+.devmeet-app {
+  --color-canvas-default: #ffffff;
+  --color-canvas-subtle: #f6f8fa;
+  --color-canvas-inset: #0d1117;
+  --color-surface: #ffffff;
+  --color-background: #ffffff;
+
+  --color-fg-default: #1f2328;
+  --color-fg-muted: #656d76;
+  --color-fg-subtle: #8c959f;
+  --color-fg-on-emphasis: #ffffff;
+  --color-on-surface: #1f2328;
+  --color-on-surface-variant: #656d76;
+
+  --color-border-default: #d0d7de;
+  --color-border-subtle: #eaeef2;
+  --color-border-muted: #afb8c1;
+
+  --color-accent-primary: #1877F2;
+  --color-accent-hover: #0d65d9;
+  --color-accent-subtle: rgba(24, 119, 242, 0.12);
+
+  --background: #ffffff;
+  --foreground: #1f2328;
+
+  background-color: #ffffff !important;
+  color: #1f2328 !important;
+}
+
+.devmeet-app .navbar-sticky {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-bottom: 1px solid #d0d7de !important;
+}
+
+.devmeet-app .devmeet-brand-block span {
+  color: #1f2328 !important;
+}
+
+.devmeet-app .devmeet-nav-link {
+  color: #1f2328 !important;
+}
+
+.devmeet-app .devmeet-nav-link span {
+  color: #1f2328 !important;
+}
+
+.devmeet-app .devmeet-signin-link {
+  color: #1f2328 !important;
+}
+
+.devmeet-app .devmeet-signin-link span {
+  color: #1f2328 !important;
+}
+
+.devmeet-app .section-title {
+  color: #1f2328 !important;
+}
+
+.devmeet-app h1, 
+.devmeet-app h2, 
+.devmeet-app h3 {
+  color: inherit;
+}
