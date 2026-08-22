@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { Check, ChevronDown, ChevronUp, ArrowUpRight, ShieldCheck, Zap } from 'lucide-react';
 
 export default function Tickets() {
@@ -112,13 +113,13 @@ export default function Tickets() {
               </div>
             </div>
 
-            <a
-              href="#demo"
+            <Link
+              href="/login"
               className={focusedPlan === 'free' ? 'btn-primary-green' : 'btn-secondary'}
-              style={{ width: '100%', justifyContent: 'center', padding: '12px' }}
+              style={{ width: '100%', justifyContent: 'center', padding: '12px', textDecoration: 'none' }}
             >
               Start Free Room <ArrowUpRight size={16} />
-            </a>
+            </Link>
           </div>
 
           {/* Pro Interviewer Tier (Featured) */}
@@ -206,13 +207,13 @@ export default function Tickets() {
               </div>
             </div>
 
-            <a
-              href="#demo"
+            <Link
+              href="/login"
               className={focusedPlan === 'pro' ? 'btn-primary-green' : 'btn-secondary'}
-              style={{ width: '100%', justifyContent: 'center', padding: '12px' }}
+              style={{ width: '100%', justifyContent: 'center', padding: '12px', textDecoration: 'none' }}
             >
               Start 14-Day Pro Trial <ArrowUpRight size={16} />
-            </a>
+            </Link>
           </div>
 
           {/* Enterprise Security Tier */}

@@ -35,7 +35,7 @@ export default function CommunityVoting() {
     <section id="community-voting" className="gridline-horizontal" style={{ padding: '80px 0', backgroundColor: 'var(--color-canvas-subtle)' }}>
       <div className="container">
         <div style={{ maxWidth: '800px', marginBottom: '40px' }}>
-          <span className="section-tag">// community-driven lineup</span>
+          <span className="section-tag">{'// community-driven lineup'}</span>
           <h2 className="section-title" style={{ marginBottom: '16px' }}>
             vote-for-talks/
           </h2>

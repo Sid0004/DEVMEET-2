@@ -296,20 +296,34 @@ class BlockScene {
     }
 
     start() {
+        if (this.disposed) return;
         this.lastT = performance.now();
+        this.step();
+        if (this.frameId) return;
         const loop = () => {
-            this.frameId = requestAnimationFrame(loop);
+            if (this.disposed) return;
             this.step();
+            this.frameId = requestAnimationFrame(loop);
         };
-        loop();
+        this.frameId = requestAnimationFrame(loop);
+    }
+
+    stop() {
+        if (this.frameId) {
+            cancelAnimationFrame(this.frameId);
+            this.frameId = 0;
+        }
     }
 
     setSize(width, height) {
-        if (this.disposed || width <= 0 || height <= 0) return;
-        this.width = width;
-        this.height = height;
-        this.renderer.setSize(width, height, false);
+        if (this.disposed) return;
+        const w = width > 0 ? width : (this.container?.clientWidth || this.container?.offsetWidth || 400);
+        const h = height > 0 ? height : (this.container?.clientHeight || this.container?.offsetHeight || 500);
+        this.width = w;
+        this.height = h;
+        this.renderer.setSize(w, h, false);
         this.updateCamera();
+        this.step();
     }
 
     updateConfig(cfg) {
@@ -335,6 +349,7 @@ class BlockScene {
         u.uEdge.value.set(cfg.edge || "#242424");
 
         this.updateCamera();
+        this.step();
     }
 
     resolveGrid(S, aspect, fov) {
@@ -345,8 +360,8 @@ class BlockScene {
     }
 
     updateCamera() {
-        const w = Math.max(1, this.width);
-        const h = Math.max(1, this.height);
+        const w = Math.max(1, this.width || 400);
+        const h = Math.max(1, this.height || 500);
         const aspect = w / h;
         const S = settingsFor(this.cfg);
         const fov = aspect < 1 ? 78 : 62;
@@ -376,9 +391,9 @@ class BlockScene {
     step() {
         if (this.disposed) return;
         const now = performance.now();
-        let dt = (now - this.lastT) / 1000;
+        let dt = this.lastT > 0 ? (now - this.lastT) / 1000 : 0.016;
         this.lastT = now;
-        if (!isFinite(dt) || dt < 0) dt = 0;
+        if (!isFinite(dt) || dt < 0) dt = 0.016;
         if (dt > 0.05) dt = 0.05;
 
         const S = settingsFor(this.cfg);
@@ -411,7 +426,7 @@ class BlockScene {
 
     dispose() {
         this.disposed = true;
-        cancelAnimationFrame(this.frameId);
+        this.stop();
         if (this.textMesh) {
             if (this.textMesh.material.map) this.textMesh.material.map.dispose();
             this.textMesh.material.dispose();
@@ -422,7 +437,9 @@ class BlockScene {
         this.material.dispose();
         this.renderer.dispose();
         const el = this.renderer.domElement;
-        if (el.parentNode === this.container) this.container.removeChild(el);
+        if (el && el.parentNode === this.container) {
+            this.container.removeChild(el);
+        }
     }
 }
 
@@ -453,8 +470,7 @@ export default function BlockDrift(props) {
     const containerRef = useRef(null);
     const sceneRef = useRef(null);
 
-    const cfgRef = useRef(null);
-    cfgRef.current = {
+    const cfg = {
         near,
         far,
         edge,
@@ -481,19 +497,66 @@ export default function BlockDrift(props) {
         if (!container) return;
         let scene;
         try {
-            scene = new BlockScene(container, cfgRef.current);
+            scene = new BlockScene(container, cfg);
         } catch {
             return;
         }
         sceneRef.current = scene;
-        scene.setSize(container.clientWidth, container.clientHeight);
+        const initialWidth = container.clientWidth || container.offsetWidth || 400;
+        const initialHeight = container.clientHeight || container.offsetHeight || 500;
+        scene.setSize(initialWidth, initialHeight);
         scene.start();
 
+        const updateSize = () => {
+            if (container && sceneRef.current) {
+                sceneRef.current.setSize(
+                    container.clientWidth || container.offsetWidth,
+                    container.clientHeight || container.offsetHeight
+                );
+            }
+        };
+
         const ro = new ResizeObserver(() => {
-            scene.setSize(container.clientWidth, container.clientHeight);
+            updateSize();
         });
         ro.observe(container);
+
+        const rafInit = requestAnimationFrame(updateSize);
+        const timerInit = setTimeout(updateSize, 80);
+
+        const handleResume = () => {
+            if (!document.hidden && sceneRef.current) {
+                updateSize();
+                sceneRef.current.start();
+            }
+        };
+
+        const handleVisibility = () => {
+            if (document.hidden) {
+                sceneRef.current?.stop();
+            } else {
+                handleResume();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibility);
+        window.addEventListener('pageshow', handleResume);
+        window.addEventListener('popstate', handleResume);
+        window.addEventListener('focus', handleResume);
+        window.addEventListener('touchstart', handleResume, { passive: true });
+        window.addEventListener('pointermove', handleResume, { passive: true });
+        window.addEventListener('wheel', handleResume, { passive: true });
+
         return () => {
+            cancelAnimationFrame(rafInit);
+            clearTimeout(timerInit);
+            document.removeEventListener('visibilitychange', handleVisibility);
+            window.removeEventListener('pageshow', handleResume);
+            window.removeEventListener('popstate', handleResume);
+            window.removeEventListener('focus', handleResume);
+            window.removeEventListener('touchstart', handleResume);
+            window.removeEventListener('pointermove', handleResume);
+            window.removeEventListener('wheel', handleResume);
             ro.disconnect();
             scene.dispose();
             sceneRef.current = null;
@@ -501,7 +564,7 @@ export default function BlockDrift(props) {
     }, []);
 
     useEffect(() => {
-        sceneRef.current?.updateConfig(cfgRef.current);
+        sceneRef.current?.updateConfig(cfg);
     }, [
         near,
         far,

@@ -1,17 +1,20 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import LegalModal from '@/components/LegalModal';
 
 export default function PrivacyNotice() {
   const [isVisible, setIsVisible] = useState(false);
   const [showManage, setShowManage] = useState(false);
   const [analyticsEnabled, setAnalyticsEnabled] = useState(true);
+  const [legalModalOpen, setLegalModalOpen] = useState(false);
 
   useEffect(() => {
     try {
       const consent = localStorage.getItem('devmeet_cookie_consent');
       if (!consent) {
-        setIsVisible(true);
+        const timer = setTimeout(() => setIsVisible(true), 100);
+        return () => clearTimeout(timer);
       }
     } catch (e) {
       console.warn(e);
@@ -92,16 +95,23 @@ export default function PrivacyNotice() {
             }}
           >
             We use cookies and similar technologies to help personalize content, tailor and measure performance, and provide a better experience.{' '}
-            <a
-              href="#privacy"
+            <button
+              type="button"
+              onClick={() => setLegalModalOpen(true)}
               style={{
                 color: '#0969da',
                 textDecoration: 'underline',
-                fontWeight: 500
+                fontWeight: 500,
+                background: 'none',
+                border: 'none',
+                padding: 0,
+                font: 'inherit',
+                cursor: 'pointer',
+                display: 'inline'
               }}
             >
               Privacy Policy
-            </a>
+            </button>
             .
           </p>
         </div>
@@ -112,77 +122,77 @@ export default function PrivacyNotice() {
               backgroundColor: '#f6f8fa',
               border: '1px solid #d0d7de',
               borderRadius: '6px',
-              padding: '12px 14px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '10px'
+              padding: '12px',
+              marginBottom: '16px',
+              fontSize: '12px',
+              color: '#1f2328'
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
               <div>
-                <span style={{ fontSize: '13px', fontWeight: 600, color: '#1f2328' }}>Strictly Necessary</span>
-                <p style={{ fontSize: '12px', color: '#656d76', margin: '2px 0 0 0' }}>Required for session & security.</p>
+                <span style={{ fontWeight: 600 }}>Essential Cookies</span>
+                <span style={{ color: '#656d76', display: 'block', fontSize: '11px' }}>Required for authentication and system security.</span>
               </div>
-              <span style={{ fontSize: '12px', fontWeight: 600, color: '#1f2328' }}>Always Active</span>
+              <span style={{ fontSize: '11px', color: '#656d76', fontStyle: 'italic' }}>Always Active</span>
             </div>
 
-            <div style={{ borderTop: '1px solid #d0d7de', paddingTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '8px', borderTop: '1px solid #e1e4e8' }}>
               <div>
-                <span style={{ fontSize: '13px', fontWeight: 600, color: '#1f2328' }}>Analytics & Performance</span>
-                <p style={{ fontSize: '12px', color: '#656d76', margin: '2px 0 0 0' }}>Helps us improve platform reliability.</p>
+                <span style={{ fontWeight: 600 }}>Analytics &amp; Performance</span>
+                <span style={{ color: '#656d76', display: 'block', fontSize: '11px' }}>Helps us measure latency and room reliability.</span>
               </div>
               <input
                 type="checkbox"
                 checked={analyticsEnabled}
                 onChange={(e) => setAnalyticsEnabled(e.target.checked)}
-                style={{ width: '16px', height: '16px', accentColor: '#1f2328', cursor: 'pointer' }}
+                style={{ cursor: 'pointer', accentColor: '#0969da' }}
               />
             </div>
           </div>
         )}
 
+        {/* Buttons Action Row */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '10px',
-            paddingTop: '4px'
+            gap: '8px',
+            flexWrap: 'wrap'
           }}
         >
           <button
             onClick={() => setShowManage(!showManage)}
             style={{
-              fontSize: '13px',
-              color: '#656d76',
-              textDecoration: 'underline',
-              cursor: 'pointer',
-              background: 'none',
+              backgroundColor: 'transparent',
               border: 'none',
-              padding: 0,
-              fontFamily: 'inherit'
+              color: '#0969da',
+              fontSize: '12px',
+              fontWeight: 500,
+              cursor: 'pointer',
+              padding: '4px 0',
+              textDecoration: 'underline'
             }}
           >
-            {showManage ? 'Hide settings' : 'Manage cookies'}
+            {showManage ? 'Hide details' : 'Manage cookies'}
           </button>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
+          <div style={{ display: 'flex', gap: '8px' }}>
             <button
-              onClick={showManage ? handleSaveCustom : handleReject}
+              onClick={showManage ? handleSaveCustom : handleRejectNonEssential}
               style={{
-                backgroundColor: '#ffffff',
+                backgroundColor: '#f6f8fa',
                 border: '1px solid #d0d7de',
                 color: '#1f2328',
                 fontSize: '13px',
                 fontWeight: 600,
-                padding: '6px 14px',
+                padding: '6px 12px',
                 borderRadius: '6px',
                 cursor: 'pointer',
                 transition: 'background-color 0.15s ease'
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f6f8fa')}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#ffffff')}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#eaeef2')}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#f6f8fa')}
             >
               {showManage ? 'Save preferences' : 'Reject non-essential'}
             </button>
@@ -208,6 +218,13 @@ export default function PrivacyNotice() {
           </div>
         </div>
       </div>
+
+      {/* Embedded In-App Privacy & Legal Modal */}
+      <LegalModal
+        isOpen={legalModalOpen}
+        initialTab="privacy"
+        onClose={() => setLegalModalOpen(false)}
+      />
     </div>
   );
 }

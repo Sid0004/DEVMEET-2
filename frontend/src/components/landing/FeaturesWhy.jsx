@@ -371,7 +371,7 @@ export default function FeaturesWhy() {
                     margin: 0
                   }}
                 >
-                  Eliminate cheating guesswork with privacy-first on-device computer vision models running locally in the candidate's browser.
+                  Eliminate cheating guesswork with privacy-first on-device computer vision models running locally in the candidate&apos;s browser.
                 </p>
 
                 <ul style={{ listStyle: 'none', padding: 0, margin: '8px 0 0', borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: '12px' }}>

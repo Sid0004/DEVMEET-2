@@ -41,7 +41,7 @@ export default function Pillars() {
               for one session?
             </h2>
             <p style={{ fontSize: '17px', color: 'var(--color-fg-muted)', lineHeight: 1.6 }}>
-              Today's remote development and technical hiring are broken by disconnected apps, manual evaluation fatigue, and cheating guesswork.
+              Today&apos;s remote development and technical hiring are broken by disconnected apps, manual evaluation fatigue, and cheating guesswork.
             </p>
           </div>
 
@@ -79,7 +79,7 @@ export default function Pillars() {
                   Juggling 4 Separate Apps
                 </h3>
                 <p style={{ fontFamily: 'var(--font-default)', fontSize: '14px', color: 'var(--color-fg-muted)', lineHeight: 1.6, margin: 0 }}>
-                  Google Meet/Zoom for video, VS Code Live Share for editing, Slack for chat, and Docker for runtime. Constant "can you see my screen?", laggy screen shares, and permission nightmares.
+                  Google Meet/Zoom for video, VS Code Live Share for editing, Slack for chat, and Docker for runtime. Constant &quot;can you see my screen?&quot;, laggy screen shares, and permission nightmares.
                 </p>
               </div>
             </div>

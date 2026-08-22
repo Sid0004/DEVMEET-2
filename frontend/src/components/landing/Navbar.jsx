@@ -33,15 +33,28 @@ export default function Navbar() {
 
   const navItems = [
     { label: 'Platform', href: '#river' },
-    { label: 'Interactive Demo', href: '#demo' },
-    { label: 'AI Proctoring', href: '#security' },
     { label: 'Use Cases', href: '#use-cases' },
+    { label: 'AI Proctoring', href: '#security' },
     { label: 'Pricing', href: '#pricing' },
-    { label: 'Docs', href: '#videos' }
+    { label: 'Get Started', href: '#cta' }
   ];
 
   return (
-    <header className={`navbar-sticky ${isScrolled ? 'shadow-sm' : ''}`} style={{ width: '100%', height: '70px', padding: 0 }}>
+    <header
+      className={`navbar-sticky ${isScrolled ? 'shadow-sm' : ''}`}
+      style={{
+        width: '100%',
+        height: '70px',
+        padding: 0,
+        backgroundColor: 'rgba(255, 255, 255, 0.98)',
+        borderBottom: '1px solid #d0d7de',
+        position: 'sticky',
+        top: 0,
+        zIndex: 100,
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+      }}
+    >
       <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', padding: 0 }}>
         {/* Left: DEVMEET Brand Logo */}
         <Link
@@ -53,7 +66,7 @@ export default function Navbar() {
             alignItems: 'center',
             height: '100%',
             padding: '0 28px',
-            borderRight: '1px solid var(--color-border-default)',
+            borderRight: '1px solid #d0d7de',
             gap: '12px',
             textDecoration: 'none',
             flexShrink: 0
@@ -65,7 +78,7 @@ export default function Navbar() {
             style={{ height: '36px', width: 'auto', display: 'block', objectFit: 'contain', borderRadius: '50%' }}
           />
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '2px' }}>
-            <span style={{ fontFamily: 'var(--font-default)', fontWeight: 800, fontSize: '20px', letterSpacing: '-0.035em', color: 'var(--color-fg-default)' }}>
+            <span style={{ fontFamily: 'var(--font-default)', fontWeight: 800, fontSize: '20px', letterSpacing: '-0.035em', color: '#1f2328' }}>
               DEVMEET
             </span>
           </div>
@@ -95,14 +108,13 @@ export default function Navbar() {
             <User size={16} />
           </Link>
 
-          <a
-            href="#demo"
-            onClick={(e) => handleNavClick(e, '#demo')}
+          <Link
+            href="/login"
             className="devmeet-cta-block"
           >
             <span>Try Room</span>
             <ArrowUpRight size={17} />
-          </a>
+          </Link>
         </div>
 
         {/* Mobile Menu Toggle */}
@@ -113,8 +125,8 @@ export default function Navbar() {
           style={{
             padding: '0 20px',
             height: '100%',
-            color: 'var(--color-fg-default)',
-            borderLeft: '1px solid var(--color-border-default)',
+            color: '#1f2328',
+            borderLeft: '1px solid #d0d7de',
             background: 'transparent',
             marginLeft: 'auto'
           }}
@@ -127,8 +139,8 @@ export default function Navbar() {
       {mobileMenuOpen && (
         <div
           style={{
-            background: 'var(--color-canvas-default)',
-            borderTop: '1px solid var(--color-border-default)',
+            background: '#ffffff',
+            borderTop: '1px solid #d0d7de',
             padding: '16px 24px',
             display: 'flex',
             flexDirection: 'column',
@@ -147,8 +159,9 @@ export default function Navbar() {
                 fontFamily: 'var(--font-mono)',
                 fontSize: '16px',
                 fontWeight: 500,
+                color: '#1f2328',
                 padding: '10px 0',
-                borderBottom: '1px solid var(--color-border-subtle)'
+                borderBottom: '1px solid #eaeef2'
               }}
             >
               {item.label}
@@ -175,7 +188,7 @@ export default function Navbar() {
           transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .devmeet-brand-block:hover {
-          background-color: var(--color-canvas-subtle);
+          background-color: #f6f8fa !important;
         }
         .devmeet-nav-link {
           flex: 1;
@@ -187,8 +200,8 @@ export default function Navbar() {
           font-family: var(--font-mono);
           font-size: 14px;
           font-weight: 600;
-          color: var(--color-fg-default) !important;
-          border-right: 1px solid var(--color-border-default);
+          color: #1f2328 !important;
+          border-right: 1px solid #d0d7de;
           position: relative;
           text-decoration: none;
           background-color: transparent;
@@ -199,18 +212,18 @@ export default function Navbar() {
         }
         .devmeet-nav-link > span {
           display: inline-block;
-          color: var(--color-fg-default) !important;
+          color: #1f2328 !important;
           transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .devmeet-nav-link:hover {
           z-index: 10;
-          background-color: var(--color-canvas-subtle);
-          color: var(--color-fg-default) !important;
+          background-color: #f6f8fa !important;
+          color: #1f2328 !important;
           box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
         }
         .devmeet-nav-link:hover > span {
           transform: translateY(-1px);
-          color: var(--color-fg-default) !important;
+          color: #1f2328 !important;
         }
         .devmeet-nav-link::after {
           content: '';
@@ -219,7 +232,7 @@ export default function Navbar() {
           left: 0;
           right: 0;
           height: 3px;
-          background-color: var(--color-accent-primary);
+          background-color: #1877F2;
           box-shadow: 0 -1px 4px rgba(24, 119, 242, 0.35);
           transform: scaleX(0);
           transform-origin: center;
@@ -239,9 +252,9 @@ export default function Navbar() {
           font-family: var(--font-mono);
           font-size: 14px;
           font-weight: 600;
-          color: var(--color-fg-default) !important;
-          border-left: 1px solid var(--color-border-default);
-          border-right: 1px solid var(--color-border-default);
+          color: #1f2328 !important;
+          border-left: 1px solid #d0d7de;
+          border-right: 1px solid #d0d7de;
           text-decoration: none;
           background-color: transparent;
           transition: background-color 0.15s ease;
@@ -249,11 +262,11 @@ export default function Navbar() {
           white-space: nowrap;
         }
         .devmeet-signin-link > span {
-          color: var(--color-fg-default) !important;
+          color: #1f2328 !important;
         }
         .devmeet-signin-link:hover {
-          background-color: var(--color-canvas-subtle);
-          color: var(--color-fg-default) !important;
+          background-color: #f6f8fa !important;
+          color: #1f2328 !important;
         }
         .devmeet-signin-link::after {
           content: '';
@@ -262,7 +275,7 @@ export default function Navbar() {
           left: 0;
           right: 0;
           height: 3px;
-          background-color: var(--color-accent-primary);
+          background-color: #1877F2;
           box-shadow: 0 -1px 4px rgba(24, 119, 242, 0.35);
           transform: scaleX(0);
           transform-origin: center;
@@ -279,7 +292,7 @@ export default function Navbar() {
           gap: 8px;
           height: 100%;
           padding: 0 32px;
-          background-color: #0b0b0bff;
+          background-color: #0b0b0b;
           color: #ffffff !important;
           font-family: var(--font-mono);
           font-size: 14px;

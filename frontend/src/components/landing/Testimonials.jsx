@@ -148,7 +148,7 @@ export default function Testimonials() {
                   color: 'var(--color-fg-default)'
                 }}
               >
-                "{current.quote}"
+                &ldquo;{current.quote}&rdquo;
               </blockquote>
             </div>
 

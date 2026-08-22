@@ -43,7 +43,7 @@ export default function ConvinceBoss() {
               Proctoring &amp; Integrity
             </h2>
             <p style={{ fontSize: '16px', color: 'var(--color-fg-muted)', lineHeight: 1.6, marginBottom: '24px' }}>
-              Conduct high-integrity technical interviews with confidence. DEVMEET's on-device eye tracking, tab monitoring, and anti-cheat checks protect assessment authenticity while strictly respecting candidate privacy.
+              Conduct high-integrity technical interviews with confidence. DEVMEET&apos;s on-device eye tracking, tab monitoring, and anti-cheat checks protect assessment authenticity while strictly respecting candidate privacy.
             </p>
 
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>

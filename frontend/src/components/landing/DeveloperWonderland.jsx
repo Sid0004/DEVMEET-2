@@ -1,12 +1,15 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
+import Link from 'next/link';
 import { ArrowUpRight } from 'lucide-react';
 import DitherReveal from './DitherReveal';
+import LegalModal from '@/components/LegalModal';
 import roomImage from '@/assets/06b2c4c8c5431a0376cd4f9485f62899.jpg';
-import devmeetLogo from '@/assets/devmeet_logo.png';
 
 export default function DeveloperWonderland() {
+  const [legalModal, setLegalModal] = useState({ isOpen: false, tab: 'privacy' });
+
   return (
     <section
       id="cta"
@@ -91,8 +94,8 @@ export default function DeveloperWonderland() {
           </p>
         </div>
 
-        <a
-          href="#demo"
+        <Link
+          href="/login"
           className="btn-primary-green"
           style={{
             fontSize: '15px',
@@ -105,9 +108,9 @@ export default function DeveloperWonderland() {
             textDecoration: 'none'
           }}
         >
-          <span>Launch  Room</span>
+          <span>Launch Room</span>
           <ArrowUpRight size={17} />
-        </a>
+        </Link>
       </div>
 
       {/* 3. Column Footer — inside the section */}
@@ -232,24 +235,19 @@ export default function DeveloperWonderland() {
               }}>
                 Developers
               </span>
-              {['Docs', 'API Reference', '404 Drift', 'Status'].map(link => (
+              {['Docs', 'API Reference', 'Changelog', 'System Status'].map(link => (
                 <a key={link} 
-                  href={link === '404 Drift' ? '/404' : '#'}
-                  onClick={link === '404 Drift' ? (e) => {
-                    e.preventDefault();
-                    window.history.pushState({}, '', '/404');
-                    window.dispatchEvent(new PopStateEvent('popstate'));
-                  } : undefined}
+                  href="#"
                   style={{
                     fontFamily: 'var(--font-default)',
                     fontSize: '12px',
                     fontWeight: 400,
-                    color: link === '404 Drift' ? 'rgba(96, 165, 250, 0.7)' : 'rgba(255,255,255,0.45)',
+                    color: 'rgba(255,255,255,0.45)',
                     textDecoration: 'none',
                     transition: 'color 0.2s',
                   }}
-                  onMouseEnter={e => (e.currentTarget.style.color = link === '404 Drift' ? '#60a5fa' : '#ffffff')}
-                  onMouseLeave={e => (e.currentTarget.style.color = link === '404 Drift' ? 'rgba(96, 165, 250, 0.7)' : 'rgba(255,255,255,0.45)')}
+                  onMouseEnter={e => (e.currentTarget.style.color = '#ffffff')}
+                  onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.45)')}
                 >
                   {link}
                 </a>
@@ -269,22 +267,51 @@ export default function DeveloperWonderland() {
               }}>
                 Company
               </span>
-              {['About', 'Blog', 'Careers', 'Privacy', 'Terms'].map(link => (
-                <a key={link} href="#"
-                  style={{
-                    fontFamily: 'var(--font-default)',
-                    fontSize: '12px',
-                    fontWeight: 400,
-                    color: 'rgba(255,255,255,0.45)',
-                    textDecoration: 'none',
-                    transition: 'color 0.2s',
-                  }}
-                  onMouseEnter={e => (e.currentTarget.style.color = '#ffffff')}
-                  onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.45)')}
-                >
-                  {link}
-                </a>
-              ))}
+              {['About', 'Blog', 'Careers', 'Privacy', 'Terms'].map(link => {
+                if (link === 'Privacy' || link === 'Terms') {
+                  return (
+                    <button
+                      key={link}
+                      type="button"
+                      onClick={() => setLegalModal({ isOpen: true, tab: link === 'Privacy' ? 'privacy' : 'terms' })}
+                      style={{
+                        fontFamily: 'var(--font-default)',
+                        fontSize: '12px',
+                        fontWeight: 400,
+                        color: 'rgba(255,255,255,0.45)',
+                        background: 'none',
+                        border: 'none',
+                        padding: 0,
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        transition: 'color 0.2s',
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.color = '#ffffff')}
+                      onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.45)')}
+                    >
+                      {link}
+                    </button>
+                  );
+                }
+                return (
+                  <a
+                    key={link}
+                    href="#"
+                    style={{
+                      fontFamily: 'var(--font-default)',
+                      fontSize: '12px',
+                      fontWeight: 400,
+                      color: 'rgba(255,255,255,0.45)',
+                      textDecoration: 'none',
+                      transition: 'color 0.2s',
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.color = '#ffffff')}
+                    onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.45)')}
+                  >
+                    {link}
+                  </a>
+                );
+              })}
             </div>
 
           </div>
@@ -319,7 +346,12 @@ export default function DeveloperWonderland() {
         </div>
       </div>
 
-     
+      {/* Embedded In-App Legal Modal */}
+      <LegalModal
+        isOpen={legalModal.isOpen}
+        initialTab={legalModal.tab}
+        onClose={() => setLegalModal(prev => ({ ...prev, isOpen: false }))}
+      />
     </section>
   );
 }

@@ -69,7 +69,6 @@ export default function Sidebar({ sidebarCollapsed, setSidebarCollapsed }) {
     { name: "Home", href: "/dashboard", icon: Home },
     { name: "Sessions", href: "/dashboard/rooms", icon: Folders },
     { name: "Collaborators", href: "/dashboard/teams", icon: Users },
-    { name: "Scheduled", href: "/dashboard/calendar", icon: Calendar },
     { name: "Settings", href: "/dashboard/settings", icon: Settings },
   ];
 

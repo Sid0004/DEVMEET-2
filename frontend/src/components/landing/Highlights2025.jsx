@@ -60,10 +60,10 @@ export default function Highlights2025() {
     <section id="videos" className="gridline-horizontal" style={{ padding: '80px 0', backgroundColor: 'var(--color-canvas-default)' }}>
       <div className="container">
         <div style={{ maxWidth: '800px', marginBottom: '40px' }}>
-          <span className="section-tag">// platform deep dive</span>
+          <span className="section-tag">{'// platform deep dive'}</span>
           <h2 className="section-title">product-tour/</h2>
           <p style={{ fontSize: '16px', color: 'var(--color-fg-muted)', marginTop: '8px' }}>
-            Explore the core architectural modules powering DEVMEET's real-time collaborative coding and proctoring engine.
+            Explore the core architectural modules powering DEVMEET&apos;s real-time collaborative coding and proctoring engine.
           </p>
         </div>
 

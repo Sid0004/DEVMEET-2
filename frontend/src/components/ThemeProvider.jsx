@@ -20,9 +20,9 @@ export function ThemeProvider({ children }) {
       if (saved === "dark" || saved === "light") {
         return saved;
       }
-      return "dark";
+      return "light";
     }
-    return "dark";
+    return "light";
   });
 
   const [accent, setAccentState] = useState(() => {

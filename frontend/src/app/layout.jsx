@@ -10,7 +10,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className="dark" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -18,8 +18,8 @@ export default function RootLayout({ children }) {
               (function() {
                 try {
                   var saved = localStorage.getItem('devmeet-theme');
-                  var theme = saved || 'dark';
-                  if (theme === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                  var theme = saved || 'light';
+                  if (theme === 'dark') {
                     document.documentElement.classList.add('dark');
                   } else {
                     document.documentElement.classList.remove('dark');

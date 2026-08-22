@@ -264,11 +264,33 @@ export default function AsciiImage(props) {
       ctx.drawImage(photo, 0, 0);
     }
 
+    let isIntersecting = true;
+    let isLooping = false;
+
+    function startLoop() {
+      if (isLooping || !alive || !isIntersecting || document.hidden || !reveal) return;
+      isLooping = true;
+      raf = requestAnimationFrame(loop);
+    }
+
+    function stopLoop() {
+      isLooping = false;
+      if (raf) {
+        cancelAnimationFrame(raf);
+        raf = 0;
+      }
+    }
+
     function loop() {
-      if (!alive) return;
+      if (!alive || !isLooping) return;
       updateBlobs();
       paint();
-      raf = requestAnimationFrame(loop);
+      if (pointer.current.inside) {
+        raf = requestAnimationFrame(loop);
+      } else {
+        stopLoop();
+        paint(); // Final clean static render
+      }
     }
 
     function onMove(event) {
@@ -277,12 +299,17 @@ export default function AsciiImage(props) {
       const y = event.clientY - rect.top;
       pointer.current.x = x;
       pointer.current.y = y;
-      pointer.current.inside =
-        x >= 0 && y >= 0 && x <= rect.width && y <= rect.height;
+      const inside = x >= 0 && y >= 0 && x <= rect.width && y <= rect.height;
+      pointer.current.inside = inside;
+      if (inside && reveal) {
+        startLoop();
+      }
     }
+
     function onLeave() {
       pointer.current.inside = false;
       seededRef.current = false;
+      paint();
     }
 
     const img = new Image();
@@ -292,24 +319,59 @@ export default function AsciiImage(props) {
       imgRef.current = img;
       buildAscii();
       paint();
-      if (reveal) raf = requestAnimationFrame(loop);
     };
     if (src) img.src = src;
 
     let ro = null;
     if (typeof ResizeObserver !== 'undefined') {
       ro = new ResizeObserver(() => {
+        if (!alive) return;
         buildAscii();
         paint();
       });
       ro.observe(canvas);
     }
+
+    const io = new IntersectionObserver(([entry]) => {
+      isIntersecting = entry.isIntersecting;
+      if (isIntersecting && pointer.current.inside) {
+        startLoop();
+      } else {
+        stopLoop();
+      }
+    }, { threshold: 0.05 });
+    io.observe(canvas);
+
+    const handleVisibility = () => {
+      if (document.hidden) {
+        stopLoop();
+      } else {
+        paint();
+        if (isIntersecting && pointer.current.inside) {
+          startLoop();
+        }
+      }
+    };
+
+    const handlePageShow = () => {
+      buildAscii();
+      paint();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('pageshow', handlePageShow);
+    window.addEventListener('popstate', handlePageShow);
+
     canvas.addEventListener('pointermove', onMove);
     canvas.addEventListener('pointerleave', onLeave);
 
     return () => {
       alive = false;
-      cancelAnimationFrame(raf);
+      stopLoop();
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('pageshow', handlePageShow);
+      window.removeEventListener('popstate', handlePageShow);
+      io.disconnect();
       ro?.disconnect();
       canvas.removeEventListener('pointermove', onMove);
       canvas.removeEventListener('pointerleave', onLeave);

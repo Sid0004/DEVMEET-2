@@ -28,7 +28,7 @@ export default function InteractiveSandbox() {
       <div className="container">
         {/* Section Heading */}
         <div style={{ maxWidth: '800px', marginBottom: '40px' }}>
-          <span className="section-tag">// live interactive room simulator</span>
+          <span className="section-tag">{'// live interactive room simulator'}</span>
           <h2 className="section-title">
             Test drive the DEVMEET experience
           </h2>
@@ -180,8 +180,8 @@ export default function InteractiveSandbox() {
             {/* Editor Area */}
             <div style={{ borderRight: '1px solid #30363d', padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: '13px', lineHeight: 1.7, color: '#c9d1d9' }}>
-                <div style={{ color: '#8b949e', marginBottom: '8px' }}>// DEVMEET Real-Time Multi-Cursor IDE</div>
-                <div><span style={{ color: '#ff7b72' }}>import</span> {'{'} useMemo, useCallback {'}'} <span style={{ color: '#ff7b72' }}>from</span> <span style={{ color: '#a5d6ff' }}>'react'</span>;</div>
+                <div style={{ color: '#8b949e', marginBottom: '8px' }}>{'// DEVMEET Real-Time Multi-Cursor IDE'}</div>
+                <div><span style={{ color: '#ff7b72' }}>import</span> {'{'} useMemo, useCallback {'}'} <span style={{ color: '#ff7b72' }}>from</span> <span style={{ color: '#a5d6ff' }}>&apos;react&apos;</span>;</div>
                 <br />
                 <div><span style={{ color: '#ff7b72' }}>export function</span> <span style={{ color: '#d2a8ff' }}>calculateOptimizedState</span>(items: <span style={{ color: '#79c0ff' }}>Item[]</span>) {'{'}</div>
                 <div style={{ paddingLeft: '20px' }}>
@@ -329,7 +329,7 @@ export default function InteractiveSandbox() {
                     <>
                       <strong>Code Analysis:</strong> Candidate implemented an optimal single-pass hash map algorithm (O(N) runtime, O(N) space).
                       <br /><br />
-                      <strong>Suggested Follow-up:</strong> <em>"Ask the candidate how this logic scales if the items array contains 100 million entries and does not fit in RAM."</em>
+                      <strong>Suggested Follow-up:</strong> <em>&ldquo;Ask the candidate how this logic scales if the items array contains 100 million entries and does not fit in RAM.&rdquo;</em>
                     </>
                   ) : (
                     <>

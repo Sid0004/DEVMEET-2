@@ -67,6 +67,7 @@ export default function PixelTetris({
   style = {}
 }) {
   const canvasRef = useRef(null);
+  const colorsKey = (colors ?? []).join(',');
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -353,9 +354,27 @@ export default function PixelTetris({
       }
     }
 
+    let isIntersecting = true;
+    let isLooping = false;
+
+    function startLoop() {
+      if (isLooping || !alive || !isIntersecting || document.hidden) return;
+      isLooping = true;
+      last = performance.now();
+      raf = requestAnimationFrame(loop);
+    }
+
+    function stopLoop() {
+      isLooping = false;
+      if (raf) {
+        cancelAnimationFrame(raf);
+        raf = 0;
+      }
+    }
+
     function loop(time) {
-      if (!alive) return;
-      const dt = last ? Math.min(time - last, 200) : 0;
+      if (!alive || !isLooping) return;
+      const dt = last ? Math.min(time - last, 100) : 0;
       last = time;
 
       if (clearMs > 0) {
@@ -371,7 +390,7 @@ export default function PixelTetris({
       }
 
       if (piece) {
-        dropAcc += dt;
+        dropAcc = Math.min(dropAcc + dt, dropEvery * 3);
         while (dropAcc >= dropEvery && piece) {
           dropAcc -= dropEvery;
           if (piece.row < piece.targetRow) {
@@ -393,24 +412,58 @@ export default function PixelTetris({
     }
 
     build();
+    draw();
 
     let built = `${canvas.clientWidth}x${canvas.clientHeight}`;
     const ro = new ResizeObserver(() => {
+      if (!alive) return;
       const size = `${canvas.clientWidth}x${canvas.clientHeight}`;
       if (size === built) return;
       built = size;
       build();
+      draw();
     });
     ro.observe(canvas);
 
-    raf = requestAnimationFrame(loop);
+    const io = new IntersectionObserver(([entry]) => {
+      isIntersecting = entry.isIntersecting;
+      if (isIntersecting && !document.hidden) {
+        startLoop();
+      } else {
+        stopLoop();
+      }
+    }, { threshold: 0.05 });
+    io.observe(canvas);
+
+    const handleVisibility = () => {
+      if (document.hidden || !isIntersecting) {
+        stopLoop();
+      } else {
+        startLoop();
+      }
+    };
+
+    const handlePageShow = () => {
+      draw();
+      startLoop();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('pageshow', handlePageShow);
+    window.addEventListener('popstate', handlePageShow);
+
+    startLoop();
 
     return () => {
       alive = false;
-      cancelAnimationFrame(raf);
+      stopLoop();
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('pageshow', handlePageShow);
+      window.removeEventListener('popstate', handlePageShow);
+      io.disconnect();
       ro.disconnect();
     };
-  }, [boardColor, (colors ?? []).join(','), movement, cellSize, gap, rounded, dropSpeed]);
+  }, [boardColor, colorsKey, movement, cellSize, gap, rounded, dropSpeed]);
 
   return (
     <div

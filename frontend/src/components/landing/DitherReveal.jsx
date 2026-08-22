@@ -86,8 +86,11 @@ export default function DitherReveal(props) {
   const containerRef = useRef(null);
   const canvasRef = useRef(null);
   const liveRef = useRef(S);
-  liveRef.current = S;
   const inViewRef = useRef(true);
+
+  useEffect(() => {
+    liveRef.current = S;
+  }, [S]);
 
   const imgUrl = imageURL(image) || DEFAULT_IMAGE;
 
@@ -95,6 +98,10 @@ export default function DitherReveal(props) {
     const canvas = canvasRef.current;
     const container = containerRef.current;
     if (!canvas || !container) return;
+
+    let isAlive = true;
+    let isLooping = false;
+    let raf = 0;
 
     const gl = canvas.getContext('webgl', {
       antialias: false,
@@ -178,6 +185,7 @@ export default function DitherReveal(props) {
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => {
+      if (!isAlive) return;
       if (img.naturalHeight > 0) {
         imgAspect = img.naturalWidth / img.naturalHeight;
       }
@@ -194,6 +202,7 @@ export default function DitherReveal(props) {
       } catch {
         // Fallback on CORS issues
       }
+      startLoop();
     };
     img.onerror = () =>
       console.warn('DitherReveal: image failed to load:', imgUrl);
@@ -219,6 +228,7 @@ export default function DitherReveal(props) {
     container.addEventListener('pointerleave', onLeave);
 
     function resize() {
+      if (!isAlive || !container) return;
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       canvas.width = Math.max(1, Math.floor(container.clientWidth * dpr));
       canvas.height = Math.max(1, Math.floor(container.clientHeight * dpr));
@@ -228,19 +238,39 @@ export default function DitherReveal(props) {
     const ro = new ResizeObserver(resize);
     ro.observe(container);
 
-    const io = new IntersectionObserver(
-      ([entry]) => (inViewRef.current = entry.isIntersecting),
-      { threshold: 0.01 }
-    );
-    io.observe(container);
-
     const start = performance.now();
-    let raf = 0;
-    function render() {
-      raf = requestAnimationFrame(render);
-      const L = liveRef.current;
-      if (!inViewRef.current) return;
 
+    function drawImmediate() {
+      if (!isAlive || !gl) return;
+      const L = liveRef.current;
+      const now = performance.now();
+      gl.uniform1f(uTime, (now - start) / 1000);
+      gl.uniform2f(uMouse, mouse.x, mouse.y);
+      gl.uniform1f(uMouseActive, mouse.entered ? mouse.active : 0);
+      gl.uniform1f(uRevealRadius, L.revealRadius);
+      gl.uniform1f(uRevealSoftness, L.revealSoftness);
+      gl.uniform1f(uPixelSize, L.pixelSize);
+      gl.uniform1f(uDitherStyle, DITHER_INDEX[L.ditherStyle] ?? 0);
+      gl.uniform1f(uWaveSpeed, L.waveSpeed);
+      gl.uniform1f(uWaveFrequency, L.waveFrequency);
+      gl.uniform1f(uWaveAmplitude, L.waveAmplitude);
+      gl.uniform1f(uWaveMargin, L.waveMargin);
+      gl.uniform1f(uCanvasAspect, (canvas.width || 1) / (canvas.height || 1));
+      gl.uniform1f(uImageAspect, imgAspect);
+      gl.uniform2f(
+        uResolution,
+        container.clientWidth || 1,
+        container.clientHeight || 1
+      );
+      gl.uniform1f(uFit, L.fit);
+      gl.uniform1f(uFocusY, L.focusY);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+    }
+
+    function render() {
+      if (!isAlive || !isLooping) return;
+
+      const L = liveRef.current;
       const now = performance.now();
       mouse.active += (mouse.target - mouse.active) * 0.08;
 
@@ -265,11 +295,68 @@ export default function DitherReveal(props) {
       gl.uniform1f(uFit, L.fit);
       gl.uniform1f(uFocusY, L.focusY);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+      raf = requestAnimationFrame(render);
     }
-    render();
+
+    function startLoop() {
+      if (!isAlive || !inViewRef.current || document.hidden) return;
+      drawImmediate();
+      if (isLooping) return;
+      isLooping = true;
+      raf = requestAnimationFrame(render);
+    }
+
+    function stopLoop() {
+      isLooping = false;
+      if (raf) {
+        cancelAnimationFrame(raf);
+        raf = 0;
+      }
+    }
+
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        inViewRef.current = entry.isIntersecting;
+        if (entry.isIntersecting && !document.hidden) {
+          resize();
+          startLoop();
+        } else {
+          stopLoop();
+        }
+      },
+      { threshold: 0.01 }
+    );
+    io.observe(container);
+
+    const handleVisibility = () => {
+      if (document.hidden || !inViewRef.current) {
+        stopLoop();
+      } else {
+        resize();
+        startLoop();
+      }
+    };
+
+    const handlePageShow = () => {
+      resize();
+      startLoop();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('pageshow', handlePageShow);
+    window.addEventListener('popstate', handlePageShow);
+    window.addEventListener('focus', handlePageShow);
+
+    startLoop();
 
     return () => {
-      cancelAnimationFrame(raf);
+      isAlive = false;
+      stopLoop();
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('pageshow', handlePageShow);
+      window.removeEventListener('popstate', handlePageShow);
+      window.removeEventListener('focus', handlePageShow);
       ro.disconnect();
       io.disconnect();
       img.onload = null;

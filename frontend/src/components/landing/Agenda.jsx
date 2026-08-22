@@ -246,7 +246,7 @@ export default function Agenda() {
           </div>
 
           <a
-            href="#demo"
+            href="#cta"
             className="btn-secondary"
             style={{
               fontSize: '13px',
@@ -264,7 +264,7 @@ export default function Agenda() {
               transition: 'all 0.2s ease'
             }}
           >
-            Try Interactive Room <ArrowUpRight size={14} />
+            Launch Room <ArrowUpRight size={14} />
           </a>
         </div>
 

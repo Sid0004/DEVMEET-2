@@ -15,28 +15,62 @@ import PrivacyNotice from '@/components/landing/PrivacyNotice';
 
 export default function HomePage() {
   useEffect(() => {
-    const lenis = new Lenis({
-      duration: 1.2,
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      smoothWheel: true,
-      touchMultiplier: 1.2,
-      infinite: false,
-    });
+    let lenis;
+    let rafId = 0;
+    let isRunning = true;
 
-    window.lenis = lenis;
+    try {
+      lenis = new Lenis({
+        duration: 1.1,
+        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        smoothWheel: true,
+        touchMultiplier: 1.1,
+        infinite: false,
+      });
 
-    function raf(time) {
-      lenis.raf(time);
-      requestAnimationFrame(raf);
+      window.lenis = lenis;
+
+      function raf(time) {
+        if (!isRunning) return;
+        lenis.raf(time);
+        rafId = requestAnimationFrame(raf);
+      }
+
+      rafId = requestAnimationFrame(raf);
+
+      const handleVisibilityChange = () => {
+        if (document.hidden) {
+          if (rafId) {
+            cancelAnimationFrame(rafId);
+            rafId = 0;
+          }
+        } else if (isRunning && !rafId) {
+          rafId = requestAnimationFrame(raf);
+        }
+      };
+
+      const handlePageShow = () => {
+        if (isRunning && !rafId) {
+          rafId = requestAnimationFrame(raf);
+        }
+      };
+
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      window.addEventListener('pageshow', handlePageShow);
+      window.addEventListener('popstate', handlePageShow);
+
+      return () => {
+        isRunning = false;
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        window.removeEventListener('pageshow', handlePageShow);
+        window.removeEventListener('popstate', handlePageShow);
+        if (rafId) cancelAnimationFrame(rafId);
+        lenis.destroy();
+        window.lenis = null;
+      };
+    } catch (e) {
+      console.warn('Lenis init error:', e);
     }
-
-    const rafId = requestAnimationFrame(raf);
-
-    return () => {
-      cancelAnimationFrame(rafId);
-      lenis.destroy();
-      window.lenis = null;
-    };
   }, []);
 
   return (
@@ -44,7 +78,7 @@ export default function HomePage() {
       {/* Navigation */}
       <Navbar />
 
-      {/* Main Content Sections */}
+      {/* Main Content Sections — Ending at Developer Wonderland (Hands) */}
       <main style={{ flex: 1 }}>
         <Hero />
         <Pillars />
