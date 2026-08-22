@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowUpRight, User, Menu, X } from 'lucide-react';
-import devmeetLogo from '@/assets/devmeet_logo.png';
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -73,7 +72,7 @@ export default function Navbar() {
           }}
         >
           <img
-            src={devmeetLogo.src || '/devmeet_logo.png'}
+            src="/assets/devmeet_logo.png"
             alt="DEVMEET"
             style={{ height: '36px', width: 'auto', display: 'block', objectFit: 'contain', borderRadius: '50%' }}
           />

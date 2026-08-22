@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { ArrowUpRight } from 'lucide-react';
 import DitherReveal from './DitherReveal';
 import LegalModal from '@/components/LegalModal';
-import roomImage from '@/assets/06b2c4c8c5431a0376cd4f9485f62899.jpg';
 
 export default function DeveloperWonderland() {
   const [legalModal, setLegalModal] = useState({ isOpen: false, tab: 'privacy' });

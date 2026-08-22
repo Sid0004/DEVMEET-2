@@ -4,10 +4,28 @@ import { ApiResponse } from "../../utils/ApiResponse.js";
 import { getCookieOptions } from "../../utils/cookieOptions.js";
 import UserService from "./user.service.js";
 
+const sendSignupOtp = asyncHandler(async (req, res) => {
+    const { email } = req.body;
+    if (!email || email.trim() === "") {
+        throw new ApiError(400, "Email is required");
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+        throw new ApiError(400, "Please provide a valid email address");
+    }
+
+    await UserService.sendSignupOtp(email);
+
+    return res.status(200).json(
+        new ApiResponse(200, { email: email.trim().toLowerCase() }, "Verification code sent to your email")
+    );
+});
+
 const registerUser = asyncHandler(async (req, res) => {
-    const { fullName, email, username, password, accountType, organizationName } = req.body;
-    if ([fullName, email, username, password].some((field) => !field || field?.trim() === "")) {
-        throw new ApiError(400, "All required fields must be filled");
+    const { fullName, email, username, password, accountType, organizationName, otp } = req.body;
+    if ([fullName, email, username, password, otp].some((field) => !field || field?.trim() === "")) {
+        throw new ApiError(400, "All required fields (including OTP) must be filled");
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -34,7 +52,8 @@ const registerUser = asyncHandler(async (req, res) => {
         email,
         password,
         accountType,
-        organizationName
+        organizationName,
+        otp
     });
     
     if (!createdUser) {
@@ -164,6 +183,7 @@ const completeOnboarding = asyncHandler(async (req, res) => {
 });
 
 export {
+    sendSignupOtp,
     registerUser,
     loginUser,
     googleLoginUser,

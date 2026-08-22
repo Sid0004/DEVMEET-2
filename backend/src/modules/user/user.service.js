@@ -3,45 +3,91 @@ import { Organization } from "../organization/organization.model.js";
 import { ApiError } from "../../utils/ApiError.js";
 import jwt from "jsonwebtoken";
 import { OAuth2Client } from "google-auth-library";
+import bcrypt from "bcryptjs";
+import { OTP } from "./otp.model.js";
+import { generateOtp } from "../../utils/generateOtp.js";
+import { sendOtpEmail } from "../../utils/mail.js";
 
 class UserService {
-    static generateAccessAndRefreshTokens = async (userId) => {
-        try {
-            const user = await User.findById(userId);
-            if (!user) throw new Error("User not found");
-                
-            const accessToken = user.generateAccessToken();
-            const refreshToken = user.generateRefreshToken();
 
-            user.refreshToken = refreshToken;
-            await user.save({ validateBeforeSave: false });
-            return { accessToken, refreshToken };
+
+    static async sendSignupOtp(email) {
+        const cleanEmail = email.toLowerCase().trim();
+
+        // 1. Check if user already exists
+        const existingUser = await User.findOne({ email: cleanEmail });
+        if (existingUser) {
+            throw new ApiError(409, "An account with this email already exists");
         }
-        catch (error) {
-            console.error(" TOKEN GENERATION ERROR:", error.message);
-            throw new ApiError(500, `Something went wrong while generating tokens: ${error.message}`);
-        }
-    };
+
+        // 2. Generate and hash OTP
+        const rawOtp = generateOtp();
+        const otpHash = await bcrypt.hash(rawOtp, 10);
+
+        // 3. Clear any previous unused OTP for this email
+        await OTP.deleteMany({ email: cleanEmail });
+
+        // 4. Save new OTP to database
+        await OTP.create({
+            email: cleanEmail,
+            otpHash,
+        });
+
+        // 5. Send Email
+        await sendOtpEmail(cleanEmail, rawOtp);
+
+        return { email: cleanEmail };
+    }
 
     static async registerUser(userData) {
-        const { username, fullName, email, password, accountType = "individual", organizationName } = userData;
+        const { username, fullName, email, password, accountType = "individual", organizationName, otp } = userData;
+        const cleanEmail = email.toLowerCase().trim();
+
+        // 1. Verify OTP
+        if (!otp || otp.trim() === "") {
+            throw new ApiError(400, "Verification code (OTP) is required");
+        }
+
+        const otpRecord = await OTP.findOne({ email: cleanEmail });
+        if (!otpRecord) {
+            throw new ApiError(400, "Verification code has expired or is invalid. Please request a new code.");
+        }
+
+        if (otpRecord.attempts >= 4) {
+            await OTP.deleteOne({ _id: otpRecord._id });
+            throw new ApiError(429, "Too many incorrect attempts. Please request a new verification code.");
+        }
+
+        const isMatch = await bcrypt.compare(otp.trim(), otpRecord.otpHash);
+        if (!isMatch) {
+            otpRecord.attempts += 1;
+            await otpRecord.save();
+            throw new ApiError(400, "Incorrect verification code. Please check your email and try again.");
+        }
+
+        // 2. OTP is valid -> delete it to prevent replay attacks
+        await OTP.deleteOne({ _id: otpRecord._id });
+
+        // 3. Check for existing username/email
         const existedUser = await User.findOne({
-            $or: [{ username: username.toLowerCase() }, { email: email.toLowerCase() }]
+            $or: [{ username: username.toLowerCase() }, { email: cleanEmail }]
         });
 
         if (existedUser) {
             throw new ApiError(409, "User with this email or username already exists");
         }
 
+        // 4. Create User
         const user = await User.create({
             fullName,
             avatar: `https://api.dicebear.com/7.x/dylan/svg?seed=${encodeURIComponent(username || fullName)}`,
-            email: email.toLowerCase(),
+            email: cleanEmail,
             password,
             username: username.toLowerCase(),
             accountType: accountType === "organization" ? "organization" : "individual"
         });
 
+        // 5. Handle Organization if selected
         if (accountType === "organization" && organizationName && organizationName.trim()) {
             const baseSlug = organizationName.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
             let slug = baseSlug || "org";
@@ -66,9 +112,26 @@ class UserService {
             .populate("organizations", "name slug")
             .select("-password -refreshToken");
 
-        if (createdUser) return createdUser;
-        else return null;
+        return createdUser;
     }
+
+    static generateAccessAndRefreshTokens = async (userId) => {
+        try {
+            const user = await User.findById(userId);
+            if (!user) throw new Error("User not found");
+                
+            const accessToken = user.generateAccessToken();
+            const refreshToken = user.generateRefreshToken();
+
+            user.refreshToken = refreshToken;
+            await user.save({ validateBeforeSave: false });
+            return { accessToken, refreshToken };
+        }
+        catch (error) {
+            console.error(" TOKEN GENERATION ERROR:", error.message);
+            throw new ApiError(500, `Something went wrong while generating tokens: ${error.message}`);
+        }
+    };
 
     static async loginUser(userData) {
         const { loginIdentity, password } = userData;

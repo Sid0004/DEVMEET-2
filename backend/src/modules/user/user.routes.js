@@ -1,5 +1,6 @@
 import { Router } from "express";
 import {
+    sendSignupOtp,
     loginUser,
     googleLoginUser,
     githubLoginUser,
@@ -15,6 +16,7 @@ import { verifyJWT } from "../../middlewares/auth.middleware.js";
 
 const router = Router();
 
+router.route("/send-otp").post(sendSignupOtp);
 router.route("/register").post(registerUser);
 router.route("/refresh-token").post(refreshAccessToken);
 router.route("/login").post(loginUser);

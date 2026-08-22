@@ -4,7 +4,7 @@ import cookieParser from "cookie-parser";
 import { corsOptions } from "./src/config/cors.js";
 import morgan from "morgan";
 import helmet from "helmet";
-
+import sendTestEmail from "./src/utils/mail.js";
 const app = express();
 
 

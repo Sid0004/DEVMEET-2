@@ -15,7 +15,6 @@ import {
   Cpu,
   FileText
 } from 'lucide-react';
-import devmeetLogo from '@/assets/devmeet_logo.png';
 
 export default function Footer() {
   const [badgeModalOpen, setBadgeModalOpen] = useState(false);
@@ -246,7 +245,7 @@ export default function Footer() {
             {/* Logo and Version Badge */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <img
-                src={devmeetLogo}
+                src="/assets/devmeet_logo.png"
                 alt="DEVMEET"
                 style={{
                   height: '36px',

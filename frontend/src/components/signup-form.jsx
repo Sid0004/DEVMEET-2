@@ -27,6 +27,10 @@ export function SignupForm({ className, ...props }) {
   const dispatch = useAppDispatch();
   const [legalModal, setLegalModal] = useState({ isOpen: false, tab: 'privacy' });
   const [isLoading, setIsLoading] = useState(false);
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpSuccessMsg, setOtpSuccessMsg] = useState("");
+  const [resendTimer, setResendTimer] = useState(0);
   const [error, setError] = useState("");
   const [accountType, setAccountType] = useState("individual"); // 'individual' | 'organization'
   const [formData, setFormData] = useState({
@@ -34,11 +38,59 @@ export function SignupForm({ className, ...props }) {
     username: "",
     email: "",
     password: "",
+    otp: "",
     organizationName: "",
   });
 
+  // Countdown timer for OTP resend
+  React.useEffect(() => {
+    let interval = null;
+    if (resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [resendTimer]);
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    if (error) setError("");
+  };
+
+  const handleSendOtp = async () => {
+    if (!formData.email || !formData.email.trim()) {
+      setError("Please enter your email address to receive a verification code");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email.trim())) {
+      setError("Please enter a valid email address");
+      return;
+    }
+
+    setIsSendingOtp(true);
+    setError("");
+    setOtpSuccessMsg("");
+
+    try {
+      await apiRequest("/api/v1/users/send-otp", {
+        method: "POST",
+        body: JSON.stringify({ email: formData.email.trim() }),
+      });
+
+      setOtpSent(true);
+      setOtpSuccessMsg("6-digit code sent to your inbox!");
+      setResendTimer(60); // 60s cooldown
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(msg || "Failed to send verification code. Please try again.");
+    } finally {
+      setIsSendingOtp(false);
+    }
   };
 
   const handleGoogleLogin = useGoogleLogin({
@@ -85,6 +137,18 @@ export function SignupForm({ className, ...props }) {
     setIsLoading(true);
     setError("");
 
+    if (!otpSent) {
+      setError("Please click 'Send Code' to verify your email address first");
+      setIsLoading(false);
+      return;
+    }
+
+    if (!formData.otp || formData.otp.trim().length !== 6) {
+      setError("Please enter the 6-digit verification code sent to your email");
+      setIsLoading(false);
+      return;
+    }
+
     if (accountType === "organization" && !formData.organizationName?.trim()) {
       setError("Please enter your organization or team name");
       setIsLoading(false);
@@ -105,10 +169,11 @@ export function SignupForm({ className, ...props }) {
 
     try {
       const payload = {
-        fullName: formData.fullName,
-        username: formData.username,
-        email: formData.email,
+        fullName: formData.fullName.trim(),
+        username: formData.username.trim(),
+        email: formData.email.trim().toLowerCase(),
         password: formData.password,
+        otp: formData.otp.trim(),
         accountType,
         ...(accountType === "organization"
           ? { organizationName: formData.organizationName.trim() }
@@ -126,7 +191,7 @@ export function SignupForm({ className, ...props }) {
       if (msg.toLowerCase().includes("failed to fetch") || msg.toLowerCase().includes("network")) {
         setError("Unable to connect. Please check your internet connection and try again.");
       } else {
-        setError(msg || "Unable to create account. Please try again.");
+        setError(msg || "Unable to create account. Please check your verification code and try again.");
       }
     } finally {
       setIsLoading(false);
@@ -275,12 +340,20 @@ export function SignupForm({ className, ...props }) {
             </Field>
           </div>
 
-          {/* Row 2: Email + Password in 2 columns */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Field>
+          {/* Row 2: Email with Send OTP action */}
+          <Field>
+            <div className="flex items-center justify-between">
               <FieldLabel htmlFor="email" className="text-xs">
                 {accountType === "organization" ? "Work Email" : "Email"}
               </FieldLabel>
+              {otpSuccessMsg && (
+                <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                  {otpSuccessMsg}
+                </span>
+              )}
+            </div>
+            <div className="flex gap-2">
               <Input
                 id="email"
                 name="email"
@@ -289,22 +362,75 @@ export function SignupForm({ className, ...props }) {
                 value={formData.email}
                 onChange={handleChange}
                 required
+                className="flex-1"
               />
-            </Field>
+              <Button
+                type="button"
+                variant={otpSent ? "secondary" : "default"}
+                onClick={handleSendOtp}
+                disabled={isSendingOtp || resendTimer > 0 || !formData.email}
+                className="h-9 px-3 text-xs shrink-0 font-medium cursor-pointer"
+              >
+                {isSendingOtp
+                  ? "Sending..."
+                  : resendTimer > 0
+                  ? `Resend (${resendTimer}s)`
+                  : otpSent
+                  ? "Resend Code"
+                  : "Send Code"}
+              </Button>
+            </div>
+          </Field>
 
-            <Field>
-              <FieldLabel htmlFor="password" className="text-xs">Password</FieldLabel>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                placeholder="Enter your password"
-                value={formData.password}
-                onChange={handleChange}
-                required
-              />
-            </Field>
-          </div>
+          {/* Conditional Animated OTP Cell (Only appears after clicking Send Code) */}
+          <AnimatePresence initial={false}>
+            {otpSent && (
+              <motion.div
+                initial={{ opacity: 0, height: 0, y: -6 }}
+                animate={{ opacity: 1, height: "auto", y: 0 }}
+                exit={{ opacity: 0, height: 0, y: -6 }}
+                transition={{ duration: 0.25, ease: "easeOut" }}
+                className="overflow-hidden"
+              >
+                <Field className="p-3 bg-blue-50/60 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800/40 rounded-xl">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <FieldLabel htmlFor="otp" className="text-xs font-semibold text-blue-950 dark:text-blue-200">
+                      Enter 6-Digit Email Verification Code
+                    </FieldLabel>
+                    <span className="text-[10px] text-blue-600 dark:text-blue-400 font-mono">
+                      Check Mailtrap / Inbox
+                    </span>
+                  </div>
+                  <Input
+                    id="otp"
+                    name="otp"
+                    type="text"
+                    maxLength={6}
+                    placeholder="• • • • • •"
+                    value={formData.otp}
+                    onChange={handleChange}
+                    required={otpSent}
+                    autoFocus
+                    className="font-mono tracking-[0.4em] text-center text-base font-bold bg-white dark:bg-[#181818]"
+                  />
+                </Field>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Row 3: Password */}
+          <Field>
+            <FieldLabel htmlFor="password" className="text-xs">Password</FieldLabel>
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              placeholder="Min. 8 characters with 1 number"
+              value={formData.password}
+              onChange={handleChange}
+              required
+            />
+          </Field>
 
           {/* Submit Button */}
           <Field className="pt-1">

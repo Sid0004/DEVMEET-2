@@ -1,8 +1,18 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "Devmeet - Technical Collaboration & Assessments",
+  title: "Devmeet ",
   description: "Real-time pair programming, WebRTC video calling, and AI-proctored technical assessments.",
+  icons: {
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/icon.png", type: "image/png" },
+    ],
+    apple: [
+      { url: "/icon.png" },
+    ],
+    shortcut: ["/favicon.ico"],
+  },
 };
 
 import StoreProvider from "@/components/StoreProvider";

@@ -1,12 +1,8 @@
-import dotenv from "dotenv";
+import "dotenv/config";
 import http from "http";
 import connectDB from "./src/db/index.js";
 import { app } from "./app.js";
 import { initSocket } from "./src/socket/index.js";
-
-dotenv.config({
-    path: "./.env"
-});
 
 const server = http.createServer(app);
 
