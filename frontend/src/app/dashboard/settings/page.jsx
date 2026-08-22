@@ -147,25 +147,19 @@ export default function SettingsPage() {
     return () => window.removeEventListener("devmeet:wobble_discard", handleWobble);
   }, []);
 
-  // Warn on page leave / browser tab close if unsaved
+  // Sync unsaved settings flag with window for Sidebar guard
   useEffect(() => {
     if (typeof window !== "undefined") {
       window.__devmeet_unsaved_settings = !isSaved;
     }
-    const handleBeforeUnload = (e) => {
-      if (!isSaved) {
-        e.preventDefault();
-        e.returnValue = "";
-      }
-    };
-    window.addEventListener("beforeunload", handleBeforeUnload);
     return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
       if (typeof window !== "undefined") {
         window.__devmeet_unsaved_settings = false;
       }
     };
   }, [isSaved]);
+
+
 
   // Discard Unsaved Changes
   const handleDiscardChanges = () => {
