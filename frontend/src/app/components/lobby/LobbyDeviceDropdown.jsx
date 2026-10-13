@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { ChevronDown, Check, Volume2, Play } from "lucide-react";
+import { ChevronDown, Check, Volume2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function LobbyDeviceDropdown({
@@ -56,46 +56,46 @@ export default function LobbyDeviceDropdown({
 
   return (
     <div className="relative w-full" ref={containerRef}>
-      {/* Trigger Button Pill */}
+      {/* Boxy Trigger Button */}
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full h-10 px-3.5 bg-[#121316] hover:bg-[#1a1b20] border border-white/10 hover:border-white/20 rounded-xl text-gray-200 text-xs flex items-center justify-between gap-2 transition-all cursor-pointer outline-none focus:outline-none"
+        className="w-full h-10 px-3 bg-neutral-50 dark:bg-neutral-900 hover:bg-neutral-100 dark:hover:bg-neutral-800 border border-neutral-200 dark:border-neutral-800 text-neutral-800 dark:text-gray-200 text-xs rounded-none flex items-center justify-between gap-2 transition-colors cursor-pointer outline-none focus:outline-none focus:border-blue-600 dark:focus:border-blue-500"
       >
         <div className="flex items-center gap-2 min-w-0 flex-1">
-          {Icon && <Icon className="w-4 h-4 text-gray-400 flex-shrink-0" />}
-          <span className="truncate font-medium">{labelText}</span>
+          {Icon && <Icon className="w-4 h-4 text-neutral-500 dark:text-gray-400 flex-shrink-0" />}
+          <span className="truncate font-medium text-neutral-900 dark:text-white">{labelText}</span>
         </div>
         <ChevronDown
-          className={`w-3.5 h-3.5 text-gray-400 flex-shrink-0 transition-transform duration-200 ${
-            isOpen ? "rotate-180 text-blue-400" : ""
+          className={`w-3.5 h-3.5 text-neutral-400 dark:text-gray-400 flex-shrink-0 transition-transform duration-150 ${
+            isOpen ? "rotate-180 text-blue-600 dark:text-blue-400" : ""
           }`}
         />
       </button>
 
-      {/* Custom Dark Popover Menu */}
+      {/* Boxy Theme-Adaptive Popover Menu */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 8, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.95 }}
-            transition={{ duration: 0.15, ease: "easeOut" }}
-            className="absolute bottom-12 left-0 right-0 z-50 bg-[#1e1f24] border border-white/15 rounded-2xl shadow-2xl overflow-hidden p-1.5 flex flex-col gap-1 min-w-[220px]"
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            transition={{ duration: 0.1 }}
+            className="absolute bottom-11 left-0 right-0 z-50 bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-none p-1 flex flex-col gap-1 min-w-[220px]"
           >
             {/* Header / Test Section per Device Type */}
             {type === "mic" && (
-              <div className="px-3 py-2 bg-white/5 border-b border-white/10 flex flex-col gap-1.5 rounded-t-xl">
-                <div className="flex items-center justify-between text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
-                  <span>Select Microphone</span>
-                  <span className="text-[10px] text-emerald-400 lowercase font-mono">
+              <div className="px-3 py-2 bg-neutral-50 dark:bg-white/5 border-b border-neutral-200 dark:border-neutral-800 flex flex-col gap-1.5">
+                <div className="flex items-center justify-between text-[10px] font-bold text-neutral-600 dark:text-gray-400 uppercase tracking-wider">
+                  <span>Microphone Status</span>
+                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 lowercase font-mono">
                     {audioLevel > 5 ? "detecting sound..." : "mic test"}
                   </span>
                 </div>
                 {/* Dynamic Audio Level Meter Bar */}
-                <div className="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden flex items-center">
+                <div className="w-full h-1.5 bg-neutral-200 dark:bg-neutral-800 overflow-hidden flex items-center">
                   <div
-                    className="h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-blue-500 transition-all duration-75 rounded-full"
+                    className="h-full bg-emerald-500 transition-all duration-75"
                     style={{ width: `${Math.max(4, audioLevel)}%` }}
                   />
                 </div>
@@ -103,29 +103,29 @@ export default function LobbyDeviceDropdown({
             )}
 
             {type === "speaker" && (
-              <div className="px-3 py-2 bg-white/5 border-b border-white/10 flex items-center justify-between gap-2 rounded-t-xl">
-                <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+              <div className="px-3 py-2 bg-neutral-50 dark:bg-white/5 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between gap-2">
+                <span className="text-[10px] font-bold text-neutral-600 dark:text-gray-400 uppercase tracking-wider">
                   Select Speakers
                 </span>
                 <button
                   type="button"
                   onClick={playSpeakerTestSound}
-                  className="px-2.5 py-1 bg-blue-500/15 hover:bg-blue-500/25 border border-blue-400/30 rounded-lg text-[10px] font-semibold text-blue-300 flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                  className="px-2 py-1 bg-blue-50 dark:bg-blue-500/20 hover:bg-blue-100 dark:hover:bg-blue-500/30 border border-blue-300 dark:border-blue-400/40 rounded-none text-[10px] font-semibold text-blue-700 dark:text-blue-300 flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
-                  <Volume2 className="w-3 h-3 text-blue-400" />
+                  <Volume2 className="w-3 h-3 text-blue-600 dark:text-blue-400" />
                   <span>{isPlayingTest ? "Testing..." : "Test Sound"}</span>
                 </button>
               </div>
             )}
 
             {type === "video" && (
-              <div className="px-3 py-2 text-[11px] font-semibold text-gray-400 uppercase tracking-wider border-b border-white/10">
+              <div className="px-3 py-2 text-[10px] font-bold text-neutral-600 dark:text-gray-400 uppercase tracking-wider border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-white/5">
                 Select Camera
               </div>
             )}
 
             {/* Device List */}
-            <div className="max-h-48 overflow-y-auto custom-scrollbar flex flex-col gap-0.5">
+            <div className="max-h-48 overflow-y-auto flex flex-col gap-0.5">
               {devices.length > 0 ? (
                 devices.map((device, idx) => {
                   const isSelected =
@@ -139,14 +139,14 @@ export default function LobbyDeviceDropdown({
                         onSelect?.(device.deviceId);
                         setIsOpen(false);
                       }}
-                      className={`w-full px-3 py-2.5 rounded-xl text-xs text-left flex items-start justify-between gap-2 transition-colors cursor-pointer ${
+                      className={`w-full px-3 py-2 text-xs text-left flex items-start justify-between gap-2 transition-colors cursor-pointer rounded-none ${
                         isSelected
-                          ? "bg-blue-600/15 text-blue-300 font-semibold"
-                          : "hover:bg-white/5 text-gray-300"
+                          ? "bg-blue-50 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 font-semibold border-l-2 border-blue-600 dark:border-blue-400"
+                          : "hover:bg-neutral-100 dark:hover:bg-white/10 text-neutral-800 dark:text-gray-200"
                       }`}
                     >
                       <div className="flex flex-col gap-0.5 min-w-0">
-                        <span className="truncate">
+                        <span className="truncate font-medium">
                           {device.label ||
                             `${
                               type === "mic"
@@ -157,19 +157,19 @@ export default function LobbyDeviceDropdown({
                             } ${idx + 1}`}
                         </span>
                         {idx === 0 && (
-                          <span className="text-[10px] text-gray-500 font-normal">
+                          <span className="text-[10px] text-neutral-400 dark:text-gray-500 font-normal">
                             System default
                           </span>
                         )}
                       </div>
                       {isSelected && (
-                        <Check className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
+                        <Check className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
                       )}
                     </button>
                   );
                 })
               ) : (
-                <div className="px-3 py-3 text-xs text-gray-400 text-center italic">
+                <div className="px-3 py-3 text-xs text-neutral-400 dark:text-gray-500 text-center italic">
                   {type === "mic"
                     ? "Microphone (Default)"
                     : type === "speaker"

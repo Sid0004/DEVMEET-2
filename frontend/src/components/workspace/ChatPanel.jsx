@@ -5,7 +5,7 @@ import styles from "../../app/workspace/workspace.module.css";
 import Avatar from "@/components/Avatar";
 
 export default function ChatPanel({ socket, connectedUsers, roomUsers, user }) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
   const [activeTab, setActiveTab] = useState("chat"); // 'chat' or 'members'
   const [chatInput, setChatInput] = useState("");
   const dispatch = useAppDispatch();
@@ -19,7 +19,7 @@ export default function ChatPanel({ socket, connectedUsers, roomUsers, user }) {
 
     const handleReceiveMessage = (msg) => {
       dispatch(addMessage(msg));
-      if (!isOpen || activeTab !== "chat") {
+      if (activeTab !== "chat") {
         dispatch(incrementUnread());
       }
     };
@@ -56,7 +56,7 @@ export default function ChatPanel({ socket, connectedUsers, roomUsers, user }) {
       socket.off("user-stopped-typing", handleUserStoppedTyping);
       socket.off("chat-error", handleChatError);
     };
-  }, [socket, isOpen, activeTab, dispatch]);
+  }, [socket, activeTab, dispatch]);
 
   // Scroll chat to bottom when a new message arrives
   useEffect(() => {
@@ -87,91 +87,64 @@ export default function ChatPanel({ socket, connectedUsers, roomUsers, user }) {
     }, 2000);
   };
 
-  const toggleChat = () => {
-    if (!isOpen) {
-      dispatch(resetUnread());
-    }
-    setIsOpen(!isOpen);
-  };
-
   const allMembers = [
     { socketId: "self", user, isMe: true },
     ...connectedUsers.map((c) => ({ ...c, isMe: false })),
   ];
 
   return (
-    <>
-      {/* Floating Toggle Button */}
-      {!isOpen && (
-        <button 
-          className={styles.chatToggleButton} 
-          onClick={toggleChat}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: "1.25rem" }}>chat</span>
-          Team Chat
-          {unreadCount > 0 && (
-            <span className={styles.chatToggleButtonBadge}>{unreadCount}</span>
-          )}
-        </button>
-      )}
-
-      {/* Chat Panel */}
-      <div className={`${styles.chatSection} ${!isOpen ? styles.chatSectionHidden : ""}`}>
-        {/* Header Navigation */}
-        <div className={styles.chatHeader}>
-          <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-            <button
-              onClick={() => {
-                setActiveTab("chat");
-                dispatch(resetUnread());
-              }}
-              style={{
-                background: "none",
-                border: "none",
-                color: activeTab === "chat" ? "#3b82f6" : "rgba(255, 255, 255, 0.6)",
-                fontWeight: activeTab === "chat" ? 600 : 400,
-                fontSize: "0.75rem",
-                letterSpacing: "0.05em",
-                textTransform: "uppercase",
-                cursor: "pointer",
-                padding: "2px 0",
-                borderBottom: activeTab === "chat" ? "2px solid #3b82f6" : "none",
-              }}
-            >
-              Chat {unreadCount > 0 && `(${unreadCount})`}
-            </button>
-            <button
-              onClick={() => setActiveTab("members")}
-              style={{
-                background: "none",
-                border: "none",
-                color: activeTab === "members" ? "#3b82f6" : "rgba(255, 255, 255, 0.6)",
-                fontWeight: activeTab === "members" ? 600 : 400,
-                fontSize: "0.75rem",
-                letterSpacing: "0.05em",
-                textTransform: "uppercase",
-                cursor: "pointer",
-                padding: "2px 0",
-                borderBottom: activeTab === "members" ? "2px solid #3b82f6" : "none",
-              }}
-            >
-              Members ({allMembers.length})
-            </button>
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <button 
-              onClick={toggleChat}
-              style={{
-                background: 'none', border: 'none', color: '#fff', cursor: 'pointer',
-                display: 'flex', alignItems: 'center'
-              }}
-              title="Minimize Chat"
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: "1.1rem" }}>expand_more</span>
-            </button>
-          </div>
+    <div className={styles.chatSection}>
+      {/* Header Navigation */}
+      <div className={styles.chatHeader}>
+        <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
+          <button
+            onClick={() => {
+              setActiveTab("chat");
+              dispatch(resetUnread());
+            }}
+            style={{
+              background: "none",
+              border: "none",
+              color: activeTab === "chat" ? "#3b82f6" : "rgba(255, 255, 255, 0.5)",
+              fontWeight: activeTab === "chat" ? 700 : 500,
+              fontSize: "0.75rem",
+              fontFamily: "var(--font-mono), monospace",
+              letterSpacing: "0.05em",
+              textTransform: "uppercase",
+              cursor: "pointer",
+              padding: "4px 0",
+              borderBottom: activeTab === "chat" ? "2px solid #3b82f6" : "2px solid transparent",
+            }}
+          >
+            Chat {unreadCount > 0 && `(${unreadCount})`}
+          </button>
+          <button
+            onClick={() => setActiveTab("members")}
+            style={{
+              background: "none",
+              border: "none",
+              color: activeTab === "members" ? "#3b82f6" : "rgba(255, 255, 255, 0.5)",
+              fontWeight: activeTab === "members" ? 700 : 500,
+              fontSize: "0.75rem",
+              fontFamily: "var(--font-mono), monospace",
+              letterSpacing: "0.05em",
+              textTransform: "uppercase",
+              cursor: "pointer",
+              padding: "4px 0",
+              borderBottom: activeTab === "members" ? "2px solid #3b82f6" : "2px solid transparent",
+            }}
+          >
+            Members ({allMembers.length})
+          </button>
         </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#10b981" }} />
+          <span style={{ fontSize: "10px", fontFamily: "var(--font-mono), monospace", color: "rgba(255, 255, 255, 0.4)" }}>
+            LIVE
+          </span>
+        </div>
+      </div>
 
         {/* Tab 1: Chat Messages */}
         {activeTab === "chat" && (
@@ -306,7 +279,6 @@ export default function ChatPanel({ socket, connectedUsers, roomUsers, user }) {
           </div>
         )}
       </div>
-    </>
   );
 }
 

@@ -6,6 +6,8 @@ import { ArrowUpRight } from 'lucide-react';
 import DitherReveal from './DitherReveal';
 import LegalModal from '@/components/LegalModal';
 
+const roomImage = '/assets/06b2c4c8c5431a0376cd4f9485f62899.jpg';
+
 export default function DeveloperWonderland() {
   const [legalModal, setLegalModal] = useState({ isOpen: false, tab: 'privacy' });
 
@@ -43,8 +45,9 @@ export default function DeveloperWonderland() {
         <DitherReveal
           image={roomImage}
           wave={false}
+          reveal={false}
           dotSize={5}
-          revealRadius={180}
+          revealRadius={0}
           revealSoftness={50}
           ditherStyle="bayer8"
           style={{ width: '100%', height: '100%' }}

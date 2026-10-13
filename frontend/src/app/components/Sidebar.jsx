@@ -66,10 +66,30 @@ export default function Sidebar({ sidebarCollapsed, setSidebarCollapsed }) {
   };
 
   const navItems = [
-    { name: "Home", href: "/dashboard", icon: Home },
-    { name: "Sessions", href: "/dashboard/rooms", icon: Folders },
-    { name: "Collaborators", href: "/dashboard/teams", icon: Users },
-    { name: "Settings", href: "/dashboard/settings", icon: Settings },
+    {
+      name: "Home",
+      href: "/dashboard",
+      icon: Home,
+      isActive: (path) => path === "/dashboard" || path === "/dashboard/new",
+    },
+    {
+      name: "Sessions",
+      href: "/dashboard/sessions",
+      icon: Folders,
+      isActive: (path) => path.startsWith("/dashboard/sessions") || path.startsWith("/dashboard/rooms"),
+    },
+    {
+      name: "Collaborators",
+      href: "/dashboard/collaborators",
+      icon: Users,
+      isActive: (path) => path.startsWith("/dashboard/collaborators") || path.startsWith("/dashboard/teams"),
+    },
+    {
+      name: "Settings",
+      href: "/dashboard/settings",
+      icon: Settings,
+      isActive: (path) => path.startsWith("/dashboard/settings"),
+    },
   ];
 
   return (
@@ -88,7 +108,7 @@ export default function Sidebar({ sidebarCollapsed, setSidebarCollapsed }) {
               className="flex items-center gap-2.5 px-1 whitespace-nowrap overflow-hidden"
             >
               <Image
-                src="/devmeet_logo.png"
+                src="/assets/devmeet_logo.png"
                 alt="DevMeet Logo"
                 width={24}
                 height={24}
@@ -118,7 +138,7 @@ export default function Sidebar({ sidebarCollapsed, setSidebarCollapsed }) {
               <PanelLeftOpen className="w-5 h-5 text-blue-500 transition-transform scale-110" />
             ) : (
               <Image
-                src="/devmeet_logo.png"
+                src="/assets/devmeet_logo.png"
                 alt="DevMeet Logo"
                 width={22}
                 height={22}
@@ -132,7 +152,9 @@ export default function Sidebar({ sidebarCollapsed, setSidebarCollapsed }) {
       {/* Main Navigation Links */}
       <div className="flex-1 overflow-y-auto px-2.5 py-3 flex flex-col gap-1.5 overflow-x-hidden">
         {navItems.map((item) => {
-          const isActive = pathname === item.href;
+          const isActive = item.isActive
+            ? item.isActive(pathname)
+            : pathname === item.href;
           const Icon = item.icon;
           return (
             <Link
@@ -171,6 +193,7 @@ export default function Sidebar({ sidebarCollapsed, setSidebarCollapsed }) {
             <Avatar
               src={user?.avatar}
               name={user?.fullName || user?.username || "User"}
+              seed={user?.username || user?.email || "User"}
               size={28}
             />
           </div>

@@ -55,7 +55,12 @@ export default function WorkspaceSection({
           <div className="border border-neutral-200 dark:border-neutral-800 divide-y divide-neutral-200 dark:divide-neutral-800 overflow-hidden">
             <div className="p-3.5 flex items-center justify-between bg-white dark:bg-neutral-900">
               <div className="flex items-center gap-3">
-                <Avatar src={user?.avatar} name={user?.fullName || user?.username} size={36} />
+                <Avatar
+                  src={user?.avatar}
+                  name={user?.fullName || user?.username}
+                  seed={user?.username || user?.email}
+                  size={36}
+                />
                 <div>
                   <div className="text-xs font-mono font-bold text-neutral-900 dark:text-white">
                     {user?.fullName || user?.username} (You)

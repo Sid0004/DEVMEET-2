@@ -18,9 +18,14 @@ import { setCredentials } from "@/redux/features/authSlice";
 import ProfileDropdown from "../components/ProfileDropdown";
 import Avatar from "@/components/Avatar";
 import { useTheme } from "@/components/ThemeProvider";
-import { setMessages, addMessage } from "@/redux/features/chatSlice";
+import { setMessages, addMessage, resetUnread } from "@/redux/features/chatSlice";
 import ChatPanel from "@/components/workspace/ChatPanel";
 import LeftMeetingScreen from "../components/LeftMeetingScreen";
+import WorkspaceControlBar from "@/components/workspace/WorkspaceControlBar";
+import WorkspaceMeetingGrid from "@/components/workspace/WorkspaceMeetingGrid";
+import WorkspaceWhiteboard from "@/components/workspace/WorkspaceWhiteboard";
+import WorkspaceVideoSidebar from "@/components/workspace/WorkspaceVideoSidebar";
+import { X } from "lucide-react";
 
 const rtcConfig = {
   iceServers: [
@@ -382,9 +387,22 @@ function WorkspaceContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const roomId = searchParams.get("room");
+  const isNoVC = searchParams.get("novc") === "true";
   const dispatch = useAppDispatch();
   const { user, token } = useAppSelector((state) => state.auth);
+  const { unreadCount } = useAppSelector((state) => state.chat);
   const { theme } = useTheme();
+
+  // Dynamic Workspace View Modes ("meeting" | "code" | "whiteboard")
+  const [viewMode, setViewMode] = useState(isNoVC ? "code" : "meeting");
+  const [sideDrawer, setSideDrawer] = useState("none"); // "none" | "chat" | "members" | "settings"
+
+  // Reset unread count when user opens chat drawer
+  useEffect(() => {
+    if (sideDrawer === "chat") {
+      dispatch(resetUnread());
+    }
+  }, [sideDrawer, dispatch]);
 
   // Compute resolved editor theme
   const isDarkTheme =
@@ -429,10 +447,6 @@ function WorkspaceContent() {
   const [consoleOutput, setConsoleOutput] = useState(null);
   const [isJoinedCall, setIsJoinedCall] = useState(false);
 
-  // Resizer states
-  const [collabWidth, setCollabWidth] = useState(320);
-  const [isResizingWidth, setIsResizingWidth] = useState(false);
-
   // Refs
   const socketRef = useRef(null);
   const peerConnections = useRef({});
@@ -443,45 +457,7 @@ function WorkspaceContent() {
   const isMicMutedRef = useRef(true);
   const soundNotificationsRef = useRef(soundNotifications);
   const [hasLeftMeeting, setHasLeftMeeting] = useState(false);
-
-  // Resizer drag event handlers
-  const handleWidthResizeMouseDown = (e) => {
-    e.preventDefault();
-    setIsResizingWidth(true);
-    const startX = e.clientX;
-    const startWidth = collabWidth;
-    document.body.style.cursor = "col-resize";
-    document.body.style.userSelect = "none";
-    // Disable pointer events on editor canvas during resize to prevent iframe focus theft
-    const editorCanvas = document.querySelector(`.${styles.codeCanvas}`);
-    if (editorCanvas) {
-      editorCanvas.style.pointerEvents = "none";
-    }
-
-    const handleMouseMove = (moveEvent) => {
-      const deltaX = startX - moveEvent.clientX;
-      const newWidth = Math.max(260, Math.min(600, startWidth + deltaX));
-      setCollabWidth(newWidth);
-    };
-
-    const handleMouseUp = () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-      document.body.style.cursor = "";
-      document.body.style.userSelect = "";
-      if (editorCanvas) {
-        editorCanvas.style.pointerEvents = "";
-      }
-      document.body.style.cursor = "";
-      document.body.style.userSelect = "";
-      if (editorCanvas) {
-        editorCanvas.style.pointerEvents = "";
-      }
-    };
-
-    document.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseup", handleMouseUp);
-  };
+  const [copiedInviteLink, setCopiedInviteLink] = useState(false);
 
   // Lock body scroll on workspace page before first paint to prevent layout shift
   useLayoutEffect(() => {
@@ -493,12 +469,22 @@ function WorkspaceContent() {
     };
   }, []);
 
+  // Warn user before accidental tab close/reload during active session
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      e.preventDefault();
+      e.returnValue = "Are you sure you want to leave the active DevMeet workspace?";
+      return e.returnValue;
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, []);
+
   // Ensure client mounting
   useEffect(() => {
     setIsMounted(true);
 
     if (typeof window !== "undefined") {
-      setCollabWidth(Math.round(window.innerWidth * 0.4));
       const fs = localStorage.getItem("devmeet_editor_font_size");
       if (fs) setEditorFontSize(parseInt(fs, 10));
 
@@ -726,12 +712,9 @@ function WorkspaceContent() {
 
     socket.on(
       "files-update",
-      ({ files: updatedFiles, activeFileIndex: updatedIndex }) => {
+      ({ files: updatedFiles }) => {
         if (updatedFiles) {
           setFiles(updatedFiles);
-        }
-        if (updatedIndex !== undefined) {
-          setActiveFileIndex(updatedIndex);
         }
       },
     );
@@ -1089,16 +1072,12 @@ function WorkspaceContent() {
     if (socketRef.current) {
       socketRef.current.emit("files-change", {
         files: updated,
-        activeFileIndex,
       });
     }
   };
 
   const handleTabSelect = (index) => {
     setActiveFileIndex(index);
-    if (socketRef.current) {
-      socketRef.current.emit("files-change", { files, activeFileIndex: index });
-    }
   };
 
   const handleCreateFile = (fileName) => {
@@ -1512,6 +1491,31 @@ function WorkspaceContent() {
     }
   };
 
+  const handleCopyInviteLink = () => {
+    if (typeof window !== "undefined" && roomId) {
+      const inviteUrl = `${window.location.origin}/workspace?room=${roomId}`;
+      navigator.clipboard.writeText(inviteUrl);
+      setCopiedInviteLink(true);
+      setTimeout(() => setCopiedInviteLink(false), 2500);
+    }
+  };
+
+  const handleDownloadCode = () => {
+    const activeFile = files[activeFileIndex];
+    if (!activeFile) return;
+    const blob = new Blob([activeFile.content || ""], {
+      type: "text/plain;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = activeFile.name || "code.txt";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const handleEndSession = async () => {
     try {
       await apiRequest(`/api/v1/rooms/${roomId}/end`, { method: "POST" });
@@ -1537,9 +1541,44 @@ function WorkspaceContent() {
   }
 
   return (
-    <div className={styles.layout}>
-      {/* Activity Bar (VS Code style narrow leftmost navigation) */}
-      <div className={styles.activityBar}>
+    <div className="relative w-screen h-screen overflow-hidden bg-neutral-950 text-white flex flex-col font-sans">
+      {/* 1. Dynamic Main Canvas View Modes */}
+      <div className="flex-1 w-full h-full relative overflow-hidden">
+        {/* Mode 1: Meeting View (Full-Screen Video Conference Grid) */}
+        {viewMode === "meeting" && (
+          <WorkspaceMeetingGrid
+            user={user}
+            isJoinedCall={isJoinedCall}
+            startCall={startCall}
+            localStream={localStream}
+            isCameraOff={isCameraOff}
+            isMicMuted={isMicMuted}
+            connectedUsers={connectedUsers}
+            roomUsers={roomUsers}
+            remoteStreams={remoteStreams}
+            remoteMediaStates={remoteMediaStates}
+          />
+        )}
+
+        {/* Mode 2: Whiteboard View (Collaborative Drawing Canvas - kept mounted so drawings persist) */}
+        <div
+          className="w-full h-full"
+          style={{ display: viewMode === "whiteboard" ? "block" : "none" }}
+        >
+          <WorkspaceWhiteboard
+            socket={socketRef.current}
+            roomId={roomId}
+            isVisible={viewMode === "whiteboard"}
+          />
+        </div>
+
+        {/* Mode 3: Code Editor Workspace (Full IDE Split) */}
+        <div
+          className={`${styles.layout} w-full h-full`}
+          style={{ display: viewMode === "code" ? "flex" : "none" }}
+        >
+          {/* Activity Bar (VS Code style narrow leftmost navigation) */}
+          <div className={styles.activityBar}>
         <div className={styles.activityBarTop}>
           <button
             className={`${styles.activityBtn} ${!isSidebarCollapsed ? styles.activityBtnActive : ""}`}
@@ -2037,265 +2076,94 @@ function WorkspaceContent() {
             </div>
           </section>
 
-          {/* Width Resizer Handle */}
-          <div
-            className={styles.widthResizer}
-            onMouseDown={handleWidthResizeMouseDown}
-          />
-
-          {/* Video & Chat Collaborative Panel */}
-          <aside
-            className={styles.collabPanel}
-            style={{ width: `${collabWidth}px` }}
-          >
-            {/* Video Feeds Section */}
-            <div
-              className={styles.videoGrid}
-              style={{
-                height: `100%`,
-                maxHeight: `100%`,
-              }}
-            >
-              {/* Local Stream */}
-              <div
-                className={`${styles.videoBox} ${styles.videoBoxLocal}`}
-                style={{
-                  border: isJoinedCall
-                    ? "1px solid rgba(255,255,255,0.1)"
-                    : "1px dashed rgba(255,255,255,0.2)",
-                }}
-              >
-                {isJoinedCall && localStream && !isCameraOff ? (
-                  <video
-                    ref={(el) => {
-                      if (el && el.srcObject !== localStream) {
-                        el.srcObject = localStream;
-                      }
-                    }}
-                    autoPlay
-                    playsInline
-                    muted
-                  />
-                ) : (
-                  <div className={styles.videoPlaceholder}>
-                    <div
-                      style={{
-                        border: isJoinedCall
-                          ? "2px solid #4ade80"
-                          : "2px dashed rgba(255,255,255,0.3)",
-                        borderRadius: "50%",
-                      }}
-                    >
-                      <Avatar
-                        src={user?.avatar || user?.avatarUrl || null}
-                        name={user?.fullName || user?.username || "You"}
-                        size={48}
-                      />
-                    </div>
-                    <span
-                      style={{
-                        fontSize: "0.625rem",
-                        color: "rgba(255, 255, 255, 0.45)",
-                        marginTop: "0.25rem",
-                        fontFamily: "var(--font-space-grotesk)",
-                      }}
-                    >
-                      {isJoinedCall ? "Camera Off" : "Not in Call"}
-                    </span>
-                    {!isJoinedCall && (
-                      <button
-                        onClick={startCall}
-                        style={{
-                          marginTop: "0.5rem",
-                          backgroundColor: "#007acc",
-                          color: "#ffffff",
-                          border: "none",
-                          borderRadius: "4px",
-                          padding: "0.25rem 0.5rem",
-                          fontSize: "0.625rem",
-                          fontWeight: 600,
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "0.25rem",
-                          fontFamily: "var(--font-space-grotesk)",
-                        }}
-                      >
-                        <span
-                          className="material-symbols-outlined"
-                          style={{ fontSize: "0.75rem" }}
-                        >
-                          videocam
-                        </span>
-                        Join Call
-                      </button>
-                    )}
-                  </div>
-                )}
-                {isJoinedCall && (
-                  <div className={styles.videoControls}>
-                    <button
-                      onClick={toggleMic}
-                      className={`${styles.controlBtn} ${isMicMuted ? styles.controlBtnActive : ""}`}
-                      title={isMicMuted ? "Unmute Mic" : "Mute Mic"}
-                    >
-                      <span
-                        className="material-symbols-outlined"
-                        style={{ fontSize: "1.05rem" }}
-                      >
-                        {isMicMuted ? "mic_off" : "mic"}
-                      </span>
-                    </button>
-                    <button
-                      onClick={toggleCamera}
-                      className={`${styles.controlBtn} ${isCameraOff ? styles.controlBtnActive : ""}`}
-                      title={isCameraOff ? "Turn Camera On" : "Turn Camera Off"}
-                    >
-                      <span
-                        className="material-symbols-outlined"
-                        style={{ fontSize: "1.05rem" }}
-                      >
-                        {isCameraOff ? "videocam_off" : "videocam"}
-                      </span>
-                    </button>
-                    <button
-                      onClick={leaveCall}
-                      style={{
-                        width: "1.75rem",
-                        height: "1.75rem",
-                        borderRadius: "0.375rem",
-                        backgroundColor: "#ff4d4f",
-                        color: "#fff",
-                        border: "none",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        transition: "background-color 0.2s ease",
-                      }}
-                      title="Leave Video Call"
-                    >
-                      <span
-                        className="material-symbols-outlined"
-                        style={{ fontSize: "1.05rem" }}
-                      >
-                        call_end
-                      </span>
-                    </button>
-                  </div>
-                )}
-                <div className={styles.videoLabelLocal}>
-                  <span
-                    className="material-symbols-outlined"
-                    style={{ fontSize: "0.875rem" }}
-                  >
-                    {isJoinedCall
-                      ? isMicMuted
-                        ? "mic_off"
-                        : "mic"
-                      : "videocam_off"}
-                  </span>
-                  You
-                </div>
-              </div>
-
-              {/* Remote Streams */}
-              {connectedUsers.map((peer) => {
-                const isInCall = roomUsers.some(
-                  (ru) =>
-                    ru.socketId === peer.socketId ||
-                    ru.user?._id === peer.user?._id,
-                );
-                const stream = remoteStreams[peer.socketId];
-                const mediaState = remoteMediaStates[peer.socketId] || {
-                  isCameraOff: true,
-                  isMicMuted: true,
-                };
-                const showVideo = isInCall && stream && !mediaState.isCameraOff;
-                return (
-                  <div
-                    key={peer.socketId}
-                    className={styles.videoBox}
-                    style={{
-                      border: isInCall
-                        ? "1px solid rgba(74, 222, 128, 0.2)"
-                        : "1px solid rgba(255,255,255,0.05)",
-                    }}
-                  >
-                    {showVideo ? (
-                      <video
-                        ref={(el) => {
-                          if (el && el.srcObject !== stream) {
-                            el.srcObject = stream;
-                          }
-                        }}
-                        autoPlay
-                        playsInline
-                      />
-                    ) : (
-                      <div className={styles.videoPlaceholder}>
-                        <div
-                          style={{
-                            border: isInCall
-                              ? "2px solid #4ade80"
-                              : "2px solid rgba(255,255,255,0.1)",
-                            borderRadius: "50%",
-                          }}
-                        >
-                          <Avatar
-                            src={peer.user?.avatar || peer.user?.avatarUrl || null}
-                            name={
-                              peer.user?.fullName ||
-                              peer.user?.username ||
-                              "Peer"
-                            }
-                            size={48}
-                          />
-                        </div>
-                        <span
-                          style={{
-                            fontSize: "0.625rem",
-                            color: "rgba(255, 255, 255, 0.45)",
-                            marginTop: "0.25rem",
-                            fontFamily: "var(--font-space-grotesk)",
-                          }}
-                        >
-                          {isInCall
-                            ? mediaState.isCameraOff
-                              ? "Camera Off"
-                              : "Active"
-                            : "In Room"}
-                        </span>
-                      </div>
-                    )}
-                    <div className={styles.videoLabel}>
-                      <span
-                        className="material-symbols-outlined"
-                        style={{ fontSize: "0.875rem" }}
-                      >
-                        {isInCall
-                          ? mediaState.isMicMuted
-                            ? "mic_off"
-                            : "mic"
-                          : "meeting_room"}
-                      </span>
-                      {peer.user?.fullName || peer.user?.username || "Peer"}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Chat Interface */}
-            <ChatPanel 
-              socket={socketRef.current} 
-              connectedUsers={connectedUsers} 
-              roomUsers={roomUsers} 
-              user={user} 
-            />
-          </aside>
         </div>
       </main>
     </div>
+
+    {/* Hoverable / Slide-Over Drawer for Chat & Members across all modes (Code, Whiteboard, Meeting) */}
+    {sideDrawer !== "none" && (
+      <div className="fixed top-0 right-0 bottom-16 w-80 sm:w-96 z-40 bg-neutral-950/95 backdrop-blur-xl border-l border-neutral-800 shadow-2xl flex flex-col animate-in slide-in-from-right-4 duration-200 font-mono">
+        <div className="h-10 px-4 flex items-center justify-between border-b border-neutral-800 bg-neutral-900/90 flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+            <span className="font-bold text-xs text-white uppercase tracking-wider">
+              {sideDrawer === "chat" ? "Live Discussion" : "Room Participants"}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSideDrawer("none")}
+            className="p-1 text-neutral-400 hover:text-white hover:bg-neutral-800 rounded-none transition-colors cursor-pointer"
+            title="Close Panel"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-hidden">
+          <ChatPanel
+            socket={socketRef.current}
+            connectedUsers={connectedUsers}
+            roomUsers={roomUsers}
+            user={user}
+          />
+        </div>
+      </div>
+    )}
+
+    {/* Persistent Resizable Video & Chat Sidebar on the Right (Always visible in Code & Whiteboard modes) */}
+    {viewMode !== "meeting" && (
+      <WorkspaceVideoSidebar
+        user={user}
+        isJoinedCall={isJoinedCall}
+        startCall={startCall}
+        localStream={localStream}
+        isCameraOff={isCameraOff}
+        isMicMuted={isMicMuted}
+        connectedUsers={connectedUsers}
+        roomUsers={roomUsers}
+        remoteStreams={remoteStreams}
+        remoteMediaStates={remoteMediaStates}
+        onExpandMeeting={() => setViewMode("meeting")}
+        socket={socketRef.current}
+      />
+    )}
+  </div>
+
+  {/* Persistent Audio Elements for Remote Call Participants */}
+  <div style={{ display: "none" }} aria-hidden="true">
+    {Object.entries(remoteStreams).map(([peerSocketId, stream]) => (
+      <audio
+        key={peerSocketId}
+        ref={(el) => {
+          if (el && el.srcObject !== stream) {
+            el.srcObject = stream;
+          }
+        }}
+        autoPlay
+        playsInline
+      />
+    ))}
+  </div>
+
+  {/* Central Floating Control Bar */}
+  <WorkspaceControlBar
+    isJoinedCall={isJoinedCall}
+    startCall={startCall}
+    leaveCall={leaveCall}
+    isMicMuted={isMicMuted}
+    toggleMic={toggleMic}
+    isCameraOff={isCameraOff}
+    toggleCamera={toggleCamera}
+    viewMode={viewMode}
+    setViewMode={setViewMode}
+    sideDrawer={sideDrawer}
+    setSideDrawer={setSideDrawer}
+    unreadCount={unreadCount || 0}
+    connectedUsersCount={1 + connectedUsers.length}
+    onCopyInvite={handleCopyInviteLink}
+    copiedInvite={copiedInviteLink}
+    onDownloadCode={handleDownloadCode}
+  />
+</div>
   );
 }

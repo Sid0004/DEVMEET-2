@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-export function proxy(request) {
+export function middleware(request) {
   const token = request.cookies.get("accessToken")?.value;
   const { pathname } = request.nextUrl;
 
@@ -9,24 +9,26 @@ export function proxy(request) {
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/workspace") ||
     pathname.startsWith("/onboarding");
+
   // Define auth routes (only for guests)
   const isAuthRoute = pathname === "/login" || pathname === "/signup";
 
   if (isProtectedRoute && !token) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    const loginUrl = new URL("/login", request.url);
+    const redirectTarget = request.nextUrl.pathname + request.nextUrl.search;
+    loginUrl.searchParams.set("redirect", redirectTarget);
+    return NextResponse.redirect(loginUrl);
   }
 
   if (isAuthRoute && token) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    const redirectParam = request.nextUrl.searchParams.get("redirect") || "/dashboard";
+    const targetUrl = new URL(redirectParam, request.url);
+    return NextResponse.redirect(targetUrl);
   }
 
   return NextResponse.next();
 }
 
-export { proxy as middleware };
-export default proxy;
-
-// See "Matching Paths" below to learn more
 export const config = {
   matcher: [
     "/dashboard/:path*",

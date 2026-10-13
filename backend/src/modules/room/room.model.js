@@ -50,6 +50,10 @@ const roomSchema = new Schema({
             language: { type: String, default: "javascript" },
         },
     ],
+    whiteboardData: {
+        type: String,
+        default: "[]",
+    },
     roomSettings: {
         isLocked: {
             type: Boolean,

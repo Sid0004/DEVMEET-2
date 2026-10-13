@@ -12,6 +12,7 @@ import Testimonials from '@/components/landing/Testimonials';
 import Tickets from '@/components/landing/Tickets';
 import DeveloperWonderland from '@/components/landing/DeveloperWonderland';
 import PrivacyNotice from '@/components/landing/PrivacyNotice';
+import ToolConvergenceAnimation from '@/components/landing/ToolConvergenceAnimation';
 
 export default function HomePage() {
   useEffect(() => {
@@ -82,6 +83,20 @@ export default function HomePage() {
       <main style={{ flex: 1 }}>
         <Hero />
         <Pillars />
+
+        {/* Unified Tool Convergence Section (Beam Animation) - Commented out for now
+        <section
+          id="tool-convergence"
+          className="w-full bg-white relative border-t border-b border-neutral-100"
+          style={{
+            backgroundColor: '#ffffff',
+            width: '100%',
+          }}
+        >
+          <ToolConvergenceAnimation />
+        </section>
+        */}
+
         <Agenda />
         <ConvinceBoss />
         <MosaicBanner />

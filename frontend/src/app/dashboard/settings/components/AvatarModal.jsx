@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React from "react";
 import Avatar from "@/components/Avatar";
@@ -40,6 +40,7 @@ export default function AvatarModal({
             <Avatar
               src={avatarUrl || user?.avatar || null}
               name={fullName || username || "Developer"}
+              seed={user?.username || user?.email || "developer"}
               size={112}
             />
           </div>

@@ -382,13 +382,15 @@
   flex-shrink: 0;
   justify-content: space-between;
   padding: 0 16px;
-  height: 22px;
-  background-color: #007acc;
-  font-family: var(--font-space-grotesk);
+  height: 26px;
+  background-color: #141518;
+  border-top: 1px solid #262626;
+  font-family: var(--font-mono), monospace;
   font-size: 11px;
-  color: #ffffff;
+  color: #a1a1aa;
   align-items: center;
   user-select: none;
+  z-index: 10;
 }
 
 .statusLeft,
@@ -400,14 +402,36 @@
 
 .statusLeft span,
 .statusRight span {
-  color: #ffffff !important;
+  color: #a1a1aa !important;
+  font-size: 11px;
 }
 
 .statusDot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background-color: #ffffff;
+  background-color: #10b981;
+  display: inline-block;
+}
+
+.statusRunBtn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background-color: #1a73e8;
+  color: #ffffff !important;
+  border: none;
+  padding: 2px 10px;
+  border-radius: 0px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-mono), monospace;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.statusRunBtn:hover {
+  background-color: #1557b0;
 }
 
 .collabPanel {
@@ -415,8 +439,8 @@
   flex-direction: column;
   flex-shrink: 0;
   min-height: 0;
-  background-color: #252526;
-  border-left: 1px solid #2d2d2d;
+  background-color: #0e0f12;
+  border-left: 1px solid #262626;
   overflow: hidden;
   height: 100%;
 }
@@ -437,7 +461,7 @@
 
 .widthResizer:hover,
 .widthResizer:active {
-  background-color: var(--color-secondary);
+  background-color: #1a73e8;
 }
 
 .heightResizer {
@@ -455,35 +479,38 @@
 
 .heightResizer:hover,
 .heightResizer:active {
-  background-color: var(--color-secondary);
+  background-color: #1a73e8;
 }
 
 /* ─── Video ─── */
 .videoGrid {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.5rem;
   padding: 0.75rem;
   overflow-y: auto;
   align-items: center;
   justify-content: flex-start;
-  min-height: 120px;
-  background-color: #101016;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  min-height: 180px;
+  max-height: 46%;
+  flex: 0 0 auto;
+  background-color: #0a0b0d;
+  border-bottom: 1px solid #262626;
 }
 
 .videoBox {
   position: relative;
   width: 100%;
-  aspect-ratio: 16/10;
-  background: linear-gradient(135deg, #1e1e2f 0%, #12121a 100%);
-  border-radius: 8px;
+  aspect-ratio: 16/9;
+  background: #141518;
+  border: 1px solid #262626;
+  border-radius: 0px;
   display: flex;
   align-items: flex-end;
   justify-content: flex-start;
   padding: 0.5rem;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  box-shadow: none;
 }
 
 .videoGrid:has(.videoBox:only-child) .videoBox {
@@ -492,7 +519,7 @@
 }
 
 .videoBoxLocal {
-  background: linear-gradient(135deg, #1a1a2e 0%, #2d3133 100%);
+  background: #141518;
 }
 
 .videoBox video {
@@ -520,132 +547,106 @@
 .videoPlaceholderAvatar {
   width: 3.5rem;
   height: 3.5rem;
-  border-radius: 50%;
-  background-color: var(--color-primary);
+  border-radius: 0px;
+  background-color: #1a73e8;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.25rem;
   font-weight: 700;
   color: #fff;
-  font-family: var(--font-space-grotesk);
+  font-family: var(--font-mono), monospace;
 }
 
 .videoControls {
   position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
+  bottom: 0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
-  gap: 0.25rem;
+  gap: 0.35rem;
   z-index: 2;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  padding: 3px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .controlBtn {
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: 0.375rem;
-  background-color: rgba(0, 0, 0, 0.4);
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: 0px;
+  background-color: rgba(255, 255, 255, 0.1);
   color: #fff;
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background-color 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .controlBtn:hover {
-  background-color: rgba(0, 0, 0, 0.6);
+  background-color: rgba(255, 255, 255, 0.2);
 }
 
 .controlBtnActive {
-  background-color: var(--color-secondary);
-  color: var(--color-on-secondary);
+  background-color: #ef4444;
+  color: #ffffff;
+  border-color: #ef4444;
 }
-
 
 .videoLabel,
 .videoLabelLocal {
   display: flex;
   align-items: center;
   gap: 0.25rem;
-  font-size: 0.625rem;
-  font-family: var(--font-space-grotesk);
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.375rem;
+  font-size: 0.65rem;
+  font-family: var(--font-mono), monospace;
+  padding: 0.2rem 0.45rem;
+  border-radius: 0px;
   backdrop-filter: blur(8px);
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 2;
 }
 
 .videoLabel {
-  background-color: rgba(255, 255, 255, 0.15);
-  color: rgba(255, 255, 255, 0.9);
+  background-color: rgba(0, 0, 0, 0.75);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .videoLabelLocal {
-  background-color: rgba(0, 0, 0, 0.3);
-  color: rgba(255, 255, 255, 0.7);
+  background-color: rgba(0, 0, 0, 0.75);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .chatSection {
-  position: fixed;
-  bottom: 1rem;
-  right: 1rem;
-  width: 320px;
-  height: 450px;
-  max-height: calc(100vh - 100px);
+  flex: 1 1 0%;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  background-color: #252526;
-  border-radius: 8px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-  border: 1px solid #3c3c3c;
+  background-color: #0e0f12;
+  border-radius: 0px;
+  border: none;
+  box-shadow: none;
   overflow: hidden;
-  z-index: 1000;
-  transition: transform 0.3s ease, opacity 0.3s ease;
+  position: static;
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  z-index: 1;
 }
 
 .chatSectionHidden {
-  transform: translateY(20px);
-  opacity: 0;
-  pointer-events: none;
+  display: none;
 }
 
 .chatToggleButton {
-  position: fixed;
-  bottom: 1.5rem;
-  right: 1.5rem;
-  background-color: rgba(37, 37, 38, 0.85);
-  backdrop-filter: blur(8px);
-  color: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  padding: 0.75rem 1.25rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-  z-index: 999;
-  font-family: var(--font-space-grotesk);
-  font-weight: 500;
-  transition: all 0.3s ease;
-}
-
-.chatToggleButton:hover {
-  background-color: rgba(60, 60, 60, 0.95);
-  border-color: var(--color-secondary, #63f7ff);
-  transform: translateY(-4px);
-  box-shadow: 0 12px 28px rgba(0,0,0,0.6), 0 0 12px rgba(99, 247, 255, 0.2);
-}
-
-.chatToggleButtonBadge {
-  background-color: #ff4d4f;
-  color: #fff;
-  font-size: 0.75rem;
-  font-weight: bold;
-  padding: 2px 6px;
-  border-radius: 9999px;
-  margin-left: 4px;
+  display: none;
 }
 
 .chatHeader {
@@ -653,9 +654,10 @@
   justify-content: space-between;
   align-items: center;
   padding: 8px 12px;
-  background-color: #252526;
-  border-bottom: 1px solid #2d2d2d;
-  color: rgba(255, 255, 255, 0.85);
+  background-color: #141518;
+  border-bottom: 1px solid #262626;
+  color: #e4e4e7;
+  font-family: var(--font-mono), monospace;
 }
 
 .chatBadge {

@@ -1,4 +1,7 @@
 import "./globals.css";
+import Script from "next/script";
+import StoreProvider from "@/components/StoreProvider";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 export const metadata = {
   title: "Devmeet ",
@@ -15,14 +18,13 @@ export const metadata = {
   },
 };
 
-import StoreProvider from "@/components/StoreProvider";
-import { ThemeProvider } from "@/components/ThemeProvider";
-
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
-        <script
+        <Script
+          id="theme-initializer"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: `
               (function() {

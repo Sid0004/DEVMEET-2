@@ -53,8 +53,8 @@ export default function CommandPalette({ isOpen, onClose }) {
 
   const pageNavigation = [
     { name: "Overview Dashboard", href: "/dashboard", icon: LayoutDashboard, category: "Navigation" },
-    { name: "All Workspaces", href: "/dashboard/rooms", icon: Folders, category: "Navigation" },
-    { name: "Team Members", href: "/dashboard/teams", icon: Users, category: "Navigation" },
+    { name: "All Sessions", href: "/dashboard/sessions", icon: Folders, category: "Navigation" },
+    { name: "Collaborators & Teams", href: "/dashboard/collaborators", icon: Users, category: "Navigation" },
     { name: "Account Settings", href: "/dashboard/settings", icon: Settings, category: "Navigation" },
   ];
 

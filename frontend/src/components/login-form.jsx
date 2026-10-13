@@ -36,6 +36,14 @@ export function LoginForm({ className, ...props }) {
     password: "",
   });
 
+  const redirectTarget = searchParams.get("redirect");
+  const getDestination = (user) => {
+    if (user?.isOnboarded) {
+      return redirectTarget || "/dashboard";
+    }
+    return redirectTarget ? `/onboarding?redirect=${encodeURIComponent(redirectTarget)}` : "/onboarding";
+  };
+
   useEffect(() => {
     if (searchParams.get("registered") === "true") {
       setSuccessMsg("Account created successfully! Please sign in with your credentials.");
@@ -60,11 +68,7 @@ export function LoginForm({ className, ...props }) {
               }),
             );
 
-            if (response.data.user.isOnboarded) {
-              window.location.href = "/dashboard";
-            } else {
-              window.location.href = "/onboarding";
-            }
+            window.location.href = getDestination(response.data.user);
           } else {
             setError("Invalid response from server.");
           }
@@ -90,7 +94,10 @@ export function LoginForm({ className, ...props }) {
       setError("GitHub client ID is not configured.");
       return;
     }
-    const redirectUri = `${window.location.origin}/login`;
+    const redirectParam = searchParams.get("redirect");
+    const redirectUri = redirectParam 
+      ? `${window.location.origin}/login?redirect=${encodeURIComponent(redirectParam)}`
+      : `${window.location.origin}/login`;
     window.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=read:user%20user:email`;
   };
 
@@ -112,11 +119,7 @@ export function LoginForm({ className, ...props }) {
             }),
           );
 
-          if (response.data.user.isOnboarded) {
-            window.location.href = "/dashboard";
-          } else {
-            window.location.href = "/onboarding";
-          }
+          window.location.href = getDestination(response.data.user);
         } else {
           setError("Invalid response from server.");
         }
@@ -162,12 +165,7 @@ export function LoginForm({ className, ...props }) {
           }),
         );
         
-        // If user has completed onboarding, route to dashboard. Otherwise onboarding.
-        if (response.data.user.isOnboarded) {
-          window.location.href = "/dashboard";
-        } else {
-          window.location.href = "/onboarding";
-        }
+        window.location.href = getDestination(response.data.user);
       } else {
         setError("Invalid response from server.");
       }

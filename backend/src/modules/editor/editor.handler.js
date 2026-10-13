@@ -1,16 +1,27 @@
 import { Room } from "../room/room.model.js";
 
+const saveTimeouts = new Map();
+
 export const registerEditorHandlers = (io, socket) => {
-  socket.on("files-change", ({ files, activeFileIndex }) => {
+  socket.on("files-change", ({ files }) => {
     const roomId = socket.data.roomId;
-    if (!roomId) return;
+    if (!roomId || !files) return;
 
-    socket.to(roomId).emit("files-update", { files, activeFileIndex });
+    // Instant peer broadcast (zero latency)
+    socket.to(roomId).emit("files-update", { files });
 
-    const updateObj = { files };
+    // Debounced database persistence (1.5 seconds) to prevent Atlas write bottlenecks
+    if (saveTimeouts.has(roomId)) {
+      clearTimeout(saveTimeouts.get(roomId));
+    }
 
-    Room.findOneAndUpdate({ roomId }, updateObj).catch((err) => {
-      console.error("Failed to save room files:", err);
-    });
+    const timer = setTimeout(() => {
+      Room.findOneAndUpdate({ roomId }, { files }).catch((err) => {
+        console.error("Failed to save room files:", err);
+      });
+      saveTimeouts.delete(roomId);
+    }, 1500);
+
+    saveTimeouts.set(roomId, timer);
   });
 };

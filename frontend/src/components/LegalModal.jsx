@@ -6,12 +6,12 @@ import { AnimatePresence, motion } from 'framer-motion';
 
 export default function LegalModal({ isOpen, onClose, initialTab = 'privacy' }) {
   const [activeTab, setActiveTab] = useState(initialTab);
+  const [prevInitialTab, setPrevInitialTab] = useState(initialTab);
 
-  useEffect(() => {
-    if (initialTab) {
-      setActiveTab(initialTab);
-    }
-  }, [initialTab]);
+  if (initialTab !== prevInitialTab) {
+    setPrevInitialTab(initialTab);
+    setActiveTab(initialTab);
+  }
 
   useEffect(() => {
     const handleKeyDown = (e) => {

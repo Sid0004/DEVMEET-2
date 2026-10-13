@@ -7,15 +7,10 @@ import dylanDefinition from "@dicebear/styles/dylan.json";
 // Create Style once at module level — reused across all Avatar renders
 const dylanStyle = new Style(dylanDefinition);
 
-export default function Avatar({ src, name, size = 40, className = "" }) {
+export default function Avatar({ src, name, seed, size = 40, className = "" }) {
   const [imgError, setImgError] = useState(false);
 
-  // Clean the seed name (remove UI suffixes like "(You)" or "(In Call)")
-  const cleanSeed = (name || "user")
-    .replace(/\s*\((You|In Call|In Workspace)\)\s*/gi, "")
-    .trim();
-
-  // If user has a custom avatar URL (e.g. Google photo or uploaded image) and no error
+  // If user has a custom avatar URL (e.g. Google photo, base64 image, or dicebear url) and no error
   if (src && !imgError && !src.includes("ui-avatars.com")) {
     return (
       <img
@@ -32,8 +27,15 @@ export default function Avatar({ src, name, size = 40, className = "" }) {
     );
   }
 
-  // Generate a DiceBear dylan avatar seeded from the user's cleaned name
-  const svgDataUri = new DiceBearAvatar(dylanStyle, { seed: cleanSeed }).toDataUri();
+  // Use stable seed (priority: explicit seed prop -> name -> "developer")
+  const rawSeed = seed || name || "developer";
+  const cleanSeed = String(rawSeed)
+    .replace(/\s*\((You|In Call|In Workspace)\)\s*/gi, "")
+    .trim()
+    .toLowerCase();
+
+  // Generate a DiceBear dylan avatar seeded from the stable seed
+  const svgDataUri = new DiceBearAvatar(dylanStyle, { seed: cleanSeed || "developer" }).toDataUri();
 
   return (
     <img

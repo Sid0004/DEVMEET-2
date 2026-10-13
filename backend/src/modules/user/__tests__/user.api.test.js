@@ -53,12 +53,13 @@ describe("User & Authentication API Automation Tests", () => {
                     username: "",
                     email: "test@example.com",
                     password: "Password123",
-                    fullName: ""
+                    fullName: "",
+                    otp: ""
                 });
 
             expect(res.status).toBe(400);
             expect(res.body.success).toBe(false);
-            expect(res.body.message).toMatch(/All required fields must be filled/i);
+            expect(res.body.message).toMatch(/All required fields.*must be filled/i);
         });
 
         it("should reject registration with invalid email format", async () => {
@@ -68,7 +69,8 @@ describe("User & Authentication API Automation Tests", () => {
                     username: "validuser",
                     email: "invalid-email-address",
                     password: "Password123",
-                    fullName: "Valid User"
+                    fullName: "Valid User",
+                    otp: "123456"
                 });
 
             expect(res.status).toBe(400);
@@ -83,7 +85,8 @@ describe("User & Authentication API Automation Tests", () => {
                     username: "ab", // Too short (< 3 chars)
                     email: "valid@example.com",
                     password: "Password123",
-                    fullName: "Valid User"
+                    fullName: "Valid User",
+                    otp: "123456"
                 });
 
             expect(res.status).toBe(400);
@@ -98,7 +101,8 @@ describe("User & Authentication API Automation Tests", () => {
                     username: "validuser",
                     email: "valid@example.com",
                     password: "short",
-                    fullName: "Valid User"
+                    fullName: "Valid User",
+                    otp: "123456"
                 });
 
             expect(res.status).toBe(400);
@@ -114,7 +118,8 @@ describe("User & Authentication API Automation Tests", () => {
                     email: "orgadmin@example.com",
                     password: "Password123",
                     fullName: "Org Admin",
-                    accountType: "organization"
+                    accountType: "organization",
+                    otp: "123456"
                 });
 
             expect(res.status).toBe(400);
@@ -129,7 +134,8 @@ describe("User & Authentication API Automation Tests", () => {
                 username: "newuser",
                 email: "newuser@example.com",
                 password: "SecurePassword123",
-                fullName: "New User"
+                fullName: "New User",
+                otp: "123456"
             };
 
             const res = await request(app)
@@ -143,7 +149,8 @@ describe("User & Authentication API Automation Tests", () => {
             expect(UserService.registerUser).toHaveBeenCalledWith(expect.objectContaining({
                 username: payload.username,
                 email: payload.email,
-                fullName: payload.fullName
+                fullName: payload.fullName,
+                otp: payload.otp
             }));
         });
 
@@ -158,7 +165,8 @@ describe("User & Authentication API Automation Tests", () => {
                     username: "existinguser",
                     email: "existing@example.com",
                     password: "Password123",
-                    fullName: "Existing User"
+                    fullName: "Existing User",
+                    otp: "123456"
                 });
 
             expect(res.status).toBe(409);

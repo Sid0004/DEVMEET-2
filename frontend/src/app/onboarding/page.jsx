@@ -12,11 +12,12 @@ import {
   Code,
   User,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { apiRequest } from "@/lib/api";
 
 export default function OnboardingPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   // Step 1: 'profession' | Step 2: 'organization'
   const [currentStep, setCurrentStep] = useState("profession");
   // Form State
@@ -33,17 +34,18 @@ export default function OnboardingPage() {
 
   const handleFinish = async (e) => {
     if (e) e.preventDefault();
+    const targetUrl = searchParams.get("redirect") || "/dashboard";
     try {
       await apiRequest("/api/v1/users/onboard", {
         method: "POST",
         body: JSON.stringify({ profession, orgAction, orgInput }),
       });
       console.log("Onboarding Complete:", { profession, orgAction, orgInput });
-      window.location.href = "/dashboard";
+      window.location.href = targetUrl;
     } catch (err) {
       console.error("Failed to complete onboarding:", err);
       // Push anyway to avoid soft-lock if API fails
-      window.location.href = "/dashboard";
+      window.location.href = targetUrl;
     }
   };
 

@@ -17,6 +17,7 @@ const DEFAULTS = {
   focusY: 50,
   ditherStyle: 'bayer8',
   dotSize: 5,
+  reveal: true,
   revealRadius: 120,
   revealSoftness: 50,
   wave: true,
@@ -46,7 +47,8 @@ function getSettings(p) {
     focusY: clamp(p?.focusY, 0, 100, DEFAULTS.focusY) / 100,
     ditherStyle: p?.ditherStyle ?? DEFAULTS.ditherStyle,
     pixelSize: clamp(p?.dotSize, 1, 20, DEFAULTS.dotSize) / 2,
-    revealRadius: clamp(p?.revealRadius, 20, 600, DEFAULTS.revealRadius),
+    reveal: p?.reveal !== undefined ? Boolean(p.reveal) : (p?.revealRadius === 0 ? false : DEFAULTS.reveal),
+    revealRadius: clamp(p?.revealRadius, 0, 600, DEFAULTS.revealRadius),
     revealSoftness: clamp(p?.revealSoftness, 0, 100, DEFAULTS.revealSoftness) / 100,
     waveSpeed: speed,
     waveFrequency: clamp(p?.waveDensity, 5, 100, DEFAULTS.waveDensity) / 10,
@@ -62,6 +64,7 @@ export default function DitherReveal(props) {
     focusY = DEFAULTS.focusY,
     ditherStyle = DEFAULTS.ditherStyle,
     dotSize = DEFAULTS.dotSize,
+    reveal = DEFAULTS.reveal,
     revealRadius = DEFAULTS.revealRadius,
     revealSoftness = DEFAULTS.revealSoftness,
     wave = DEFAULTS.wave,
@@ -76,6 +79,7 @@ export default function DitherReveal(props) {
     focusY,
     ditherStyle,
     dotSize,
+    reveal,
     revealRadius,
     revealSoftness,
     wave,
@@ -246,8 +250,8 @@ export default function DitherReveal(props) {
       const now = performance.now();
       gl.uniform1f(uTime, (now - start) / 1000);
       gl.uniform2f(uMouse, mouse.x, mouse.y);
-      gl.uniform1f(uMouseActive, mouse.entered ? mouse.active : 0);
-      gl.uniform1f(uRevealRadius, L.revealRadius);
+      gl.uniform1f(uMouseActive, (L.reveal && mouse.entered) ? mouse.active : 0);
+      gl.uniform1f(uRevealRadius, L.reveal ? L.revealRadius : 0);
       gl.uniform1f(uRevealSoftness, L.revealSoftness);
       gl.uniform1f(uPixelSize, L.pixelSize);
       gl.uniform1f(uDitherStyle, DITHER_INDEX[L.ditherStyle] ?? 0);
@@ -276,8 +280,8 @@ export default function DitherReveal(props) {
 
       gl.uniform1f(uTime, (now - start) / 1000);
       gl.uniform2f(uMouse, mouse.x, mouse.y);
-      gl.uniform1f(uMouseActive, mouse.entered ? mouse.active : 0);
-      gl.uniform1f(uRevealRadius, L.revealRadius);
+      gl.uniform1f(uMouseActive, (L.reveal && mouse.entered) ? mouse.active : 0);
+      gl.uniform1f(uRevealRadius, L.reveal ? L.revealRadius : 0);
       gl.uniform1f(uRevealSoftness, L.revealSoftness);
       gl.uniform1f(uPixelSize, L.pixelSize);
       gl.uniform1f(uDitherStyle, DITHER_INDEX[L.ditherStyle] ?? 0);

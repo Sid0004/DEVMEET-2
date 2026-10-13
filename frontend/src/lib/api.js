@@ -73,9 +73,12 @@ export async function apiRequest(path, options = {}, retries = 2) {
     path !== "/api/v1/users/login" &&
     path !== "/api/v1/users/refresh-token" &&
     path !== "/api/v1/users/register" &&
-    path !== "/api/v1/users/logout" &&
-    !isRedirecting
+    path !== "/api/v1/users/logout"
   ) {
+    if (isRedirecting) {
+      throw new Error("Session expired or not logged in.");
+    }
+
     const success = await refreshAccessToken();
     if (success) {
       // Retry the original request

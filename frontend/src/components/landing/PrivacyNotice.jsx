@@ -31,7 +31,7 @@ export default function PrivacyNotice() {
     setIsVisible(false);
   };
 
-  const handleReject = () => {
+  const handleRejectNonEssential = () => {
     try {
       localStorage.setItem(
         'devmeet_cookie_consent',
