@@ -1,9 +1,25 @@
 import { Router } from "express";
-import { createRoom, getRoomById, joinRoom, leaveRoom, endRoom, runCode, getAllRoomsById, deleteRoom } from "./room.controller.js";
+import { 
+    createRoom, 
+    getRoomById, 
+    joinRoom, 
+    leaveRoom, 
+    endRoom, 
+    runCode, 
+    getAllRoomsById, 
+    deleteRoom,
+    getRoomPublicInfo,
+    guestJoinRoom
+} from "./room.controller.js";
 import { verifyJWT } from "../../middlewares/auth.middleware.js";
 
 const router = Router();
 
+// Public routes for guest access and pre-join room previews
+router.route("/:roomId/public-info").get(getRoomPublicInfo);
+router.route("/:roomId/guest-join").post(guestJoinRoom);
+
+// Protected routes (authenticated users or active guest sessions)
 router.use(verifyJWT);
 router.route("/create").post(createRoom);
 router.route("/run").post(runCode);

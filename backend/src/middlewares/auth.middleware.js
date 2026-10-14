@@ -11,16 +11,26 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
         }
         // console.log("---- verifyJWT: Token found, verifying...");
         const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-        // console.log("---- verifyJWT: Decoded token:", decodedToken);
-        // console.log("---- verifyJWT: Querying user in DB...");
+
+        // Ephemeral guest sessions
+        if (decodedToken?.isGuest) {
+            req.user = {
+                _id: decodedToken._id,
+                username: decodedToken.username,
+                fullName: decodedToken.fullName,
+                avatar: decodedToken.avatar,
+                isGuest: true,
+                guestRoomId: decodedToken.roomId,
+                role: "guest",
+            };
+            return next();
+        }
+
         const user = await User.findById(decodedToken?._id).select("-password -refreshToken");
-        // console.log("---- verifyJWT: Query completed, user found:", !!user);
         if (!user) {
-            // console.log("---- verifyJWT: User not found in DB");
             throw new ApiError(401, "invalid access token");
         }
         req.user = user;
-        // console.log("---- verifyJWT: Done, calling next()");
         next();
     }
     catch (err) {

@@ -29,7 +29,9 @@
     "socket.io": "^4.8.3",
     "tsx": "^4.23.15",
     "uuid": "^13.0.0",
-    "winston": "^3.19.0"
+    "winston": "^3.19.0",
+    "y-protocols": "^1.0.7",
+    "yjs": "^13.6.33"
   },
   "devDependencies": {
     "jest": "^30.4.2",

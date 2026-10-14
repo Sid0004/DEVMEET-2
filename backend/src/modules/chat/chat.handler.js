@@ -53,7 +53,7 @@ export const registerChatHandlers = (io, socket) => {
     // 4. Asynchronous Database Persistence (Non-Blocking)
     try {
       const roomDoc = await Room.findOne({ roomId }).select("_id");
-      if (roomDoc) {
+      if (roomDoc && !user.isGuest) {
         await Message.create({
           room: roomDoc._id,
           sender: user._id,

@@ -2,12 +2,15 @@ import { NextResponse } from "next/server";
 
 export function middleware(request) {
   const token = request.cookies.get("accessToken")?.value;
-  const { pathname } = request.nextUrl;
+  const { pathname, searchParams } = request.nextUrl;
+
+  // Allow direct access to workspace if joining an invited room with ?room=
+  const isRoomInvite = pathname.startsWith("/workspace") && searchParams.has("room");
 
   // Define protected routes
   const isProtectedRoute =
     pathname.startsWith("/dashboard") ||
-    pathname.startsWith("/workspace") ||
+    (pathname.startsWith("/workspace") && !isRoomInvite) ||
     pathname.startsWith("/onboarding");
 
   // Define auth routes (only for guests)

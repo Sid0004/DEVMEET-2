@@ -1,5 +1,10 @@
 import { Room } from "./room.model.js";
 import { Message } from "../chat/message.model.js";
+import {
+  getOrCreateRoomDoc,
+  extractFilesFromDoc,
+  encodeRoomDocUpdate,
+} from "../editor/editor.crdt.js";
 
 export const registerRoomHandlers = (io, socket) => {
   const authUser = socket.user;
@@ -7,11 +12,16 @@ export const registerRoomHandlers = (io, socket) => {
   socket.on("join-room", async ({ roomId }) => {
     if (!roomId || !authUser) return;
 
+    if (authUser.isGuest && authUser.guestRoomId && authUser.guestRoomId !== roomId) {
+      socket.emit("room-error", { message: "Guest session is only valid for the invited room." });
+      return;
+    }
+
     socket.join(roomId);
     socket.data.roomId = roomId;
     socket.data.user = authUser;
 
-    console.log(`User ${authUser.username || authUser.fullName} joined room ${roomId}`);
+    console.log(`User ${authUser.username || authUser.fullName} joined room ${roomId} (Guest: ${!!authUser.isGuest})`);
 
     try {
       const sockets = await io.in(roomId).fetchSockets();
@@ -34,13 +44,17 @@ export const registerRoomHandlers = (io, socket) => {
         return;
       }
 
-      const isHost = room.host.toString() === authUser._id.toString();
+      const isHost = !authUser.isGuest && room.host.toString() === authUser._id.toString();
       if (room.roomSettings?.isLocked && !isHost && !room.participants.some(p => p.toString() === authUser._id.toString())) {
         socket.emit("room-error", { message: "This room is locked by the host." });
         return;
       }
 
       if (room.organization && !isHost) {
+        if (authUser.isGuest) {
+          socket.emit("room-error", { message: "Organization rooms require a verified team account to join." });
+          return;
+        }
         const userOrgs = authUser.organizations?.map(o => o.toString()) || [];
         if (!userOrgs.includes(room.organization.toString())) {
           socket.emit("room-error", { message: "You do not have permission to join this organization room." });
@@ -48,8 +62,10 @@ export const registerRoomHandlers = (io, socket) => {
         }
       }
 
-      // Ensure user is added to participants in database
-      await Room.findOneAndUpdate({ roomId }, { $addToSet: { participants: authUser._id } });
+      // Ensure user is added to participants in database (only for registered users)
+      if (!authUser.isGuest) {
+        await Room.findOneAndUpdate({ roomId }, { $addToSet: { participants: authUser._id } });
+      }
 
       const dbMessages = await Message.find({ room: room._id })
         .sort({ createdAt: -1 })
@@ -71,14 +87,19 @@ export const registerRoomHandlers = (io, socket) => {
         files = [
           {
             name: "main.ts",
-            content: '// Welcome to DevMeet Workspace. Collaborators will sync in real time.\nconsole.log("hello")\n',
+            content: '// Welcome to DevMeet Workspace. Collaborators will sync in real time.\nconsole.log("hello");\n',
             language: "typescript",
           },
         ];
       }
 
+      const { doc } = getOrCreateRoomDoc(roomId, files);
+      const syncedFiles = extractFilesFromDoc(doc);
+      const yjsInitialUpdate = encodeRoomDocUpdate(roomId);
+
       socket.emit("room-state", {
-        files,
+        files: syncedFiles.length > 0 ? syncedFiles : files,
+        yjsUpdate: yjsInitialUpdate,
         messages,
         users: usersInRoom,
       });

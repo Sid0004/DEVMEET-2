@@ -58,6 +58,8 @@ temp/
 logs/
 backend/logs/
 *.log
+*dump*.txt
+*.dump
 
 # Documentation folder
 docs/

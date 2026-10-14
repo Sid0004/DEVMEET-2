@@ -18,13 +18,14 @@ import { setCredentials } from "@/redux/features/authSlice";
 import ProfileDropdown from "../components/ProfileDropdown";
 import Avatar from "@/components/Avatar";
 import { useTheme } from "@/components/ThemeProvider";
-import { setMessages, addMessage, resetUnread } from "@/redux/features/chatSlice";
+import { setMessages, addMessage, resetUnread, incrementUnread } from "@/redux/features/chatSlice";
 import ChatPanel from "@/components/workspace/ChatPanel";
 import LeftMeetingScreen from "../components/LeftMeetingScreen";
 import WorkspaceControlBar from "@/components/workspace/WorkspaceControlBar";
 import WorkspaceMeetingGrid from "@/components/workspace/WorkspaceMeetingGrid";
 import WorkspaceWhiteboard from "@/components/workspace/WorkspaceWhiteboard";
 import WorkspaceVideoSidebar from "@/components/workspace/WorkspaceVideoSidebar";
+import GuestJoinModal from "@/components/workspace/GuestJoinModal";
 import { X } from "lucide-react";
 
 const rtcConfig = {
@@ -446,18 +447,27 @@ function WorkspaceContent() {
   const [isConsoleOpen, setIsConsoleOpen] = useState(false);
   const [consoleOutput, setConsoleOutput] = useState(null);
   const [isJoinedCall, setIsJoinedCall] = useState(false);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
 
   // Refs
   const socketRef = useRef(null);
   const peerConnections = useRef({});
   const candidateQueue = useRef({});
   const localStreamRef = useRef(null);
+  const screenTrackRef = useRef(null);
   const isJoinedCallRef = useRef(false);
   const isCameraOffRef = useRef(true);
   const isMicMutedRef = useRef(true);
   const soundNotificationsRef = useRef(soundNotifications);
+  const sideDrawerRef = useRef(sideDrawer);
   const [hasLeftMeeting, setHasLeftMeeting] = useState(false);
   const [copiedInviteLink, setCopiedInviteLink] = useState(false);
+  const [isGuestModalOpen, setIsGuestModalOpen] = useState(false);
+  const [publicRoomInfo, setPublicRoomInfo] = useState(null);
+
+  useEffect(() => {
+    sideDrawerRef.current = sideDrawer;
+  }, [sideDrawer]);
 
   // Lock body scroll on workspace page before first paint to prevent layout shift
   useLayoutEffect(() => {
@@ -556,7 +566,7 @@ function WorkspaceContent() {
     };
   }, [isMounted]);
 
-  // Fetch current user if state is empty (e.g. on direct page refresh)
+  // Fetch current user or prompt guest join if visiting an invited room
   useEffect(() => {
     if (!isMounted) return;
 
@@ -573,7 +583,21 @@ function WorkspaceContent() {
         }
       } catch (err) {
         console.error("Failed to fetch user:", err);
-        if (err?.message?.includes("Session expired") || err?.message?.includes("unauthorized") || err?.message?.includes("Unauthorized")) {
+        if (roomId) {
+          // Unauthenticated user attempting to join an invited room: show Guest Join Modal
+          try {
+            const pubRes = await fetch(`${API_BASE_URL}/api/v1/rooms/${roomId}/public-info`);
+            const pubData = await pubRes.json();
+            if (pubData?.data) {
+              setPublicRoomInfo(pubData.data);
+              setRoomName(pubData.data.roomName);
+              if (pubData.data.host) setRoomHost(pubData.data.host);
+            }
+          } catch (pubErr) {
+            console.error("Failed to fetch public room info:", pubErr);
+          }
+          setIsGuestModalOpen(true);
+        } else if (err?.message?.includes("Session expired") || err?.message?.includes("unauthorized") || err?.message?.includes("Unauthorized")) {
           router.push("/login");
         }
       }
@@ -582,11 +606,21 @@ function WorkspaceContent() {
     if (!user) {
       fetchUser();
     }
-  }, [user, dispatch, router, isMounted]);
+  }, [user, dispatch, router, isMounted, roomId]);
 
-  // Fetch Room Info
+  const handleGuestJoinSuccess = (guestData) => {
+    dispatch(
+      setCredentials({
+        user: guestData.user,
+        token: guestData.accessToken,
+      }),
+    );
+    setIsGuestModalOpen(false);
+  };
+
+  // Fetch Room Info (Once user or guest session is active)
   useEffect(() => {
-    if (!isMounted || !roomId) return;
+    if (!isMounted || !roomId || !user) return;
 
     const fetchRoom = async () => {
       try {
@@ -718,6 +752,16 @@ function WorkspaceContent() {
         }
       },
     );
+
+    socket.on("receive-message", (message) => {
+      dispatch(addMessage(message));
+      if (sideDrawerRef.current !== "chat") {
+        dispatch(incrementUnread());
+        if (soundNotificationsRef.current) {
+          playNotificationSound(false);
+        }
+      }
+    });
 
     socket.on("call-state", ({ users }) => {
       // Deduplicate users by user._id so refreshed sockets don't produce duplicate video cards
@@ -1389,6 +1433,12 @@ function WorkspaceContent() {
 
   // Leave Video Call
   const leaveCall = () => {
+    if (screenTrackRef.current) {
+      screenTrackRef.current.stop();
+      screenTrackRef.current = null;
+    }
+    setIsScreenSharing(false);
+
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach((track) => track.stop());
     }
@@ -1414,6 +1464,82 @@ function WorkspaceContent() {
     setRoomUsers([]);
     setIsMicMuted(true);
     setIsCameraOff(true);
+  };
+
+  // Screen Sharing Implementation
+  const stopScreenShare = async () => {
+    if (screenTrackRef.current) {
+      screenTrackRef.current.stop();
+      screenTrackRef.current = null;
+    }
+    setIsScreenSharing(false);
+
+    try {
+      const cameraStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      const camTrack = cameraStream.getVideoTracks()[0];
+      if (camTrack && localStreamRef.current) {
+        const currentVideo = localStreamRef.current.getVideoTracks()[0];
+        if (currentVideo) localStreamRef.current.removeTrack(currentVideo);
+        localStreamRef.current.addTrack(camTrack);
+        setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
+
+        Object.values(peerConnections.current).forEach((pc) => {
+          const sender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
+          if (sender) sender.replaceTrack(camTrack);
+        });
+        setIsCameraOff(false);
+        broadcastMediaState(false, isMicMuted);
+      }
+    } catch {
+      setIsCameraOff(true);
+      broadcastMediaState(true, isMicMuted);
+    }
+  };
+
+  const toggleScreenShare = async () => {
+    if (!isJoinedCall) {
+      alert("Please join the live call first to share your screen.");
+      return;
+    }
+    if (isScreenSharing) {
+      stopScreenShare();
+      return;
+    }
+    try {
+      const displayStream = await navigator.mediaDevices.getDisplayMedia({
+        video: { cursor: "always" },
+        audio: false,
+      });
+      const screenTrack = displayStream.getVideoTracks()[0];
+      if (!screenTrack) return;
+      screenTrackRef.current = screenTrack;
+
+      Object.values(peerConnections.current).forEach((pc) => {
+        const sender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
+        if (sender) {
+          sender.replaceTrack(screenTrack);
+        }
+      });
+
+      if (localStreamRef.current) {
+        const oldVideo = localStreamRef.current.getVideoTracks()[0];
+        if (oldVideo) {
+          localStreamRef.current.removeTrack(oldVideo);
+        }
+        localStreamRef.current.addTrack(screenTrack);
+        setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
+      }
+
+      setIsScreenSharing(true);
+      setIsCameraOff(false);
+      broadcastMediaState(false, isMicMuted);
+
+      screenTrack.onended = () => {
+        stopScreenShare();
+      };
+    } catch (err) {
+      console.warn("Screen share cancelled or not allowed:", err);
+    }
   };
 
   // Toggle Mic
@@ -2129,8 +2255,19 @@ function WorkspaceContent() {
     )}
   </div>
 
-  {/* Persistent Audio Elements for Remote Call Participants */}
-  <div style={{ display: "none" }} aria-hidden="true">
+  {/* Persistent Audio Elements for Remote Call Participants (Off-screen so browsers never suspend audio on camera off) */}
+  <div
+    style={{
+      position: "fixed",
+      top: -9999,
+      left: -9999,
+      width: 1,
+      height: 1,
+      opacity: 0,
+      pointerEvents: "none",
+    }}
+    aria-hidden="true"
+  >
     {Object.entries(remoteStreams).map(([peerSocketId, stream]) => (
       <audio
         key={peerSocketId}
@@ -2154,6 +2291,8 @@ function WorkspaceContent() {
     toggleMic={toggleMic}
     isCameraOff={isCameraOff}
     toggleCamera={toggleCamera}
+    isScreenSharing={isScreenSharing}
+    toggleScreenShare={toggleScreenShare}
     viewMode={viewMode}
     setViewMode={setViewMode}
     sideDrawer={sideDrawer}
@@ -2164,6 +2303,16 @@ function WorkspaceContent() {
     copiedInvite={copiedInviteLink}
     onDownloadCode={handleDownloadCode}
   />
+
+  {/* Guest Join Flow Modal (No signup wall for meeting invitees) */}
+  {isGuestModalOpen && (
+    <GuestJoinModal
+      roomId={roomId}
+      roomInfo={publicRoomInfo}
+      onJoinSuccess={handleGuestJoinSuccess}
+      apiBaseUrl={API_BASE_URL}
+    />
+  )}
 </div>
   );
 }

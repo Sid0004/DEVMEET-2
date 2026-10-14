@@ -42,6 +42,20 @@ export const initSocket = (server) => {
       }
 
       const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+
+      if (decodedToken?.isGuest) {
+        socket.user = {
+          _id: decodedToken._id,
+          username: decodedToken.username || `guest_${decodedToken._id.slice(-6)}`,
+          fullName: decodedToken.fullName || "Guest",
+          avatar: decodedToken.avatar || `https://api.dicebear.com/7.x/dylan/svg?seed=${decodedToken._id}`,
+          isGuest: true,
+          guestRoomId: decodedToken.roomId,
+          role: "guest",
+        };
+        return next();
+      }
+
       const user = await User.findById(decodedToken?._id).select("-password -refreshToken");
       if (!user) {
         return next(new Error("Invalid token"));

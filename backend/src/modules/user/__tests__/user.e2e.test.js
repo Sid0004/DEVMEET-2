@@ -1,7 +1,9 @@
 import request from "supertest";
 import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
 import { app } from "../../../../app.js";
 import { User } from "../user.model.js";
+import { OTP } from "../otp.model.js";
 
 describe("User & Auth End-to-End (E2E) Integration Tests (Real Database)", () => {
     let isConnected = false;
@@ -10,6 +12,7 @@ describe("User & Auth End-to-End (E2E) Integration Tests (Real Database)", () =>
     const testEmail = `e2e_${uniqueSuffix}@example.com`;
     const testPassword = "Password123!";
     const testFullName = "E2E Test User";
+    const testOtp = "123456";
 
     let accessToken = "";
     let refreshToken = "";
@@ -35,6 +38,16 @@ describe("User & Auth End-to-End (E2E) Integration Tests (Real Database)", () =>
                 await mongoose.connect(testUri, { serverSelectionTimeoutMS: 5000 });
             }
             isConnected = mongoose.connection.readyState === 1;
+
+            if (isConnected) {
+                // Seed valid OTP for the test registration
+                const otpHash = await bcrypt.hash(testOtp, 10);
+                await OTP.deleteMany({ email: testEmail.toLowerCase() });
+                await OTP.create({
+                    email: testEmail.toLowerCase(),
+                    otpHash,
+                });
+            }
         } catch (err) {
             console.warn("MongoDB connection failed in E2E tests, skipping DB assertions:", err.message);
             isConnected = false;
@@ -46,6 +59,7 @@ describe("User & Auth End-to-End (E2E) Integration Tests (Real Database)", () =>
         if (isConnected && mongoose.connection.readyState !== 0) {
             try {
                 await User.deleteMany({ email: { $regex: /@example\.com$/i } });
+                await OTP.deleteMany({ email: { $regex: /@example\.com$/i } });
             } catch (err) {
                 console.error("Cleanup error:", err);
             } finally {
@@ -63,7 +77,8 @@ describe("User & Auth End-to-End (E2E) Integration Tests (Real Database)", () =>
                 username: testUsername,
                 email: testEmail,
                 password: testPassword,
-                fullName: testFullName
+                fullName: testFullName,
+                otp: testOtp
             });
 
         expect(res.status).toBe(201);
@@ -88,7 +103,8 @@ describe("User & Auth End-to-End (E2E) Integration Tests (Real Database)", () =>
                 username: testUsername,
                 email: testEmail,
                 password: testPassword,
-                fullName: testFullName
+                fullName: testFullName,
+                otp: testOtp
             });
 
         expect(res.status).toBe(409);

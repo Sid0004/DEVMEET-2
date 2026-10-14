@@ -1,6 +1,9 @@
+import mongoose from "mongoose";
+import jwt from "jsonwebtoken";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import { ApiError } from "../../utils/ApiError.js";
 import { ApiResponse } from "../../utils/ApiResponse.js";
+import { getCookieOptions } from "../../utils/cookieOptions.js";
 import { Room } from "./room.model.js";
 import { User } from "../user/user.model.js";
 import { Message } from "../chat/message.model.js";
@@ -266,4 +269,109 @@ const deleteRoom = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, deletedRoom, "Room deleted successfully"));
 });
 
-export { createRoom, getRoomById, joinRoom, leaveRoom, endRoom, runCode, getAllRoomsById, deleteRoom };
+const getRoomPublicInfo = asyncHandler(async (req, res) => {
+    const { roomId } = req.params;
+    if (!roomId) throw new ApiError(400, "Room ID is required");
+
+    const room = await Room.findOne({ roomId })
+        .select("roomId roomName description status roomType roomSettings host organization createdAt")
+        .populate("host", "fullName username avatar");
+
+    if (!room) {
+        throw new ApiError(404, "Room not found");
+    }
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            {
+                roomId: room.roomId,
+                roomName: room.roomName,
+                description: room.description,
+                status: room.status,
+                isLocked: !!room.roomSettings?.isLocked,
+                host: room.host ? {
+                    fullName: room.host.fullName,
+                    username: room.host.username,
+                    avatar: room.host.avatar
+                } : null,
+                requiresOrg: !!room.organization
+            },
+            "Room details retrieved"
+        )
+    );
+});
+
+const guestJoinRoom = asyncHandler(async (req, res) => {
+    const { roomId } = req.params;
+    const { name } = req.body;
+
+    if (!roomId) {
+        throw new ApiError(400, "Room ID is required");
+    }
+
+    if (!name || name.trim() === "") {
+        throw new ApiError(400, "Please provide your name to join as a guest");
+    }
+
+    const room = await Room.findOne({ roomId }).select("roomId roomName status roomSettings organization host");
+    if (!room) {
+        throw new ApiError(404, "Room with this ID does not exist");
+    }
+
+    if (room.status === "ended") {
+        throw new ApiError(403, "This session has ended and can no longer be joined");
+    }
+
+    if (room.roomSettings?.isLocked) {
+        throw new ApiError(403, "This room is currently locked by the host");
+    }
+
+    if (room.organization) {
+        throw new ApiError(403, "Organization rooms require a verified team account to join");
+    }
+
+    const cleanName = name.trim();
+    const guestObjectId = new mongoose.Types.ObjectId().toString();
+    const guestUsername = `guest_${cleanName.toLowerCase().replace(/[^a-z0-9_]/g, "") || "user"}_${guestObjectId.slice(-4)}`;
+    const guestAvatar = `https://api.dicebear.com/7.x/dylan/svg?seed=${encodeURIComponent(cleanName)}`;
+
+    const guestPayload = {
+        _id: guestObjectId,
+        fullName: cleanName,
+        username: guestUsername,
+        avatar: guestAvatar,
+        isGuest: true,
+        roomId: room.roomId,
+        role: "guest",
+    };
+
+    const guestAccessToken = jwt.sign(
+        guestPayload,
+        process.env.ACCESS_TOKEN_SECRET,
+        { expiresIn: "6h" }
+    );
+
+    const cookieOptions = getCookieOptions(req);
+    res.cookie("accessToken", guestAccessToken, {
+        ...cookieOptions,
+        maxAge: 6 * 60 * 60 * 1000 // 6 hours
+    });
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            {
+                user: guestPayload,
+                accessToken: guestAccessToken,
+                room: {
+                    roomId: room.roomId,
+                    roomName: room.roomName,
+                }
+            },
+            "Guest access granted"
+        )
+    );
+});
+
+export { createRoom, getRoomById, joinRoom, leaveRoom, endRoom, runCode, getAllRoomsById, deleteRoom, getRoomPublicInfo, guestJoinRoom };

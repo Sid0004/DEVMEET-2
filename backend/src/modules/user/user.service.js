@@ -43,7 +43,16 @@ class UserService {
         const { username, fullName, email, password, accountType = "individual", organizationName, otp } = userData;
         const cleanEmail = email.toLowerCase().trim();
 
-        // 1. Verify OTP
+        // 1. Check for existing username/email first
+        const existedUser = await User.findOne({
+            $or: [{ username: username.toLowerCase() }, { email: cleanEmail }]
+        });
+
+        if (existedUser) {
+            throw new ApiError(409, "User with this email or username already exists");
+        }
+
+        // 2. Verify OTP
         if (!otp || otp.trim() === "") {
             throw new ApiError(400, "Verification code (OTP) is required");
         }
@@ -65,17 +74,8 @@ class UserService {
             throw new ApiError(400, "Incorrect verification code. Please check your email and try again.");
         }
 
-        // 2. OTP is valid -> delete it to prevent replay attacks
+        // 3. OTP is valid -> delete it to prevent replay attacks
         await OTP.deleteOne({ _id: otpRecord._id });
-
-        // 3. Check for existing username/email
-        const existedUser = await User.findOne({
-            $or: [{ username: username.toLowerCase() }, { email: cleanEmail }]
-        });
-
-        if (existedUser) {
-            throw new ApiError(409, "User with this email or username already exists");
-        }
 
         // 4. Create User
         const user = await User.create({
