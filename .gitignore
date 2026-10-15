@@ -62,7 +62,8 @@ backend/logs/
 *.dump
 
 # Documentation folder
-docs/
+/docs/
+!backend/src/docs/
 UI/
 *Ui/
 desktop.ini

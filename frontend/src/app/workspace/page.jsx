@@ -19,14 +19,31 @@ import ProfileDropdown from "../components/ProfileDropdown";
 import Avatar from "@/components/Avatar";
 import { useTheme } from "@/components/ThemeProvider";
 import { setMessages, addMessage, resetUnread, incrementUnread } from "@/redux/features/chatSlice";
-import ChatPanel from "@/components/workspace/ChatPanel";
 import LeftMeetingScreen from "../components/LeftMeetingScreen";
-import WorkspaceControlBar from "@/components/workspace/WorkspaceControlBar";
-import WorkspaceMeetingGrid from "@/components/workspace/WorkspaceMeetingGrid";
-import WorkspaceWhiteboard from "@/components/workspace/WorkspaceWhiteboard";
-import WorkspaceVideoSidebar from "@/components/workspace/WorkspaceVideoSidebar";
-import GuestJoinModal from "@/components/workspace/GuestJoinModal";
+import dynamic from "next/dynamic";
 import { X } from "lucide-react";
+
+// Categorized Workspace Subsystems
+import ChatPanel from "@/components/workspace/chat/ChatPanel";
+import WorkspaceControlBar from "@/components/workspace/room/WorkspaceControlBar";
+import WorkspaceMeetingGrid from "@/components/workspace/media/WorkspaceMeetingGrid";
+import WorkspaceWhiteboard from "@/components/workspace/whiteboard/WorkspaceWhiteboard";
+import WorkspaceVideoSidebar from "@/components/workspace/media/WorkspaceVideoSidebar";
+import GuestJoinModal from "@/components/workspace/room/GuestJoinModal";
+import RoomStatusScreen from "@/components/workspace/room/RoomStatusScreen";
+import AudioStreamManager from "@/components/workspace/media/AudioStreamManager";
+
+const CollaborativeMonacoEditor = dynamic(
+  () => import("@/components/workspace/ide/CollaborativeMonacoEditor"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-full flex items-center justify-center bg-[#1e1e1e] text-neutral-400 font-mono text-xs">
+        Connecting to collaborative editor...
+      </div>
+    ),
+  }
+);
 
 const rtcConfig = {
   iceServers: [
@@ -405,12 +422,8 @@ function WorkspaceContent() {
     }
   }, [sideDrawer, dispatch]);
 
-  // Compute resolved editor theme
-  const isDarkTheme =
-    theme === "dark" ||
-    (theme === "system" &&
-      typeof window !== "undefined" &&
-      window.matchMedia("(prefers-color-scheme: dark)").matches);
+  // Compute resolved editor theme (defaults to dark for authentic developer IDE experience)
+  const isDarkTheme = theme !== "light";
   const editorTheme = isDarkTheme ? "vs-dark" : "vs";
 
   // States
@@ -428,6 +441,8 @@ function WorkspaceContent() {
   const [activeFileIndex, setActiveFileIndex] = useState(0);
   const [isCreatingFile, setIsCreatingFile] = useState(false);
   const [newFileName, setNewFileName] = useState("");
+  const [roomStatus, setRoomStatus] = useState("loading"); // "loading" | "active" | "not-found" | "locked" | "ended" | "error"
+  const [roomError, setRoomError] = useState("");
   const [roomName, setRoomName] = useState("DevMeet Session");
   const [roomHost, setRoomHost] = useState(null);
   const [roomUsers, setRoomUsers] = useState([]);
@@ -464,6 +479,7 @@ function WorkspaceContent() {
   const [copiedInviteLink, setCopiedInviteLink] = useState(false);
   const [isGuestModalOpen, setIsGuestModalOpen] = useState(false);
   const [publicRoomInfo, setPublicRoomInfo] = useState(null);
+  const [collaboratorPresence, setCollaboratorPresence] = useState([]);
 
   useEffect(() => {
     sideDrawerRef.current = sideDrawer;
@@ -592,6 +608,21 @@ function WorkspaceContent() {
               setPublicRoomInfo(pubData.data);
               setRoomName(pubData.data.roomName);
               if (pubData.data.host) setRoomHost(pubData.data.host);
+
+              if (pubData.data.status === "ended") {
+                setRoomStatus("ended");
+                setRoomError("This session has already ended.");
+                return;
+              }
+              if (pubData.data.isLocked) {
+                setRoomStatus("locked");
+                setRoomError("This room is locked by the host.");
+                return;
+              }
+            } else if (pubRes.status === 404) {
+              setRoomStatus("not-found");
+              setRoomError(`Workspace "${roomId}" does not exist or has expired.`);
+              return;
             }
           } catch (pubErr) {
             console.error("Failed to fetch public room info:", pubErr);
@@ -626,17 +657,35 @@ function WorkspaceContent() {
       try {
         const response = await apiRequest(`/api/v1/rooms/${roomId}`);
         if (response?.data) {
-          setRoomName(response.data.roomName);
-          setRoomHost(response.data.host);
-          let roomFiles = response.data.files || [];
+          const roomData = response.data;
+          setRoomName(roomData.roomName);
+          setRoomHost(roomData.host);
+
+          if (roomData.status === "ended") {
+            setRoomStatus("ended");
+            setRoomError("This session has already ended.");
+            return;
+          }
+
+          if (roomData.roomSettings?.isLocked) {
+            const isHost = !user?.isGuest && roomData.host?._id?.toString() === user?._id?.toString();
+            if (!isHost) {
+              setRoomStatus("locked");
+              setRoomError("This room is locked by the host.");
+              return;
+            }
+          }
+
+          setRoomStatus("active");
+          let roomFiles = roomData.files || [];
           if (roomFiles.length === 0) {
-            const lang = response.data.primaryLanguage || "TypeScript";
+            const lang = roomData.primaryLanguage || "TypeScript";
             const ext = lang.toLowerCase() === "python" ? "py" : "ts";
             roomFiles = [
               {
                 name: `main.${ext}`,
                 content:
-                  response.data.code ||
+                  roomData.code ||
                   "// Welcome to DevMeet Workspace. Collaborators will sync in real time.\n",
                 language: lang,
               },
@@ -647,11 +696,22 @@ function WorkspaceContent() {
         }
       } catch (err) {
         console.error("Failed to fetch room info:", err);
+        const errMsg = err?.message || "";
+        if (err?.status === 404 || errMsg.toLowerCase().includes("not exist") || errMsg.toLowerCase().includes("not found")) {
+          setRoomStatus("not-found");
+          setRoomError(`Workspace "${roomId}" does not exist or has expired.`);
+        } else if (err?.status === 403 || errMsg.toLowerCase().includes("locked")) {
+          setRoomStatus("locked");
+          setRoomError(errMsg || "This room is locked by the host.");
+        } else {
+          setRoomStatus("error");
+          setRoomError(errMsg || "Failed to load room details.");
+        }
       }
     };
 
     fetchRoom();
-  }, [roomId, isMounted]);
+  }, [roomId, isMounted, user]);
 
   // Initialize Socket.IO & Code Collaboration & Call Listeners
   useEffect(() => {
@@ -710,17 +770,29 @@ function WorkspaceContent() {
             }, 300);
           }
         }
+        setRoomStatus("active");
       },
     );
 
     socket.on("room-error", ({ message }) => {
-      alert(message);
-      router.push("/dashboard");
+      console.warn("[Socket] Room error received:", message);
+      const lower = (message || "").toLowerCase();
+      if (lower.includes("not found") || lower.includes("not exist")) {
+        setRoomStatus("not-found");
+      } else if (lower.includes("locked")) {
+        setRoomStatus("locked");
+      } else if (lower.includes("ended")) {
+        setRoomStatus("ended");
+      } else {
+        setRoomStatus("error");
+      }
+      setRoomError(message || "An error occurred with this workspace.");
     });
 
     socket.on("session-ended", ({ message }) => {
-      alert(message);
-      router.push("/dashboard");
+      console.log("[Socket] Session ended by host:", message);
+      setRoomStatus("ended");
+      setRoomError(message || "The host has ended this session.");
     });
 
     socket.on("user-joined", ({ socketId, user: joinedUser }) => {
@@ -1152,6 +1224,10 @@ function WorkspaceContent() {
     setNewFileName("");
 
     if (socketRef.current) {
+      socketRef.current.emit("file-create", {
+        roomId,
+        file: newFile,
+      });
       socketRef.current.emit("files-change", {
         files: updatedFiles,
         activeFileIndex: newIndex,
@@ -1166,6 +1242,7 @@ function WorkspaceContent() {
       return;
     }
 
+    const fileToDelete = files[index];
     const updatedFiles = files.filter((_, idx) => idx !== index);
     let newIndex = activeFileIndex;
     if (activeFileIndex >= updatedFiles.length) {
@@ -1179,7 +1256,11 @@ function WorkspaceContent() {
     setFiles(updatedFiles);
     setActiveFileIndex(newIndex);
 
-    if (socketRef.current) {
+    if (socketRef.current && fileToDelete) {
+      socketRef.current.emit("file-delete", {
+        roomId,
+        fileName: fileToDelete.name,
+      });
       socketRef.current.emit("files-change", {
         files: updatedFiles,
         activeFileIndex: newIndex,
@@ -1654,6 +1735,33 @@ function WorkspaceContent() {
     setHasLeftMeeting(true);
   };
 
+  if (roomStatus !== "active" && roomStatus !== "loading") {
+    return (
+      <RoomStatusScreen
+        status={roomStatus}
+        message={roomError}
+        roomId={roomId}
+        isGuest={user?.isGuest}
+        onRetry={() => {
+          setRoomStatus("loading");
+          setRoomError("");
+          if (roomId) {
+            apiRequest(`/api/v1/rooms/${roomId}`)
+              .then((res) => {
+                if (res?.data) {
+                  setRoomStatus("active");
+                }
+              })
+              .catch((e) => {
+                setRoomStatus("error");
+                setRoomError(e.message || "Failed to reconnect");
+              });
+          }
+        }}
+      />
+    );
+  }
+
   if (hasLeftMeeting) {
     return (
       <LeftMeetingScreen
@@ -1668,6 +1776,12 @@ function WorkspaceContent() {
 
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-neutral-950 text-white flex flex-col font-sans">
+      {/* WebRTC Audio Persistence Sink: guarantees remote microphone audio is never cut off */}
+      <AudioStreamManager
+        remoteStreams={remoteStreams}
+        remoteMediaStates={remoteMediaStates}
+      />
+
       {/* 1. Dynamic Main Canvas View Modes */}
       <div className="flex-1 w-full h-full relative overflow-hidden">
         {/* Mode 1: Meeting View (Full-Screen Video Conference Grid) */}
@@ -1913,6 +2027,24 @@ function WorkspaceContent() {
                             <span className={styles.explorerFileName}>
                               {file.name}
                             </span>
+                            {(() => {
+                              const peersInFile = collaboratorPresence.filter((p) => p.currentFile === file.name);
+                              if (peersInFile.length === 0) return null;
+                              return (
+                                <div className="flex -space-x-1 ml-auto mr-1 items-center">
+                                  {peersInFile.map((p, pIdx) => (
+                                    <span
+                                      key={p.clientID || pIdx}
+                                      title={`${p.name} (Line ${p.cursor?.line || 1})`}
+                                      className="w-3 h-3 rounded-full flex items-center justify-center text-[7px] font-bold text-white shadow-xs ring-1 ring-black"
+                                      style={{ backgroundColor: p.color || "#6366f1" }}
+                                    >
+                                      {p.name.charAt(0).toUpperCase()}
+                                    </span>
+                                  ))}
+                                </div>
+                              );
+                            })()}
                           </div>
                           {files.length > 1 && (
                             <button
@@ -2008,31 +2140,51 @@ function WorkspaceContent() {
               {/* Tab Bar */}
               <div className={styles.tabBar}>
                 <div className={styles.tabsContainer}>
-                  {files.map((file, idx) => (
-                    <div
-                      key={idx}
-                      className={
-                        idx === activeFileIndex ? styles.tabActive : styles.tab
-                      }
-                      onClick={() => handleTabSelect(idx)}
-                    >
-                      <span
-                        className="material-symbols-outlined"
-                        style={{ fontSize: "0.875rem" }}
+                  {files.map((file, idx) => {
+                    const peersOnThisFile = collaboratorPresence.filter((p) => p.currentFile === file.name);
+                    return (
+                      <div
+                        key={idx}
+                        className={
+                          idx === activeFileIndex ? styles.tabActive : styles.tab
+                        }
+                        onClick={() => handleTabSelect(idx)}
                       >
-                        description
-                      </span>
-                      <span>{file.name}</span>
-                      {files.length > 1 && (
                         <span
-                          className={`material-symbols-outlined ${styles.tabCloseBtn}`}
-                          onClick={(e) => handleDeleteFile(e, idx)}
+                          className="material-symbols-outlined"
+                          style={{ fontSize: "0.875rem" }}
                         >
-                          close
+                          description
                         </span>
-                      )}
-                    </div>
-                  ))}
+                        <span>{file.name}</span>
+
+                        {/* Peer collaborator presence indicator on tab */}
+                        {peersOnThisFile.length > 0 && (
+                          <div className="flex -space-x-1 ml-1.5 items-center">
+                            {peersOnThisFile.map((peer, pIdx) => (
+                              <span
+                                key={peer.clientID || pIdx}
+                                title={`${peer.name} is editing ${file.name}`}
+                                className="w-3.5 h-3.5 rounded-full flex items-center justify-center text-[8px] font-bold text-white shadow-sm ring-1 ring-black"
+                                style={{ backgroundColor: peer.color || "#6366f1" }}
+                              >
+                                {peer.name.charAt(0).toUpperCase()}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        {files.length > 1 && (
+                          <span
+                            className={`material-symbols-outlined ${styles.tabCloseBtn}`}
+                            onClick={(e) => handleDeleteFile(e, idx)}
+                          >
+                            close
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
 
                 {/* Tab Bar Actions */}
@@ -2075,27 +2227,25 @@ function WorkspaceContent() {
               </div>
 
               <div style={{ flex: 1, minHeight: 0, position: "relative" }}>
-                <Editor
-                  height="100%"
+                <CollaborativeMonacoEditor
+                  socket={socketRef.current}
+                  roomId={roomId}
+                  user={user}
+                  files={files}
+                  activeFileIndex={activeFileIndex}
+                  onFilesChange={(updatedFiles) => setFiles(updatedFiles)}
+                  onCollaboratorsPresence={(peers) => setCollaboratorPresence(peers)}
                   language={
                     files[activeFileIndex]
                       ? getLanguageFromFilename(files[activeFileIndex].name)
                       : "typescript"
                   }
-                  theme="vs-dark"
-                  value={files[activeFileIndex]?.content || ""}
-                  onChange={handleEditorChange}
-                  options={{
-                    fontSize: editorFontSize,
-                    minimap: { enabled: editorMinimap },
-                    wordWrap: editorWordWrap,
-                    tabSize: editorTabSize,
-                    lineNumbers: editorLineNumbers,
-                    automaticLayout: true,
-                    fontFamily: "var(--font-mono), monospace",
-                    cursorBlinking: "smooth",
-                    padding: { top: 16 },
-                  }}
+                  editorTheme={editorTheme}
+                  fontSize={editorFontSize}
+                  minimap={editorMinimap}
+                  wordWrap={editorWordWrap}
+                  tabSize={editorTabSize}
+                  lineNumbers={editorLineNumbers}
                 />
               </div>
 

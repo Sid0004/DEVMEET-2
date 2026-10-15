@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Building2,
@@ -16,6 +16,20 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { apiRequest } from "@/lib/api";
 
 export default function OnboardingPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#070708] flex items-center justify-center text-white font-mono text-xs">
+          Loading onboarding...
+        </div>
+      }
+    >
+      <OnboardingContent />
+    </Suspense>
+  );
+}
+
+function OnboardingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   // Step 1: 'profession' | Step 2: 'organization'
