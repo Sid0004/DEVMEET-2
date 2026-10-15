@@ -134,6 +134,7 @@ export default function WorkspaceVideoStrip({
                   }}
                   autoPlay
                   playsInline
+                  muted
                   className="w-full h-full object-cover"
                 />
               ) : (

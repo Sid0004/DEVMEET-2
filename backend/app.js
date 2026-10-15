@@ -14,14 +14,49 @@ app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(express.static("public"));
 app.use(cookieParser());
 app.use(morgan("dev"));
-app.use(helmet());
-
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+  })
+);
 
 // routes import
 import userRouter from './src/modules/user/user.routes.js';
 import roomRouter from './src/modules/room/room.routes.js';
 import { errorHandler } from "./src/middlewares/error.middleware.js";
+import { apiReference } from "@scalar/express-api-reference";
+import swaggerUi from "swagger-ui-express";
+import { openApiSpec } from "./src/docs/openapi.js";
 
+// OpenAPI JSON endpoint
+app.get("/openapi.json", (req, res) => {
+  res.setHeader("Content-Type", "application/json");
+  res.json(openApiSpec);
+});
+
+// Classic Swagger UI (Green GET, Blue POST, Red DELETE badges)
+app.use(
+  "/api-docs",
+  swaggerUi.serve,
+  swaggerUi.setup(openApiSpec, {
+    customSiteTitle: "DEVMEET-2 Swagger UI",
+  })
+);
+app.use("/swagger", (req, res) => res.redirect("/api-docs"));
+
+// Modern Scalar API Documentation
+app.use(
+  "/docs",
+  apiReference({
+    theme: "purple",
+    darkMode: true,
+    pageTitle: "DEVMEET-2 API Reference",
+    spec: {
+      content: openApiSpec,
+    },
+  })
+);
 
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/rooms", roomRouter);

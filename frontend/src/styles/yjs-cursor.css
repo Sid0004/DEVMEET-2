@@ -1,0 +1,42 @@
+/* Real-time Collaborative Cursors & Selection Highlights */
+.yRemoteSelection {
+  background-color: rgba(99, 102, 241, 0.25);
+  border-radius: 2px;
+}
+
+.yRemoteSelectionHead {
+  position: absolute;
+  border-left: 2px solid #6366f1;
+  border-top: 2px solid #6366f1;
+  border-bottom: 2px solid #6366f1;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.yRemoteSelectionHead::before {
+  position: absolute;
+  content: " ";
+  border: 3px solid #6366f1;
+  border-radius: 4px;
+  left: -4px;
+  top: -4px;
+}
+
+.yRemoteSelectionHead::after {
+  position: absolute;
+  content: attr(data-user-name);
+  top: -18px;
+  left: -2px;
+  font-size: 10px;
+  font-family: var(--font-mono), monospace;
+  font-weight: 700;
+  line-height: 1.2;
+  padding: 1px 5px;
+  border-radius: 3px;
+  color: #ffffff;
+  background-color: #6366f1;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 10;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}

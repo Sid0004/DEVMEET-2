@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useAppSelector, useAppDispatch } from "@/redux/hooks";
 import { addMessage, incrementUnread, resetUnread, setTypingUser, removeTypingUser } from "@/redux/features/chatSlice";
-import styles from "../../app/workspace/workspace.module.css";
+import styles from "@/app/workspace/workspace.module.css";
 import Avatar from "@/components/Avatar";
 
 export default function ChatPanel({ socket, connectedUsers, roomUsers, user }) {
