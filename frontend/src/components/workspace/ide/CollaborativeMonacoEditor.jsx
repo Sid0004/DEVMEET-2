@@ -129,16 +129,18 @@ export default function CollaborativeMonacoEditor({
     ydocRef.current = ydoc;
     awarenessRef.current = awareness;
 
-    // Seed local Y.Doc with initial files if present
+    // Seed local Y.Doc with initial files ONLY if running offline without a socket gateway
     const currentFiles = filesRef.current || [];
-    ydoc.transact(() => {
-      currentFiles.forEach((file) => {
-        const ytext = ydoc.getText(file.name);
-        if (ytext.length === 0 && file.content) {
-          ytext.insert(0, file.content);
-        }
+    if (!socket) {
+      ydoc.transact(() => {
+        currentFiles.forEach((file) => {
+          const ytext = ydoc.getText(file.name);
+          if (ytext.length === 0 && file.content) {
+            ytext.insert(0, file.content);
+          }
+        });
       });
-    });
+    }
 
     // Set local awareness state
     const userColor = getUserColor(user?._id || user?.id || socket?.id || "guest");
@@ -301,8 +303,8 @@ export default function CollaborativeMonacoEditor({
     }
 
     const ytext = ydoc.getText(activeFile.name);
-    // Seed text if empty
-    if (ytext.length === 0 && activeFile.content) {
+    // Seed text if empty ONLY when running offline without socket
+    if (!socket && ytext.length === 0 && activeFile.content) {
       ytext.insert(0, activeFile.content);
     }
 
@@ -319,7 +321,9 @@ export default function CollaborativeMonacoEditor({
         awareness
       );
     }
-  }, [activeFileIndex]);
+  }, [activeFileIndex, socket]);
+
+  const resolvedTheme = editorTheme === "light" || editorTheme === "vs" ? "vs" : "vs-dark";
 
   const handleEditorDidMount = (editor, monaco) => {
     editorRef.current = editor;
@@ -337,7 +341,7 @@ export default function CollaborativeMonacoEditor({
     });
 
     // Explicitly set theme
-    monaco.editor.setTheme(editorTheme || "vs-dark");
+    monaco.editor.setTheme(resolvedTheme);
 
     bindMonaco();
   };
@@ -345,9 +349,9 @@ export default function CollaborativeMonacoEditor({
   // Keep theme synced
   useEffect(() => {
     if (monacoRef.current) {
-      monacoRef.current.editor.setTheme(editorTheme || "vs-dark");
+      monacoRef.current.editor.setTheme(resolvedTheme);
     }
-  }, [editorTheme]);
+  }, [resolvedTheme]);
 
   // Re-bind whenever active file tab changes
   useEffect(() => {
@@ -409,7 +413,7 @@ export default function CollaborativeMonacoEditor({
         <Editor
           height="100%"
           language={language}
-          theme={editorTheme}
+          theme={resolvedTheme}
           onMount={handleEditorDidMount}
           options={{
             fontSize,

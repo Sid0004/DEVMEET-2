@@ -275,8 +275,24 @@ function WorkspaceContent() {
     URL.revokeObjectURL(url);
   };
 
-  const handleEndSession = async () => {
+  const isHost = Boolean(
+    (roomHost && (user?._id === roomHost || user?.id === roomHost || user?.username === roomHost)) ||
+    user?.isHost ||
+    (publicRoomInfo?.host && (user?._id === publicRoomInfo.host || user?.id === publicRoomInfo.host))
+  );
+
+  const handleLeaveMeeting = useCallback(() => {
     try {
+      leaveCall();
+    } catch (err) {
+      console.warn("Leave call error:", err);
+    }
+    setHasLeftMeeting(true);
+  }, [leaveCall]);
+
+  const handleEndSession = useCallback(async () => {
+    try {
+      leaveCall();
       await apiRequest(`/api/v1/rooms/${roomId}/end`, { method: "POST" });
       if (socket) {
         socket.emit("end-session-broadcast", { roomId });
@@ -285,7 +301,7 @@ function WorkspaceContent() {
       console.warn("End session notice:", err);
     }
     setHasLeftMeeting(true);
-  };
+  }, [roomId, leaveCall, socket]);
 
   // Screen 1: Room Gatekeeper (404, Locked, Ended, or Error)
   if (roomStatus !== "active" && roomStatus !== "loading") {
@@ -348,6 +364,7 @@ function WorkspaceContent() {
             socket={socket}
             roomId={roomId}
             isVisible={viewMode === "whiteboard"}
+            initialTheme={isDarkTheme ? "dark" : "white"}
           />
         </div>
 
@@ -431,6 +448,9 @@ function WorkspaceContent() {
         isJoinedCall={isJoinedCall}
         startCall={startCall}
         leaveCall={leaveCall}
+        isHost={isHost}
+        onLeaveMeeting={handleLeaveMeeting}
+        onEndSession={handleEndSession}
         isMicMuted={isMicMuted}
         toggleMic={toggleMic}
         isCameraOff={isCameraOff}

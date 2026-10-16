@@ -78,7 +78,14 @@ export const getOrCreateRoomDoc = (roomId, initialFiles = []) => {
       filesMeta.push([{ name: f.name, language: f.language || "typescript" }]);
       const yText = doc.getText(f.name);
       if (yText.length === 0 && f.content) {
-        yText.insert(0, f.content);
+        // Deduplicate repeated welcome header if corrupted from prior client syncs
+        const cleaned = typeof f.content === "string"
+          ? f.content.replace(
+              /(\/\/\s*Welcome to DevMeet Workspace[^\n]*\n(?:console\.log\("hello"\);\n)?){2,}/g,
+              '// Welcome to DevMeet Workspace. Collaborators will sync in real time.\nconsole.log("hello");\n'
+            )
+          : f.content;
+        yText.insert(0, cleaned);
       }
     });
   });

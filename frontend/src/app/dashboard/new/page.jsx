@@ -464,15 +464,21 @@ function CreateSessionContent() {
               {/* GitHub Repo */}
               {!queryRoomId && (
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider flex items-center gap-1">
-                    <GitBranch className="w-3.5 h-3.5" /> GitHub Repository{" "}
-                    <span className="text-neutral-400 dark:text-neutral-500 font-normal lowercase">(optional)</span>
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider flex items-center gap-1.5">
+                      <GitBranch className="w-3.5 h-3.5 text-neutral-500" /> GitHub Repository{" "}
+                      <span className="text-neutral-400 dark:text-neutral-500 font-normal lowercase text-[11px]">(optional)</span>
+                    </label>
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-gradient-to-r from-violet-500/15 via-fuchsia-500/15 to-cyan-500/15 text-violet-300 border border-violet-500/30 shadow-[0_0_12px_rgba(168,85,247,0.25)] select-none">
+                      <Sparkles className="w-3 h-3 text-cyan-400 animate-pulse" />
+                      <span className="bg-gradient-to-r from-violet-200 via-fuchsia-200 to-cyan-200 bg-clip-text text-transparent font-bold">Upcoming • Beta</span>
+                    </span>
+                  </div>
                   <input
                     type="url"
                     value={repoUrl}
                     onChange={(e) => setRepoUrl(e.target.value)}
-                    placeholder="https://github.com/org/repo"
+                    placeholder="https://github.com/org/repo (Auto-sync preview)"
                     className="bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-none px-3.5 py-2 text-neutral-900 dark:text-white text-sm focus:outline-none focus:border-blue-600 dark:focus:border-blue-500 transition-colors placeholder-neutral-400 dark:placeholder-neutral-600"
                   />
                 </div>

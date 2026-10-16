@@ -148,6 +148,6 @@ The backend includes a comprehensive, multi-layer automated test suite using Jes
 | **Database**          | MongoDB (Atlas / Containerized Mongo for CI)                    |
 | **Testing & CI**      | Jest 30, Supertest, GitHub Actions                              |
 
-> > root>> docker compose -f docker-compose.livekit.yml up -d
-> > backend>> npm run dev
+> > root >> docker compose -f docker-compose.livekit.yml up -d
+> > backend >> npm run dev
 > > frontend>> npm run dev

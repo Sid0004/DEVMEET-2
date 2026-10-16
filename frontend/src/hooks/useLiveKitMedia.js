@@ -284,9 +284,9 @@ export function useLiveKitMedia({ roomId, user, autoJoin = false }) {
   const toggleMic = useCallback(async () => {
     if (!roomRef.current?.localParticipant) return;
     try {
-      const nextState = !isMicMuted;
-      await roomRef.current.localParticipant.setMicrophoneEnabled(nextState);
-      setIsMicMuted(!nextState);
+      const shouldEnable = isMicMuted;
+      await roomRef.current.localParticipant.setMicrophoneEnabled(shouldEnable);
+      setIsMicMuted(!shouldEnable);
       updateLocalStream(roomRef.current);
     } catch (err) {
       console.error("[LiveKit] Error toggling microphone:", err);
@@ -297,9 +297,9 @@ export function useLiveKitMedia({ roomId, user, autoJoin = false }) {
   const toggleCamera = useCallback(async () => {
     if (!roomRef.current?.localParticipant) return;
     try {
-      const nextState = !isCameraOff;
-      await roomRef.current.localParticipant.setCameraEnabled(nextState);
-      setIsCameraOff(!nextState);
+      const shouldEnable = isCameraOff;
+      await roomRef.current.localParticipant.setCameraEnabled(shouldEnable);
+      setIsCameraOff(!shouldEnable);
       updateLocalStream(roomRef.current);
     } catch (err) {
       console.error("[LiveKit] Error toggling camera:", err);
