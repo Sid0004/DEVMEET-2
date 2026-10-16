@@ -31,6 +31,15 @@ import { apiReference } from "@scalar/express-api-reference";
 import swaggerUi from "swagger-ui-express";
 import { openApiSpec } from "./src/docs/openapi.js";
 
+// Health check endpoint for cloud monitoring and probes
+app.get("/", (req, res) => {
+  res.status(200).json({
+    status: "ok",
+    service: "DevMeet Backend Service",
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // OpenAPI JSON endpoint
 app.get("/openapi.json", (req, res) => {
   res.setHeader("Content-Type", "application/json");

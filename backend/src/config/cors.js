@@ -19,12 +19,8 @@ export const corsOptions = {
         const allowedOrigins = getAllowedOrigins();
         const isDevelopment = process.env.NODE_ENV !== "production";
         if (!origin) {
-            // In development, allow requests without origin (for Postman, etc.)
-            if (isDevelopment) {
-                return callback(null, true);
-            }
-            // In production, block requests without origin
-            return callback(new Error("CORS blocked: No origin header in production"));
+            // Allow same-origin requests, direct navigation, and Render health check probes
+            return callback(null, true);
         }
         if (allowedOrigins.includes(origin)) {
             return callback(null, true);
