@@ -1,7 +1,11 @@
 import mongoose from "mongoose";
 const connectDB = async () => {
     try {
-        const uri = process.env.MONGODB_URI || process.env.MONGO_DB_URI;
+        let uri = (process.env.MONGODB_URI || process.env.MONGO_DB_URI || "").trim();
+        if ((uri.startsWith('"') && uri.endsWith('"')) || (uri.startsWith("'") && uri.endsWith("'"))) {
+            uri = uri.slice(1, -1).trim();
+        }
+
         if (!uri) {
             console.error(" MONGODB_URI or MONGO_DB_URI is not defined in environment variables");
             process.exit(1);
