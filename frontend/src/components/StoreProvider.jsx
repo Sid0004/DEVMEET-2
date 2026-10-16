@@ -30,7 +30,9 @@ export default function StoreProvider({ children }) {
     loadUser();
   }, [store]);
 
-  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
+  const googleClientId =
+    process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
+    "301169570698-gsq2kqrugim2gn0m4ooc1b3e3bpuf259.apps.googleusercontent.com";
 
   return (
     <Provider store={store}>

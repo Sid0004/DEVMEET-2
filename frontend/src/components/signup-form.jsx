@@ -130,6 +130,9 @@ export function SignupForm({ className, ...props }) {
       console.error("Google Login Error:", errorResponse);
       setError("Google sign-in was cancelled or encountered an error.");
     },
+    onNonOAuthError: (nonOAuthError) => {
+      console.warn("Google non-OAuth error:", nonOAuthError);
+    },
   });
 
   const handleSubmit = async (e) => {
@@ -210,7 +213,12 @@ export function SignupForm({ className, ...props }) {
 
   const handleSocialClick = (provider) => {
     if (provider === "Google") {
-      handleGoogleLogin();
+      try {
+        handleGoogleLogin();
+      } catch (err) {
+        console.error("Google login launch error:", err);
+        setError("Google sign-in is currently unavailable in this browser.");
+      }
     } else if (provider === "GitHub") {
       handleGithubLogin();
     }

@@ -75,6 +75,11 @@ export async function apiRequest(path, options = {}, retries = 2) {
     path !== "/api/v1/users/register" &&
     path !== "/api/v1/users/logout"
   ) {
+    // If checking current-user on initial load and guest is not logged in, fail fast without spamming /refresh-token
+    if (isAuthCheck) {
+      throw new Error("No active session");
+    }
+
     if (isRedirecting) {
       throw new Error("Session expired or not logged in.");
     }
