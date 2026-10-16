@@ -1,6 +1,5 @@
 <img width="1897" height="501" alt="image" src="https://github.com/user-attachments/assets/178ce7a0-399d-445f-a08e-254d582f2021" />
 
-
 # Devmeet
 
 Devmeet is a real-time collaborative workspace and meeting platform designed for software engineers and distributed technical teams. The platform combines WebRTC-based video/audio communication, conflict-free collaborative code editing powered by CRDTs, organization-level tenancy, and multi-provider authentication within a unified architecture.
@@ -148,3 +147,7 @@ The backend includes a comprehensive, multi-layer automated test suite using Jes
 | **Security & Auth**   | JSON Web Tokens, bcryptjs, google-auth-library, GitHub OAuth    |
 | **Database**          | MongoDB (Atlas / Containerized Mongo for CI)                    |
 | **Testing & CI**      | Jest 30, Supertest, GitHub Actions                              |
+
+> > root>> docker compose -f docker-compose.livekit.yml up -d
+> > backend>> npm run dev
+> > frontend>> npm run dev

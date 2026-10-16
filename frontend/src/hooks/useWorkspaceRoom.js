@@ -37,17 +37,28 @@ export function useWorkspaceRoom({
   // Peer & Socket Presence
   const [connectedUsers, setConnectedUsers] = useState([]);
   const [socketConnected, setSocketConnected] = useState(false);
+  const [activeSocket, setActiveSocket] = useState(null);
   const socketRef = useRef(null);
 
   // Guest Onboarding State
   const [isGuestModalOpen, setIsGuestModalOpen] = useState(false);
   const [publicRoomInfo, setPublicRoomInfo] = useState(null);
 
-  // Track latest sideDrawer in ref for socket notifications
+  // Track latest sideDrawer and callbacks in stable refs to prevent re-render loops
   const sideDrawerRef = useRef(sideDrawer);
   useEffect(() => {
     sideDrawerRef.current = sideDrawer;
   }, [sideDrawer]);
+
+  const onFilesReceivedRef = useRef(onFilesReceived);
+  useEffect(() => {
+    onFilesReceivedRef.current = onFilesReceived;
+  }, [onFilesReceived]);
+
+  const onSoundNotificationRef = useRef(onSoundNotification);
+  useEffect(() => {
+    onSoundNotificationRef.current = onSoundNotification;
+  }, [onSoundNotification]);
 
   // 1. Fetch current user or prompt guest flow if visiting an invited room
   useEffect(() => {
@@ -149,7 +160,7 @@ export function useWorkspaceRoom({
 
         setRoomStatus("active");
 
-        if (onFilesReceived && data.files) {
+        if (onFilesReceivedRef.current && data.files) {
           let roomFiles = data.files;
           if (roomFiles.length === 0) {
             const lang = data.primaryLanguage || "TypeScript";
@@ -164,7 +175,7 @@ export function useWorkspaceRoom({
               },
             ];
           }
-          onFilesReceived(roomFiles);
+          onFilesReceivedRef.current(roomFiles);
         }
       }
     } catch (err) {
@@ -180,11 +191,18 @@ export function useWorkspaceRoom({
         setRoomError(err?.message || "Failed to join room.");
       }
     }
-  }, [roomId, user, onFilesReceived]);
+  }, [roomId, user]);
+
+  const hasFetchedRef = useRef(false);
 
   useEffect(() => {
     if (!isMounted || !roomId || !user) return;
-    fetchRoomDetails();
+    if (hasFetchedRef.current) return;
+    hasFetchedRef.current = true;
+    const timer = setTimeout(() => {
+      fetchRoomDetails();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [roomId, isMounted, user, fetchRoomDetails]);
 
   // 3. Socket.IO Gateway Setup & Event Handlers
@@ -196,12 +214,16 @@ export function useWorkspaceRoom({
       auth: { token },
     });
     socketRef.current = socket;
+    const timer = setTimeout(() => {
+      setActiveSocket(socket);
+    }, 0);
 
     socket.on("connect", () => {
       setSocketConnected(true);
       console.log(`[Socket] Connected: ${socket.id} - Joining room: ${roomId}`);
       socket.emit("join-room", { roomId });
     });
+
 
     socket.on("disconnect", () => {
       setSocketConnected(false);
@@ -218,10 +240,10 @@ export function useWorkspaceRoom({
       }) => {
         setRoomStatus("active");
 
-        if (roomFiles && roomFiles.length > 0 && onFilesReceived) {
-          onFilesReceived(roomFiles);
-        } else if (existingCode && onFilesReceived) {
-          onFilesReceived([
+        if (roomFiles && roomFiles.length > 0 && onFilesReceivedRef.current) {
+          onFilesReceivedRef.current(roomFiles);
+        } else if (existingCode && onFilesReceivedRef.current) {
+          onFilesReceivedRef.current([
             {
               name: `main.${roomLang === "python" ? "py" : "ts"}`,
               content: existingCode,
@@ -265,8 +287,8 @@ export function useWorkspaceRoom({
 
     socket.on("user-joined", ({ socketId, user: joinedUser }) => {
       console.log("[Socket] User joined:", joinedUser?.username || joinedUser?.fullName);
-      if (onSoundNotification) {
-        onSoundNotification(true);
+      if (onSoundNotificationRef.current) {
+        onSoundNotificationRef.current(true);
       }
       setConnectedUsers((prev) => {
         const filtered = prev.filter((u) => u.socketId !== socketId);
@@ -286,8 +308,8 @@ export function useWorkspaceRoom({
 
     socket.on("user-disconnected", ({ socketId, user: leftUser }) => {
       console.log("[Socket] User disconnected:", socketId);
-      if (onSoundNotification) {
-        onSoundNotification(false);
+      if (onSoundNotificationRef.current) {
+        onSoundNotificationRef.current(false);
       }
       setConnectedUsers((prev) => prev.filter((u) => u.socketId !== socketId));
       if (leftUser) {
@@ -308,8 +330,8 @@ export function useWorkspaceRoom({
       dispatch(addMessage(message));
       if (sideDrawerRef.current !== "chat") {
         dispatch(incrementUnread());
-        if (onSoundNotification) {
-          onSoundNotification(false);
+        if (onSoundNotificationRef.current) {
+          onSoundNotificationRef.current(false);
         }
       }
     });
@@ -318,8 +340,9 @@ export function useWorkspaceRoom({
       console.log("[Socket] Cleaning up workspace socket...");
       socket.disconnect();
       socketRef.current = null;
+      setActiveSocket(null);
     };
-  }, [isMounted, user, token, roomId, dispatch, onFilesReceived, onSoundNotification]);
+  }, [isMounted, user, token, roomId, dispatch]);
 
   const handleGuestJoinSuccess = (guestData) => {
     dispatch(
@@ -332,6 +355,7 @@ export function useWorkspaceRoom({
   };
 
   const retryConnection = () => {
+    hasFetchedRef.current = false;
     setRoomStatus("loading");
     setRoomError("");
     fetchRoomDetails();
@@ -346,7 +370,7 @@ export function useWorkspaceRoom({
     roomHost,
     setRoomHost,
     roomInfo,
-    socket: socketRef.current,
+    socket: activeSocket,
     socketRef,
     socketConnected,
     connectedUsers,

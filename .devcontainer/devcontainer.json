@@ -1,0 +1,23 @@
+{
+  "name": "DEVMEET-2 Cloud Environment",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:1-22",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
+  "forwardPorts": [3001, 8000, 7880],
+  "portsAttributes": {
+    "3001": {
+      "label": "Next.js Frontend",
+      "onAutoForward": "openPreview"
+    },
+    "8000": {
+      "label": "Express API & Socket.IO",
+      "onAutoForward": "silent"
+    },
+    "7880": {
+      "label": "LiveKit SFU Server",
+      "onAutoForward": "silent"
+    }
+  },
+  "postCreateCommand": "npm --prefix backend install && npm --prefix frontend install"
+}

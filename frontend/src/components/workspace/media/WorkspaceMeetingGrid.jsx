@@ -18,14 +18,16 @@ export default function WorkspaceMeetingGrid({
 }) {
   // Collect all participants (Self + Connected Peers)
   const peers = connectedUsers.map((peer) => {
+    const peerId = peer.user?._id ? String(peer.user._id) : peer.socketId;
     const isInCall = roomUsers.some(
-      (ru) => ru.socketId === peer.socketId || ru.user?._id === peer.user?._id
+      (ru) => ru.socketId === peer.socketId || ru.identity === peerId || ru.user?._id === peer.user?._id
     );
-    const stream = remoteStreams[peer.socketId];
-    const mediaState = remoteMediaStates[peer.socketId] || {
+    const stream = remoteStreams[peerId] || remoteStreams[peer.socketId];
+    const mediaState = remoteMediaStates[peerId] || remoteMediaStates[peer.socketId] || {
       isCameraOff: true,
       isMicMuted: true,
     };
+
     return {
       socketId: peer.socketId,
       name: peer.user?.fullName || peer.user?.username || peer.user?.name || "Peer",

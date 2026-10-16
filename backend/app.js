@@ -24,6 +24,7 @@ app.use(
 // routes import
 import userRouter from './src/modules/user/user.routes.js';
 import roomRouter from './src/modules/room/room.routes.js';
+import mediaRouter from './src/modules/media/media.routes.js';
 import { errorHandler } from "./src/middlewares/error.middleware.js";
 import { apiReference } from "@scalar/express-api-reference";
 import swaggerUi from "swagger-ui-express";
@@ -60,7 +61,9 @@ app.use(
 
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/rooms", roomRouter);
+app.use("/api/v1/media", mediaRouter);
 
 // Global error handling middleware
 app.use(errorHandler)
 export { app };
+

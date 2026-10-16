@@ -1,0 +1,19 @@
+# DEVMEET-2: LiveKit SFU Docker Compose Configuration
+# Starts a high-performance Selective Forwarding Unit for video/audio conferencing
+# Run: docker compose -f docker-compose.livekit.yml up -d
+
+services:
+  livekit:
+    image: livekit/livekit-server:latest
+    container_name: devmeet-livekit
+
+    restart: unless-stopped
+    command: --config /etc/livekit.yaml
+    ports:
+      - "7880:7880"         # HTTP / WebSocket signaling
+      - "7881:7881"         # TCP fallback for restrictive firewalls
+      - "7882:7882/udp"     # UDP media transport
+    volumes:
+      - ./livekit.yaml:/etc/livekit.yaml:ro
+    environment:
+      LIVEKIT_KEYS: "${LIVEKIT_API_KEY:-devkey}: ${LIVEKIT_API_SECRET:-secret}"

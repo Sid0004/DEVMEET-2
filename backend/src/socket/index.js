@@ -6,8 +6,8 @@ import { User } from "../modules/user/user.model.js";
 import { registerRoomHandlers } from "../modules/room/room.handler.js";
 import { registerEditorHandlers } from "../modules/editor/editor.handler.js";
 import { registerChatHandlers } from "../modules/chat/chat.handler.js";
-import { registerWebRTCHandlers } from "../modules/webrtc/webrtc.handler.js";
 import { registerWhiteboardHandlers } from "../modules/whiteboard/whiteboard.handler.js";
+
 
 export const initSocket = (server) => {
   const allowedOrigins = process.env.CORS_ORIGIN
@@ -76,9 +76,9 @@ export const initSocket = (server) => {
     registerRoomHandlers(io, socket);
     registerEditorHandlers(io, socket);
     registerChatHandlers(io, socket);
-    registerWebRTCHandlers(io, socket);
     registerWhiteboardHandlers(io, socket);
   });
+
 
   return io;
 };
