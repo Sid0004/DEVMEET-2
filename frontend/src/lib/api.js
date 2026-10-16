@@ -36,8 +36,22 @@ async function refreshAccessToken() {
   return refreshPromise;
 }
 
+function getStoredAccessToken() {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie.match(/(?:^|;\s*)accessToken=([^;]*)/);
+  if (match) return decodeURIComponent(match[1]);
+  try {
+    return localStorage.getItem("devmeet_token");
+  } catch {
+    return null;
+  }
+}
+
 export async function apiRequest(path, options = {}, retries = 2) {
   let response;
+  const token = getStoredAccessToken();
+  const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+
   try {
     response = await fetch(buildApiUrl(path), {
       credentials: "include",
@@ -45,6 +59,7 @@ export async function apiRequest(path, options = {}, retries = 2) {
       headers: {
         "Content-Type": "application/json",
         "ngrok-skip-browser-warning": "true",
+        ...authHeaders,
         ...(options.headers || {}),
       },
     });
