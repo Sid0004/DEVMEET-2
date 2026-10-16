@@ -22,7 +22,12 @@ export const corsOptions = {
             // Allow same-origin requests, direct navigation, and Render health check probes
             return callback(null, true);
         }
-        if (allowedOrigins.includes(origin)) {
+        if (
+            allowedOrigins.includes(origin) ||
+            origin.endsWith(".runs-on.dev") ||
+            origin.endsWith(".vercel.app") ||
+            origin.includes("localhost")
+        ) {
             return callback(null, true);
         }
         return callback(new Error(`CORS blocked for origin: ${origin}`));
