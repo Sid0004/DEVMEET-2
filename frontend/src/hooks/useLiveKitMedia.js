@@ -14,7 +14,7 @@ import { apiRequest, API_BASE_URL } from "@/lib/api";
  * - Active speaker volume detection
  * - Seamless integration with existing workspace UI components
  */
-export function useLiveKitMedia({ roomId, user }) {
+export function useLiveKitMedia({ roomId, user, autoJoin = false }) {
   const [localStream, setLocalStream] = useState(null);
   const [remoteStreams, setRemoteStreams] = useState({});
   const [remoteMediaStates, setRemoteMediaStates] = useState({});
@@ -28,6 +28,8 @@ export function useLiveKitMedia({ roomId, user }) {
   const roomRef = useRef(null);
   const localStreamRef = useRef(null);
   const audioElementsRef = useRef(new Map());
+  const isConnectingRef = useRef(false);
+  const hasAutoJoinedRef = useRef(false);
 
   // Helper to sync participant list and media states
   const syncParticipants = useCallback((room) => {
@@ -128,7 +130,8 @@ export function useLiveKitMedia({ roomId, user }) {
 
   // Start / Join Video Call
   const startCall = useCallback(async () => {
-    if (!roomId || !user) return;
+    if (!roomId || !user || isConnectingRef.current || roomRef.current) return;
+    isConnectingRef.current = true;
     setCallError(null);
 
     try {
@@ -211,7 +214,7 @@ export function useLiveKitMedia({ roomId, user }) {
         await room.localParticipant.setCameraEnabled(true);
         setIsCameraOff(false);
       } catch (camErr) {
-        console.warn("[LiveKit] Camera unavailable or permission denied:", camErr);
+        console.warn("[LiveKit] Camera unavailable or locked by another window, falling back to audio:", camErr?.message || camErr);
         setIsCameraOff(true);
       }
 
@@ -219,7 +222,7 @@ export function useLiveKitMedia({ roomId, user }) {
         await room.localParticipant.setMicrophoneEnabled(true);
         setIsMicMuted(false);
       } catch (micErr) {
-        console.warn("[LiveKit] Microphone unavailable or permission denied:", micErr);
+        console.warn("[LiveKit] Microphone unavailable or permission denied:", micErr?.message || micErr);
         setIsMicMuted(true);
       }
 
@@ -229,14 +232,37 @@ export function useLiveKitMedia({ roomId, user }) {
       console.error("[LiveKit] Failed to join call:", err);
       setCallError(err.message || "Failed to join live video call");
       setIsJoinedCall(false);
+    } finally {
+      isConnectingRef.current = false;
     }
   }, [roomId, user, syncParticipants, updateLocalStream]);
 
+  // Auto-connect call when user and room are ready
+  useEffect(() => {
+    hasAutoJoinedRef.current = false;
+  }, [roomId]);
+
+  useEffect(() => {
+    if (
+      autoJoin &&
+      roomId &&
+      user &&
+      !isJoinedCall &&
+      !hasAutoJoinedRef.current &&
+      !roomRef.current &&
+      !isConnectingRef.current
+    ) {
+      hasAutoJoinedRef.current = true;
+      startCall();
+    }
+  }, [autoJoin, roomId, user, isJoinedCall, startCall]);
+
   // Leave Call
   const leaveCall = useCallback(async () => {
+    isConnectingRef.current = false;
     if (roomRef.current) {
       // Clean up audio elements
-      audioElementsRef.current.forEach((el, sid) => {
+      audioElementsRef.current.forEach((el) => {
         el.remove();
       });
       audioElementsRef.current.clear();

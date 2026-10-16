@@ -135,10 +135,17 @@ const logoutUser = asyncHandler(async (req, res) => {
 
 const getCurrentUser = asyncHandler(async (req, res) => {
     if (!req.user) throw new ApiError(401, "Unauthorized");
+
+    // If it's a guest session, return the guest user from the verified token
+    if (req.user.isGuest) {
+        return res.status(200).json(new ApiResponse(200, req.user, "Guest user fetched successfully"));
+    }
+
     const user = await UserService.getCurrentUser(req.user._id);
 
     return res.status(200).json(new ApiResponse(200, user, "User fetched successfully"));
 });
+
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
     const incomingRefreshToken = req.cookies?.refreshToken || req.body?.refreshToken;

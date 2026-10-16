@@ -245,6 +245,7 @@ function WorkspaceContent() {
   } = useLiveKitMedia({
     roomId,
     user,
+    autoJoin: !isNoVC && !hasLeftMeeting && roomStatus === "active",
   });
 
 

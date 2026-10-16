@@ -70,13 +70,14 @@ export const registerRoomHandlers = (io, socket) => {
       const dbMessages = await Message.find({ room: room._id })
         .sort({ createdAt: -1 })
         .limit(50)
-        .populate("sender", "username fullName _id");
+        .populate("sender", "username fullName _id avatar");
       
       const messages = dbMessages.reverse().map(msg => ({
         sender: {
           _id: msg.sender?._id,
           username: msg.sender?.username,
-          fullName: msg.sender?.fullName
+          fullName: msg.sender?.fullName,
+          avatar: msg.sender?.avatar || null,
         },
         text: msg.content,
         timestamp: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { useAppSelector, useAppDispatch } from "@/redux/hooks";
 import { addMessage, incrementUnread, resetUnread, setTypingUser, removeTypingUser } from "@/redux/features/chatSlice";
 import styles from "@/app/workspace/workspace.module.css";
@@ -87,10 +87,30 @@ export default function ChatPanel({ socket, connectedUsers, roomUsers, user }) {
     }, 2000);
   };
 
-  const allMembers = [
-    { socketId: "self", user, isMe: true },
-    ...connectedUsers.map((c) => ({ ...c, isMe: false })),
-  ];
+  const allMembers = useMemo(() => {
+    const list = [{ socketId: "self", user, isMe: true }];
+    const memberMap = new Map();
+
+    connectedUsers.forEach((c) => {
+      const id = c.user?._id ? String(c.user._id) : c.socketId;
+      if (user?._id && id === String(user._id)) return;
+      memberMap.set(id, { ...c, isMe: false });
+    });
+
+    roomUsers.forEach((ru) => {
+      const id = String(ru.user?._id || ru.identity || ru.socketId);
+      if (user?._id && id === String(user._id)) return;
+      if (!memberMap.has(id)) {
+        memberMap.set(id, {
+          socketId: ru.socketId || id,
+          user: ru.user,
+          isMe: false,
+        });
+      }
+    });
+
+    return [...list, ...Array.from(memberMap.values())];
+  }, [user, connectedUsers, roomUsers]);
 
   return (
     <div className={styles.chatSection}>
@@ -171,17 +191,26 @@ export default function ChatPanel({ socket, connectedUsers, roomUsers, user }) {
                     );
                   }
                   const isMe = msg.sender?._id === user?._id;
+                  const senderName = isMe
+                    ? "You"
+                    : msg.sender?.fullName || msg.sender?.username || "Peer";
                   return (
                     <div
                       key={index}
                       className={isMe ? styles.msgLocal : styles.msgRemote}
                     >
-                      <p className={styles.msgMeta}>
-                        {isMe
-                          ? "You"
-                          : msg.sender?.fullName || msg.sender?.username || "Peer"}{" "}
-                        • {msg.timestamp}
-                      </p>
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
+                        {!isMe && (
+                          <Avatar
+                            src={msg.sender?.avatar}
+                            name={senderName}
+                            size={18}
+                          />
+                        )}
+                        <p className={styles.msgMeta} style={{ margin: 0 }}>
+                          {senderName} • {msg.timestamp}
+                        </p>
+                      </div>
                       <div
                         className={
                           isMe ? styles.msgBubbleLocal : styles.msgBubbleRemote

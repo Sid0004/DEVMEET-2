@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import Avatar from "@/components/Avatar";
+import { resolveMeetingPeers } from "@/utils/resolveMeetingPeers";
 import {
   Mic,
   MicOff,
@@ -162,27 +163,17 @@ export default function WorkspaceVideoSidebar({
     [position, width]
   );
 
-  const peers = connectedUsers.map((peer) => {
-    const peerId = peer.user?._id ? String(peer.user._id) : peer.socketId;
-    const isInCall = roomUsers.some(
-      (ru) => ru.socketId === peer.socketId || ru.identity === peerId || ru.user?._id === peer.user?._id
-    );
-    const stream = remoteStreams[peerId] || remoteStreams[peer.socketId];
-    const mediaState = remoteMediaStates[peerId] || remoteMediaStates[peer.socketId] || {
-      isCameraOff: true,
-      isMicMuted: true,
-    };
-
-    return {
-      socketId: peer.socketId,
-      name: peer.user?.fullName || peer.user?.username || peer.user?.name || "Peer",
-      avatar: peer.user?.avatar || peer.user?.avatarUrl || null,
-      isInCall,
-      stream,
-      isCameraOff: mediaState.isCameraOff,
-      isMicMuted: mediaState.isMicMuted,
-    };
-  });
+  const peers = useMemo(
+    () =>
+      resolveMeetingPeers({
+        currentUser: user,
+        connectedUsers,
+        roomUsers,
+        remoteStreams,
+        remoteMediaStates,
+      }),
+    [user, connectedUsers, roomUsers, remoteStreams, remoteMediaStates]
+  );
 
   const totalTiles = 1 + peers.length;
 
